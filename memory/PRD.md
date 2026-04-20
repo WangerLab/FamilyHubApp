@@ -102,6 +102,27 @@ household_members: id (uuid PK), household_id (uuid FK), user_id (uuid FK → au
 - [x] Friendly empty state in German
 - [x] Scroll to newly added item's category
 
+## Implemented Features (Session 3 — AI Brain Dump Parser, April 2026)
+
+- [x] FastAPI backend endpoint `POST /api/brain-dump/parse`
+- [x] Anthropic Claude (claude-sonnet-4-5-20250929) via `emergentintegrations` + `EMERGENT_LLM_KEY`
+- [x] Structured JSON extraction: name, quantity, unit, category, note
+- [x] Auto-mapping to the 9 fixed German categories (Obst & Gemüse … Snacks & Süsses)
+- [x] Unit whitelist: Stück, g, kg, ml, L, Packung, Dose, Flasche, Bund, Glas
+- [x] Validation: non-empty text, max 500 chars, user_id required
+- [x] In-memory rate limit: 10 req/user/hour — returns 429 + Retry-After header
+- [x] 15s timeout via `asyncio.wait_for` + single retry on failure
+- [x] Token/duration logging per call
+- [x] Frontend `BrainDump.jsx` — collapsible section above grocery list
+- [x] Textarea with live 0/500 char counter (amber <50, red at cap)
+- [x] "KI-Parse" button with loading spinner ("KI denkt nach…")
+- [x] Editable preview rows: checkbox select/deselect, inline edit name/qty/unit/category/note, remove button
+- [x] Bulk "N hinzufügen" saves selected items via `GroceryContext.addItem`
+- [x] After save: textarea cleared + section auto-collapsed (per user preference)
+- [x] Rate-limit error UI with live countdown timer until reset
+- [x] Sticky header preserved (AddItemInput + BrainDump both pinned under page header)
+- [x] Regression test suite at `/app/backend/tests/test_brain_dump.py`
+
 ## SQL Setup Required
 
 Run `/app/supabase_grocery_setup.sql` in Supabase Dashboard → SQL Editor to activate the grocery list.
