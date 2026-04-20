@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { House, ShoppingCart, CheckSquare, RefreshCw, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useGrocery } from '../contexts/GroceryContext';
 
 const TABS = [
   { id: 'home', label: 'Home', icon: House, path: '/home' },
@@ -13,6 +14,7 @@ const TABS = [
 
 export default function BottomNav() {
   const { member } = useAuth();
+  const { uncheckedCount } = useGrocery();
   const navigate = useNavigate();
   const location = useLocation();
   const userColor = member?.color || '#3B82F6';
@@ -32,14 +34,25 @@ export default function BottomNav() {
             onClick={() => navigate(path)}
             aria-label={label}
             aria-current={isActive ? 'page' : undefined}
-            className="flex flex-col items-center justify-center flex-1 min-h-[64px] py-2 active:scale-95 transition-transform duration-100"
+            className="flex flex-col items-center justify-center flex-1 min-h-[64px] py-2 active:scale-95 transition-transform duration-100 relative"
             style={{ minWidth: 0 }}
           >
-            <Icon
-              className="w-6 h-6 transition-colors duration-150"
-              style={{ color: isActive ? userColor : undefined }}
-              strokeWidth={isActive ? 2.5 : 1.8}
-            />
+            <div className="relative">
+              <Icon
+                className="w-6 h-6 transition-colors duration-150"
+                style={{ color: isActive ? userColor : undefined }}
+                strokeWidth={isActive ? 2.5 : 1.8}
+              />
+              {/* Unchecked grocery badge on Shopping tab */}
+              {id === 'shopping' && uncheckedCount > 0 && (
+                <span
+                  data-testid="shopping-badge"
+                  className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none"
+                >
+                  {uncheckedCount > 99 ? '99+' : uncheckedCount}
+                </span>
+              )}
+            </div>
             <span
               className="text-[10px] font-medium mt-1 transition-colors duration-150"
               style={{
