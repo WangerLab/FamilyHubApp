@@ -28,6 +28,9 @@ export default function BrainDump({ mode = 'grocery' }) {
   const { addItem: addGroceryItem } = useGrocery();
   const miscCtx = useMisc();
   const addMiscItem = miscCtx?.addItem;
+  const todosCtx = useTodos();
+  const addTodoItem = todosCtx?.addTodo;
+  const todosMembers = todosCtx?.houseMembers || [];
 
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState('');
@@ -117,6 +120,7 @@ export default function BrainDump({ mode = 'grocery' }) {
       }
       setPreview(items);
     } catch (e) {
+      console.error('[brain-dump] parse failed:', e);
       setError('Netzwerkfehler. Bitte Verbindung prüfen.');
     } finally {
       setLoading(false);

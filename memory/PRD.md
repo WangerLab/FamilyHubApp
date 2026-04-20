@@ -141,6 +141,23 @@ household_members: id (uuid PK), household_id (uuid FK), user_id (uuid FK → au
 - [x] Shopping mode toggle ("Einkaufen/Fertig") hidden on Sonstiges sub-tab
 - [x] Regression test suites: `/app/backend/tests/test_brain_dump.py` + `test_brain_dump_misc.py` (12/12 green)
 
+## Implemented Features (Session 5 — Todos + Weekly Chores, April 2026)
+
+- [x] 3 neue Supabase-Tabellen: `todos`, `chores`, `chore_completions` + RLS + Realtime + Trigger für week/year/month + RPC `archive_old_todos()` (Session 5 SQL: `/app/supabase_session5_setup.sql`)
+- [x] Echtes `archived` Feld + server-seitige Funktion (User-Wahl **b**)
+- [x] In-App Nudge-Toast über Realtime (User-Wahl **x**) — 24h Cooldown pro Todo
+- [x] Smart-Date Parser (DE): morgen, heute, übermorgen, in N Tagen, Ende der Woche, nächste Woche, Wochentage
+- [x] AddTodoInput mit Priority-Chips (Hoch/Mittel/Niedrig), Assignee, Datetime-Picker, Smart-Date-Hint mit Klick-zum-Übernehmen
+- [x] TodoRow: Priority-Farb-Streifen links, Overdue Red-Glow-Pulse-Animation, Checkbox, ⚡ Quick-Done-Emoji (erledigt vor due_date), Nudge-Button (mit 24h-Cooldown), Expandable Kommentar, Swipe-Delete
+- [x] Collapsible „Erledigt" + „Archiv" Sektionen auf Tasks-Tab
+- [x] AddChoreInput mit Frequency-Chips (1×/2×/Monat/Custom-Tage)
+- [x] ChoreCard: Progress-Bar, Completion-Dots mit Member-Farben (Tim=blau, Iris=rose), Erledigt/Rückgängig-Toggle
+- [x] Reset-Logic ohne Cron: Period-Filter via ISO-Week/Monat (Completions bleiben historisch erhalten)
+- [x] Gamification-Bar `WeeklyStats` (wiederverwendet): „Diese Woche erledigt: Tim N / Iris M 🏆"
+- [x] Brain Dump `mode="todos"`: Extrahiert title/priority/due_date/assignee_hint/comment. **HEUTE-Injection** → Claude gibt frische 2026-Dates. Post-Processor nullt veraltete/fehlerhafte Dates.
+- [x] Backend: 18/18 pytest grün (6 grocery + 6 misc + 6 todos inkl. Rate-Limit über 3 Modi)
+- [x] Frontend: Self-tested — Smart-Date-Hints, AddTodo/AddChore Formulare, Brain Dump todos Flow (Parse → Preview mit 2 Items + korrekten Assignees) alle funktionieren
+
 ## SQL Setup Required
 
 Run `/app/supabase_grocery_setup.sql` in Supabase Dashboard → SQL Editor to activate the grocery list.
