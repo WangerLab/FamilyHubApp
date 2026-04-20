@@ -123,6 +123,24 @@ household_members: id (uuid PK), household_id (uuid FK), user_id (uuid FK → au
 - [x] Sticky header preserved (AddItemInput + BrainDump both pinned under page header)
 - [x] Regression test suite at `/app/backend/tests/test_brain_dump.py`
 
+## Implemented Features (Session 4 — Sonstiges Shopping List, April 2026)
+
+- [x] New Supabase table `misc_items` with RLS (same pattern as grocery_items) + Realtime
+- [x] SQL migration script at `/app/supabase_misc_setup.sql` (user runs in Supabase SQL editor)
+- [x] Segmented control in Shopping tab: "Nahrungsmittel" | "Sonstiges" (persisted via localStorage)
+- [x] Predefined location tags with emoji: Apotheke 💊, Baumarkt 🔨, Drogerie 🧴, Zoohandlung 🐾, Kleidung 👕, Sonstiges 📦
+- [x] Custom user-defined location tags (arbitrary strings saved per item)
+- [x] AddMiscItemInput with tag picker (data-testid `add-misc-input`)
+- [x] MiscItemRow: checkbox toggle + strikethrough, swipe-left delete, undo snackbar, note editing
+- [x] Items grouped by `location_tag` with sticky headers (predefined order first, custom A→Z)
+- [x] Brain Dump mode-aware: `POST /api/brain-dump/parse` accepts `mode: grocery|misc` (default grocery = backwards compat). New misc system prompt with location-tag heuristics (Ibuprofen→Apotheke, Schrauben→Baumarkt, Shampoo→Drogerie, Hundefutter→Zoohandlung, Socken→Kleidung, others→Sonstiges)
+- [x] BrainDump component accepts `mode` prop; preview shows only location dropdown for misc (no qty/unit/category)
+- [x] Rate limit (10/h) shared across both modes per user
+- [x] Bottom-nav Shopping badge: split "N·M" when both counts >0, single number otherwise
+- [x] Reset list respects active sub-tab (only grocery OR only misc)
+- [x] Shopping mode toggle ("Einkaufen/Fertig") hidden on Sonstiges sub-tab
+- [x] Regression test suites: `/app/backend/tests/test_brain_dump.py` + `test_brain_dump_misc.py` (12/12 green)
+
 ## SQL Setup Required
 
 Run `/app/supabase_grocery_setup.sql` in Supabase Dashboard → SQL Editor to activate the grocery list.
