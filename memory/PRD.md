@@ -158,6 +158,22 @@ household_members: id (uuid PK), household_id (uuid FK), user_id (uuid FK → au
 - [x] Backend: 18/18 pytest grün (6 grocery + 6 misc + 6 todos inkl. Rate-Limit über 3 Modi)
 - [x] Frontend: Self-tested — Smart-Date-Hints, AddTodo/AddChore Formulare, Brain Dump todos Flow (Parse → Preview mit 2 Items + korrekten Assignees) alle funktionieren
 
+## Implemented Features (Session 6 — Dashboard + Notification Center, April 2026)
+
+- [x] Neue Tabelle `activity_log` + RLS + Realtime + RPC `mark_all_notifications_read()` (SQL: `/app/supabase_session6_setup.sql`, bereits vom User ausgeführt)
+- [x] `ActivityContext` mit logActivity/markAllRead/unreadCount + Realtime-Subscription
+- [x] Fire-and-forget logActivity-Calls in GroceryContext, MiscContext, TodosContext, ChoresContext — Primär-Operationen bleiben unberührt wenn Log fehlschlägt
+- [x] Brain Dump Aggregate-Log: statt N Einzel-Einträge EIN „hat per KI Brain Dump {N} Items hinzugefügt"
+- [x] **TopBar Bell** mit Unread-Badge (rechts neben User-Info, User-Wahl **x**)
+- [x] **Notification Panel** als **Bottom-Sheet** (User-Wahl **a**) mit slide-up Animation, max 50 Einträge, timeAgo Labels, pro action_type Farben/Icons, unlesen = blauer Dot + blaue Hintergrund-Tönung, „Alle gelesen" Button mit optimistic update + Revert bei RPC-Fehler
+- [x] **DashboardHome** ersetzt Home-Placeholder: Zeitbasierter Greeting (Morgen/Tag/Abend), 4 tappable Cards:
+  - Aktuell wichtig (high priority + <48h, max 3, Overdue=rot hervorgehoben)
+  - Einkaufsliste (Nahrungsmittel + Sonstiges Gesamt-Count, farbige Dots)
+  - Wiederkehrendes (offene Chores diese Periode, max 3 sichtbar)
+  - Geburtstage (Session 8 Placeholder)
+- [x] Card-Navigation: Tap → entsprechender Tab
+- [x] Testing: Backend 18/18 pytest regression grün, Frontend alle direkt-testbaren Flows 100% (Dashboard render, 4 Cards, 3 Card-Navigations, Bell+Panel+MarkAllRead, Realtime activity log für todo create), keine Console-Errors, alle Sessions 1-5 Regressions grün
+
 ## SQL Setup Required
 
 Run `/app/supabase_grocery_setup.sql` in Supabase Dashboard → SQL Editor to activate the grocery list.

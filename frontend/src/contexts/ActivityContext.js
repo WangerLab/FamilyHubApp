@@ -86,6 +86,7 @@ export const ActivityProvider = ({ children }) => {
   const markAllRead = useCallback(async () => {
     if (!user?.id) return;
     // Optimistic update
+    const snapshot = entries;
     setEntries((prev) =>
       prev.map((e) =>
         (e.read_by_user_ids || []).includes(user.id)
@@ -93,8 +94,13 @@ export const ActivityProvider = ({ children }) => {
           : { ...e, read_by_user_ids: [...(e.read_by_user_ids || []), user.id] }
       )
     );
-    await supabase.rpc('mark_all_notifications_read');
-  }, [user?.id]);
+    const { error } = await supabase.rpc('mark_all_notifications_read');
+    if (error) {
+      console.warn('[activity] mark_all_notifications_read failed:', error.message);
+      // Revert optimistic update
+      setEntries(snapshot);
+    }
+  }, [user?.id, entries]);
 
   const unreadCount = entries.filter(
     (e) => !(e.read_by_user_ids || []).includes(user?.id)
