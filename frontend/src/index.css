@@ -81,6 +81,11 @@
   }
 }
 
+/* Push the Emergent badge above the bottom nav so it never blocks tab items */
+#emergent-badge {
+  bottom: calc(72px + env(safe-area-inset-bottom) + 12px) !important;
+}
+
 @layer utilities {
   /* Safe-area helpers */
   .pt-safe { padding-top: env(safe-area-inset-top); }
