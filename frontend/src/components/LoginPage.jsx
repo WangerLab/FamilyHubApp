@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Home, Heart } from 'lucide-react';
+import { Home, Heart, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { getRememberMe, setRememberMe } from '../supabaseClient';
 
 export default function LoginPage() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(() => getRememberMe());
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -14,6 +16,9 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
+      // Persist preference BEFORE signIn so the custom storage adapter
+      // routes the new session tokens to the correct storage.
+      setRememberMe(remember);
       await signIn(email.trim(), password);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
@@ -102,6 +107,30 @@ export default function LoginPage() {
               style={{ fontFamily: 'DM Sans, sans-serif' }}
             />
           </div>
+
+          <button
+            type="button"
+            data-testid="login-remember-toggle"
+            onClick={() => setRemember((v) => !v)}
+            aria-pressed={remember}
+            className="w-full flex items-center gap-3 py-2 -my-1 active:opacity-70 transition-opacity"
+          >
+            <span
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
+                remember
+                  ? 'bg-blue-500 border-blue-500'
+                  : 'border-slate-300 dark:border-slate-600 bg-transparent'
+              }`}
+            >
+              {remember && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+            </span>
+            <span
+              className="text-sm text-slate-600 dark:text-slate-300 select-none"
+              style={{ fontFamily: 'DM Sans, sans-serif' }}
+            >
+              Stay logged in
+            </span>
+          </button>
 
           <button
             type="submit"
