@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, ChevronDown, Loader2, X, Check, Trash2 } from 'lucide-react';
+import { Sparkles, ChevronDown, Loader2, Check, Trash2 } from 'lucide-react';
 import { CATEGORIES } from '../../constants/categories';
+import { MISC_LOCATIONS, getLocationMeta } from '../../constants/miscLocations';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
+import { useMisc } from '../../contexts/MiscContext';
 
 const MAX_CHARS = 500;
 const UNITS = ['Stück', 'g', 'kg', 'ml', 'L', 'Packung', 'Dose', 'Flasche', 'Bund', 'Glas'];
@@ -15,30 +17,42 @@ function formatCountdown(sec) {
   return `${m}m ${s.toString().padStart(2, '0')}s`;
 }
 
-export default function BrainDump() {
+/**
+ * BrainDump — AI parser section.
+ * Props:
+ *   mode: 'grocery' | 'misc' (default 'grocery')
+ */
+export default function BrainDump({ mode = 'grocery' }) {
   const { user, member } = useAuth();
-  const { addItem } = useGrocery();
+  const { addItem: addGroceryItem } = useGrocery();
+  const miscCtx = useMisc();
+  const addMiscItem = miscCtx?.addItem;
+
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [preview, setPreview] = useState(null); // array of items or null
+  const [preview, setPreview] = useState(null);
   const [retryAfter, setRetryAfter] = useState(0);
   const textareaRef = useRef(null);
   const userColor = member?.color || '#3B82F6';
   const userId = user?.id;
   const API = process.env.REACT_APP_BACKEND_URL;
 
-  // Countdown tick for rate-limit cooldown
+  const isMisc = mode === 'misc';
+
+  // Reset preview when mode changes
+  useEffect(() => {
+    setPreview(null);
+    setError('');
+  }, [mode]);
+
   useEffect(() => {
     if (retryAfter <= 0) return;
-    const t = setInterval(() => {
-      setRetryAfter((s) => (s <= 1 ? 0 : s - 1));
-    }, 1000);
+    const t = setInterval(() => setRetryAfter((s) => (s <= 1 ? 0 : s - 1)), 1000);
     return () => clearInterval(t);
   }, [retryAfter]);
 
-  // Autofocus on expand
   useEffect(() => {
     if (expanded && !preview && textareaRef.current) {
       setTimeout(() => textareaRef.current?.focus(), 150);
@@ -49,6 +63,10 @@ export default function BrainDump() {
   const overLimit = text.length > MAX_CHARS;
   const canParse = !loading && text.trim().length > 0 && !overLimit && retryAfter === 0 && userId;
 
+  const placeholder = isMisc
+    ? 'z.B. Ibuprofen, Schrauben 4mm, Hundefutter Nassfutter, Zahnpasta, Batterien AA…'
+    : 'z.B. 2 Äpfel, 500g Hack, eine Packung Nudeln, Milch laktosefrei, 6 Eier…';
+
   const handleParse = async () => {
     if (!canParse) return;
     setError('');
@@ -57,7 +75,7 @@ export default function BrainDump() {
       const res = await fetch(`${API}/api/brain-dump/parse`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, text: text.trim() }),
+        body: JSON.stringify({ user_id: userId, text: text.trim(), mode }),
       });
       if (res.status === 429) {
         const retry = parseInt(res.headers.get('Retry-After') || '60', 10);
@@ -89,9 +107,7 @@ export default function BrainDump() {
   };
 
   const updatePreviewItem = (localId, patch) => {
-    setPreview((prev) =>
-      prev.map((it) => (it._localId === localId ? { ...it, ...patch } : it))
-    );
+    setPreview((prev) => prev.map((it) => (it._localId === localId ? { ...it, ...patch } : it)));
   };
 
   const removePreviewItem = (localId) => {
@@ -103,35 +119,40 @@ export default function BrainDump() {
     if (toSave.length === 0) return;
     setLoading(true);
     for (const it of toSave) {
-      await addItem({
-        name: it.name.trim(),
-        category: it.category,
-        quantity: Number(it.quantity) || 1,
-        unit: it.unit || null,
-        note: it.note?.trim() || null,
-      });
+      if (isMisc) {
+        if (!addMiscItem) continue;
+        await addMiscItem({
+          name: it.name.trim(),
+          location_tag: it.location_tag || 'Sonstiges',
+          note: it.note?.trim() || null,
+        });
+      } else {
+        await addGroceryItem({
+          name: it.name.trim(),
+          category: it.category,
+          quantity: Number(it.quantity) || 1,
+          unit: it.unit || null,
+          note: it.note?.trim() || null,
+        });
+      }
     }
     setLoading(false);
-    // Reset UI: clear, collapse, close preview
     setText('');
     setPreview(null);
     setExpanded(false);
   };
 
-  const handleDiscardPreview = () => {
-    setPreview(null);
-  };
+  const handleDiscardPreview = () => setPreview(null);
 
   const selectedCount = preview ? preview.filter((it) => it._selected).length : 0;
 
   return (
     <div
-      data-testid="brain-dump-section"
+      data-testid={`brain-dump-section-${mode}`}
       className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
     >
-      {/* Header toggle */}
       <button
-        data-testid="brain-dump-toggle"
+        data-testid={`brain-dump-toggle-${mode}`}
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center gap-2 px-4 py-2.5 active:bg-slate-100 dark:active:bg-slate-900 transition-colors"
         aria-expanded={expanded}
@@ -149,7 +170,7 @@ export default function BrainDump() {
           KI Brain Dump
         </span>
         <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-          freien Text in Artikel umwandeln
+          {isMisc ? 'Non-Food in Artikel umwandeln' : 'freien Text in Artikel umwandeln'}
         </span>
         <ChevronDown
           className={`w-4 h-4 ml-auto text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
@@ -165,17 +186,17 @@ export default function BrainDump() {
               <div className="relative">
                 <textarea
                   ref={textareaRef}
-                  data-testid="brain-dump-textarea"
+                  data-testid={`brain-dump-textarea-${mode}`}
                   value={text}
                   onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS + 20))}
-                  placeholder="z.B. 2 Äpfel, 500g Hack, eine Packung Nudeln, Milch laktosefrei, 6 Eier…"
+                  placeholder={placeholder}
                   rows={4}
                   disabled={loading}
                   className="w-full resize-none rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 text-[14px] leading-snug text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:border-transparent disabled:opacity-60"
                   style={{ fontFamily: 'DM Sans, sans-serif', '--tw-ring-color': userColor }}
                 />
                 <div
-                  data-testid="brain-dump-charcount"
+                  data-testid={`brain-dump-charcount-${mode}`}
                   className={`absolute bottom-2 right-3 text-[11px] tabular-nums font-medium ${
                     overLimit ? 'text-red-500' : charsLeft < 50 ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'
                   }`}
@@ -186,7 +207,7 @@ export default function BrainDump() {
 
               {error && (
                 <div
-                  data-testid="brain-dump-error"
+                  data-testid={`brain-dump-error-${mode}`}
                   className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 rounded-lg px-3 py-2"
                 >
                   {error}
@@ -197,7 +218,7 @@ export default function BrainDump() {
               )}
 
               <button
-                data-testid="brain-dump-parse-button"
+                data-testid={`brain-dump-parse-button-${mode}`}
                 onClick={handleParse}
                 disabled={!canParse}
                 className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-white font-semibold text-sm active:scale-[0.98] transition-all disabled:opacity-40 disabled:active:scale-100"
@@ -224,13 +245,13 @@ export default function BrainDump() {
           )}
 
           {preview && (
-            <div data-testid="brain-dump-preview" className="space-y-2">
+            <div data-testid={`brain-dump-preview-${mode}`} className="space-y-2">
               <div className="flex items-center justify-between pt-1">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                   {preview.length} erkannt · {selectedCount} ausgewählt
                 </p>
                 <button
-                  data-testid="brain-dump-discard"
+                  data-testid={`brain-dump-discard-${mode}`}
                   onClick={handleDiscardPreview}
                   className="text-xs text-slate-500 dark:text-slate-400 font-medium active:opacity-60"
                 >
@@ -242,6 +263,7 @@ export default function BrainDump() {
                 {preview.map((it) => (
                   <PreviewRow
                     key={it._localId}
+                    mode={mode}
                     item={it}
                     onChange={(patch) => updatePreviewItem(it._localId, patch)}
                     onRemove={() => removePreviewItem(it._localId)}
@@ -252,7 +274,7 @@ export default function BrainDump() {
 
               <div className="flex gap-2 pt-1">
                 <button
-                  data-testid="brain-dump-cancel"
+                  data-testid={`brain-dump-cancel-${mode}`}
                   onClick={handleDiscardPreview}
                   disabled={loading}
                   className="flex-1 h-11 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-medium text-sm active:bg-slate-100 dark:active:bg-slate-800"
@@ -260,7 +282,7 @@ export default function BrainDump() {
                   Abbrechen
                 </button>
                 <button
-                  data-testid="brain-dump-save"
+                  data-testid={`brain-dump-save-${mode}`}
                   onClick={handleSaveAll}
                   disabled={loading || selectedCount === 0}
                   className="flex-[1.5] h-11 rounded-xl text-white font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-40 flex items-center justify-center gap-2"
@@ -284,8 +306,10 @@ export default function BrainDump() {
   );
 }
 
-function PreviewRow({ item, onChange, onRemove, userColor }) {
-  const cat = CATEGORIES.find((c) => c.name === item.category);
+function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
+  const isMisc = mode === 'misc';
+  const cat = !isMisc ? CATEGORIES.find((c) => c.name === item.category) : null;
+  const locMeta = isMisc ? getLocationMeta(item.location_tag || 'Sonstiges') : null;
   return (
     <div
       data-testid="brain-dump-preview-row"
@@ -296,7 +320,6 @@ function PreviewRow({ item, onChange, onRemove, userColor }) {
       }`}
     >
       <div className="flex items-start gap-2">
-        {/* Select checkbox */}
         <button
           data-testid="brain-dump-preview-select"
           onClick={() => onChange({ _selected: !item._selected })}
@@ -310,9 +333,8 @@ function PreviewRow({ item, onChange, onRemove, userColor }) {
         </button>
 
         <div className="flex-1 min-w-0 space-y-1.5">
-          {/* Row 1: name */}
           <div className="flex items-center gap-2">
-            <span className="text-base shrink-0">{cat?.emoji || '🛒'}</span>
+            <span className="text-base shrink-0">{isMisc ? locMeta?.emoji : (cat?.emoji || '🛒')}</span>
             <input
               data-testid="brain-dump-preview-name"
               value={item.name}
@@ -330,48 +352,59 @@ function PreviewRow({ item, onChange, onRemove, userColor }) {
             </button>
           </div>
 
-          {/* Row 2: quantity + unit + category */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <input
-              data-testid="brain-dump-preview-qty"
-              type="number"
-              min="0"
-              step="any"
-              value={item.quantity}
-              onChange={(e) => onChange({ quantity: e.target.value })}
-              className="w-14 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-center text-sm tabular-nums text-slate-700 dark:text-slate-200 focus:outline-none"
-            />
-            <select
-              data-testid="brain-dump-preview-unit"
-              value={item.unit}
-              onChange={(e) => onChange({ unit: e.target.value })}
-              className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
-            >
-              {UNITS.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
-            <select
-              data-testid="brain-dump-preview-category"
-              value={item.category}
-              onChange={(e) => onChange({ category: e.target.value })}
-              className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none flex-1 min-w-[120px]"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.emoji} {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {!isMisc && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <input
+                data-testid="brain-dump-preview-qty"
+                type="number"
+                min="0"
+                step="any"
+                value={item.quantity}
+                onChange={(e) => onChange({ quantity: e.target.value })}
+                className="w-14 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-center text-sm tabular-nums text-slate-700 dark:text-slate-200 focus:outline-none"
+              />
+              <select
+                data-testid="brain-dump-preview-unit"
+                value={item.unit}
+                onChange={(e) => onChange({ unit: e.target.value })}
+                className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                {UNITS.map((u) => (
+                  <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+              <select
+                data-testid="brain-dump-preview-category"
+                value={item.category}
+                onChange={(e) => onChange({ category: e.target.value })}
+                className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none flex-1 min-w-[120px]"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Row 3: note (optional) */}
+          {isMisc && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <select
+                data-testid="brain-dump-preview-location"
+                value={item.location_tag || 'Sonstiges'}
+                onChange={(e) => onChange({ location_tag: e.target.value })}
+                className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                {MISC_LOCATIONS.map((l) => (
+                  <option key={l.id} value={l.name}>{l.emoji} {l.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {(item.note || item._showNote) && (
             <input
               data-testid="brain-dump-preview-note"
-              value={item.note}
+              value={item.note || ''}
               onChange={(e) => onChange({ note: e.target.value })}
               placeholder="Notiz…"
               className="w-full h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-600 dark:text-slate-300 focus:outline-none"

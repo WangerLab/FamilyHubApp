@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { House, ShoppingCart, CheckSquare, RefreshCw, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGrocery } from '../contexts/GroceryContext';
+import { useMisc } from '../contexts/MiscContext';
 
 const TABS = [
   { id: 'home', label: 'Home', icon: House, path: '/home' },
@@ -14,10 +15,23 @@ const TABS = [
 
 export default function BottomNav() {
   const { member } = useAuth();
-  const { uncheckedCount } = useGrocery();
+  const { uncheckedCount: groceryCount } = useGrocery();
+  const miscCtx = useMisc();
+  const miscCount = miscCtx?.uncheckedCount || 0;
   const navigate = useNavigate();
   const location = useLocation();
   const userColor = member?.color || '#3B82F6';
+
+  // Badge label: split "N|M" when both >0, otherwise single number
+  let shoppingBadge = null;
+  if (groceryCount > 0 && miscCount > 0) {
+    const g = groceryCount > 99 ? '99+' : groceryCount;
+    const m = miscCount > 99 ? '99+' : miscCount;
+    shoppingBadge = `${g}\u00B7${m}`; // middle-dot separator (cleaner than pipe on small pills)
+  } else if (groceryCount + miscCount > 0) {
+    const n = groceryCount + miscCount;
+    shoppingBadge = n > 99 ? '99+' : String(n);
+  }
 
   return (
     <nav
@@ -43,13 +57,12 @@ export default function BottomNav() {
                 style={{ color: isActive ? userColor : undefined }}
                 strokeWidth={isActive ? 2.5 : 1.8}
               />
-              {/* Unchecked grocery badge on Shopping tab */}
-              {id === 'shopping' && uncheckedCount > 0 && (
+              {id === 'shopping' && shoppingBadge && (
                 <span
                   data-testid="shopping-badge"
-                  className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none"
+                  className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none tabular-nums"
                 >
-                  {uncheckedCount > 99 ? '99+' : uncheckedCount}
+                  {shoppingBadge}
                 </span>
               )}
             </div>

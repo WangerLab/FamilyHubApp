@@ -11,7 +11,7 @@ import time
 import uuid
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import datetime, timezone
 from collections import defaultdict, deque
 
@@ -93,7 +93,16 @@ ALLOWED_CATEGORIES = [
 
 ALLOWED_UNITS = ["Stück", "g", "kg", "ml", "L", "Packung", "Dose", "Flasche", "Bund", "Glas"]
 
-BRAIN_DUMP_SYSTEM_PROMPT = f"""Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
+ALLOWED_MISC_LOCATIONS = [
+    "Apotheke",
+    "Baumarkt",
+    "Drogerie",
+    "Zoohandlung",
+    "Kleidung",
+    "Sonstiges",
+]
+
+BRAIN_DUMP_SYSTEM_PROMPT_GROCERY = f"""Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
 
 Der Nutzer liefert einen freien Text (z.B. diktiert oder eingetippt) mit Lebensmitteln und anderen Einkaufsartikeln. Deine Aufgabe ist es, daraus eine saubere JSON-Liste zu extrahieren.
 
@@ -124,21 +133,45 @@ BEISPIEL-OUTPUT:
 ]}}"""
 
 
+BRAIN_DUMP_SYSTEM_PROMPT_MISC = f"""Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufs-Einträge für NICHT-Lebensmittel umwandelt.
+
+Der Nutzer liefert einen freien Text mit Non-Food-Artikeln (Medikamente, Werkzeug, Drogerie-/Körperpflege-Artikel, Tierbedarf, Kleidung etc.). Deine Aufgabe: daraus eine saubere JSON-Liste extrahieren und jeden Artikel einem LOCATION_TAG (Geschäft) zuordnen.
+
+REGELN:
+1. Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
+2. Format: {{"items": [{{"name": string, "location_tag": string, "note": string}}, ...]}}
+3. "location_tag" MUSS genau einer dieser Werte sein: {json.dumps(ALLOWED_MISC_LOCATIONS, ensure_ascii=False)}
+4. Zuordnungs-Heuristik (wichtig!):
+   - Apotheke: Medikamente (Ibuprofen, Aspirin, Paracetamol), Vitamine, Pflaster, Tabletten, Salben, Nasenspray, Hustensaft, Rezepte
+   - Baumarkt: Schrauben, Nägel, Farbe, Werkzeug (Hammer, Bohrer, Säge), Dübel, Silikon, Holz, Elektrokabel
+   - Drogerie: Shampoo, Zahnpasta, Seife, Deo, Kosmetik, Windeln, Toilettenpapier, Körperpflege, Make-up
+   - Zoohandlung: Hundefutter, Katzenfutter, Vogelfutter, Leckerlies, Katzenstreu, Spielzeug (für Haustiere), Halsband
+   - Kleidung: Hose, T-Shirt, Socken, Schuhe, Jacke, Unterwäsche, Pyjama
+   - Sonstiges: alles andere (Batterien, Kerzen, Karten, Geschenkpapier, Büromaterial, Deko)
+5. "name" auf Deutsch, Singular, großer Anfangsbuchstabe. Keine Mengen im Namen.
+6. "note" optional: Marke, Größe, Menge, Variante (z.B. "3 Stück", "4mm", "Größe 42", "Nassfutter"). Leer "" wenn nichts.
+7. Mengenangaben wie "3 Batterien" → name: "Batterien", note: "3 Stück".
+8. Im Zweifel → "Sonstiges".
+9. Gib IMMER mindestens ein leeres items-Array zurück: {{"items": []}}.
+
+BEISPIEL-INPUT:
+"Ibuprofen, 3 Akkus AA, Hundefutter Nassfutter, Schrauben 4mm, Zahnpasta und ein paar Socken"
+
+BEISPIEL-OUTPUT:
+{{"items": [
+  {{"name": "Ibuprofen", "location_tag": "Apotheke", "note": ""}},
+  {{"name": "Batterien AA", "location_tag": "Sonstiges", "note": "3 Stück"}},
+  {{"name": "Hundefutter", "location_tag": "Zoohandlung", "note": "Nassfutter"}},
+  {{"name": "Schrauben", "location_tag": "Baumarkt", "note": "4mm"}},
+  {{"name": "Zahnpasta", "location_tag": "Drogerie", "note": ""}},
+  {{"name": "Socken", "location_tag": "Kleidung", "note": ""}}
+]}}"""
+
+
 class BrainDumpParseRequest(BaseModel):
     user_id: str
     text: str
-
-
-class ParsedItem(BaseModel):
-    name: str
-    quantity: float = 1
-    unit: str = "Stück"
-    category: str = "Konserven & Saucen"
-    note: str = ""
-
-
-class BrainDumpParseResponse(BaseModel):
-    items: List[ParsedItem]
+    mode: Literal["grocery", "misc"] = "grocery"
 
 
 # In-memory rate limiter: user_id -> deque of timestamps (seconds)
@@ -148,7 +181,6 @@ _rate_limit_store: dict = defaultdict(deque)
 
 
 def _check_rate_limit(user_id: str) -> tuple[bool, int]:
-    """Returns (allowed, retry_after_seconds). Prunes old entries."""
     now = time.time()
     dq = _rate_limit_store[user_id]
     cutoff = now - RATE_LIMIT_WINDOW_SEC
@@ -162,13 +194,10 @@ def _check_rate_limit(user_id: str) -> tuple[bool, int]:
 
 
 def _extract_json(raw: str) -> dict:
-    """Extract first JSON object from a string (handles accidental markdown fences)."""
     if not raw:
         raise ValueError("Empty response from LLM")
-    # Strip markdown code fences if present
     fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", raw, re.DOTALL)
     candidate = fence.group(1) if fence else raw
-    # Fallback: grab the first {...} block
     if not fence:
         first = candidate.find("{")
         last = candidate.rfind("}")
@@ -177,8 +206,7 @@ def _extract_json(raw: str) -> dict:
     return json.loads(candidate)
 
 
-def _normalize_item(raw_item: dict) -> Optional[ParsedItem]:
-    """Coerce and validate a single item from the LLM."""
+def _normalize_grocery_item(raw_item: dict) -> Optional[dict]:
     if not isinstance(raw_item, dict):
         return None
     name = str(raw_item.get("name", "")).strip()
@@ -197,24 +225,35 @@ def _normalize_item(raw_item: dict) -> Optional[ParsedItem]:
     if category not in ALLOWED_CATEGORIES:
         category = "Konserven & Saucen"
     note = str(raw_item.get("note", "") or "").strip()
-    return ParsedItem(name=name, quantity=quantity, unit=unit, category=category, note=note)
+    return {"name": name, "quantity": quantity, "unit": unit, "category": category, "note": note}
 
 
-async def _call_claude(user_text: str) -> tuple[str, str]:
-    """Send prompt to Claude via emergentintegrations. Returns (raw_response, session_id)."""
+def _normalize_misc_item(raw_item: dict) -> Optional[dict]:
+    if not isinstance(raw_item, dict):
+        return None
+    name = str(raw_item.get("name", "")).strip()
+    if not name:
+        return None
+    location = str(raw_item.get("location_tag", "")).strip()
+    if location not in ALLOWED_MISC_LOCATIONS:
+        location = "Sonstiges"
+    note = str(raw_item.get("note", "") or "").strip()
+    return {"name": name, "location_tag": location, "note": note}
+
+
+async def _call_claude(user_text: str, system_prompt: str) -> tuple[str, str]:
     session_id = f"braindump-{uuid.uuid4().hex[:12]}"
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
         session_id=session_id,
-        system_message=BRAIN_DUMP_SYSTEM_PROMPT,
+        system_message=system_prompt,
     ).with_model("anthropic", "claude-sonnet-4-5-20250929")
     response = await chat.send_message(UserMessage(text=user_text))
     return response, session_id
 
 
-@api_router.post("/brain-dump/parse", response_model=BrainDumpParseResponse)
+@api_router.post("/brain-dump/parse")
 async def brain_dump_parse(req: BrainDumpParseRequest):
-    # Validate
     text = (req.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Text darf nicht leer sein.")
@@ -225,7 +264,6 @@ async def brain_dump_parse(req: BrainDumpParseRequest):
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=500, detail="LLM-Key nicht konfiguriert.")
 
-    # Rate limit
     allowed, retry_after = _check_rate_limit(req.user_id)
     if not allowed:
         raise HTTPException(
@@ -234,57 +272,56 @@ async def brain_dump_parse(req: BrainDumpParseRequest):
             headers={"Retry-After": str(retry_after)},
         )
 
-    # Call Claude with 15s timeout + single retry
+    system_prompt = (
+        BRAIN_DUMP_SYSTEM_PROMPT_MISC if req.mode == "misc" else BRAIN_DUMP_SYSTEM_PROMPT_GROCERY
+    )
+
     last_error: Optional[Exception] = None
     raw_response: Optional[str] = None
     session_id: Optional[str] = None
     start_ts = time.time()
     for attempt in (1, 2):
         try:
-            raw_response, session_id = await asyncio.wait_for(_call_claude(text), timeout=15.0)
+            raw_response, session_id = await asyncio.wait_for(
+                _call_claude(text, system_prompt), timeout=15.0
+            )
             break
         except asyncio.TimeoutError as e:
             last_error = e
-            logger.warning(f"[brain-dump] attempt {attempt} timeout user={req.user_id}")
+            logger.warning(f"[brain-dump] attempt {attempt} timeout user={req.user_id} mode={req.mode}")
         except Exception as e:
             last_error = e
-            logger.warning(f"[brain-dump] attempt {attempt} error user={req.user_id}: {e}")
+            logger.warning(f"[brain-dump] attempt {attempt} error user={req.user_id} mode={req.mode}: {e}")
         if attempt == 1:
-            await asyncio.sleep(0.5)  # small backoff before retry
+            await asyncio.sleep(0.5)
 
     duration_ms = int((time.time() - start_ts) * 1000)
 
     if raw_response is None:
-        logger.error(f"[brain-dump] failed after retry user={req.user_id} err={last_error}")
+        logger.error(f"[brain-dump] failed after retry user={req.user_id} mode={req.mode} err={last_error}")
         raise HTTPException(
             status_code=504 if isinstance(last_error, asyncio.TimeoutError) else 502,
             detail="KI-Service nicht erreichbar. Bitte später erneut versuchen.",
         )
 
-    # Token logging (approximate – library doesn't always expose usage)
     approx_input_tokens = max(1, len(text) // 4)
     approx_output_tokens = max(1, len(raw_response) // 4)
     logger.info(
-        f"[brain-dump] ok user={req.user_id} session={session_id} "
+        f"[brain-dump] ok user={req.user_id} mode={req.mode} session={session_id} "
         f"duration_ms={duration_ms} input_chars={len(text)} output_chars={len(raw_response)} "
         f"approx_input_tokens={approx_input_tokens} approx_output_tokens={approx_output_tokens}"
     )
 
-    # Parse + normalize
     try:
         parsed = _extract_json(raw_response)
     except Exception as e:
-        logger.error(f"[brain-dump] json parse failed user={req.user_id}: {e} raw={raw_response[:200]!r}")
+        logger.error(f"[brain-dump] json parse failed user={req.user_id} mode={req.mode}: {e} raw={raw_response[:200]!r}")
         raise HTTPException(status_code=502, detail="KI-Antwort konnte nicht verarbeitet werden.")
 
     raw_items = parsed.get("items", []) if isinstance(parsed, dict) else []
-    items: List[ParsedItem] = []
-    for ri in raw_items:
-        normalized = _normalize_item(ri)
-        if normalized:
-            items.append(normalized)
-
-    return BrainDumpParseResponse(items=items)
+    normalizer = _normalize_misc_item if req.mode == "misc" else _normalize_grocery_item
+    items = [n for n in (normalizer(ri) for ri in raw_items) if n]
+    return {"items": items, "mode": req.mode}
 
 
 # Include the router in the main app
