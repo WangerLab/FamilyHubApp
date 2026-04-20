@@ -115,7 +115,7 @@ export default function DashboardHome() {
       const target = chores.targetCount(c);
       return done < target;
     });
-  }, [chores?.chores, chores]);
+  }, [chores]);
 
   const totalOverdue = activeTodos.filter((t) => t.due_date && new Date(t.due_date) < new Date()).length;
 
