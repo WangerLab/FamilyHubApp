@@ -1,0 +1,118 @@
+{
+  "app_details": {
+    "name": "Wanger Family Hub",
+    "domain": "Family Household Management PWA",
+    "users": {
+      "user_1": {
+        "name": "Tim",
+        "color": "#3B82F6",
+        "tailwind_class": "blue-500"
+      },
+      "user_2": {
+        "name": "Iris",
+        "color": "#F43F5E",
+        "tailwind_class": "rose-500"
+      }
+    },
+    "core_goal": "Provide a fast, app-like mobile experience (PWA) with persistent bottom navigation, personalized user states, and robust iOS/Android safe area handling."
+  },
+  "theme_and_archetype": {
+    "selected_theme": "Dual (Light & Dark Mode)",
+    "primary_archetype": "Archetype 4 (Swiss & High-Contrast) blended with Archetype 3 (Soft Utility)",
+    "reasoning": "A utility PWA needs high clarity and functional structure (Swiss/High-Contrast) but should feel friendly and approachable for daily family use. We use neutral Structural Greys to let the user-specific vibrant colors (Tim's Blue, Iris's Rose) stand out as the primary visual identifiers.",
+    "theme_switch": "Must support system preference auto-detect AND manual toggle via a switch/icon in the top bar."
+  },
+  "color_palette": {
+    "light_mode": {
+      "background": "bg-slate-50",
+      "surface": "bg-white",
+      "text_primary": "text-slate-900",
+      "text_secondary": "text-slate-500",
+      "border": "border-slate-200",
+      "nav_background": "bg-white/90 backdrop-blur-xl"
+    },
+    "dark_mode": {
+      "background": "bg-slate-950",
+      "surface": "bg-slate-900",
+      "text_primary": "text-slate-50",
+      "text_secondary": "text-slate-400",
+      "border": "border-slate-800",
+      "nav_background": "bg-slate-950/90 backdrop-blur-xl"
+    },
+    "user_accents": {
+      "tim": "bg-blue-500 text-white ring-blue-500/30",
+      "iris": "bg-rose-500 text-white ring-rose-500/30"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "headings": "Manrope",
+      "body": "DM Sans"
+    },
+    "rules": {
+      "h1": "text-3xl font-bold tracking-tight",
+      "h2": "text-xl font-semibold tracking-tight",
+      "h3": "text-lg font-medium",
+      "body": "text-base leading-relaxed",
+      "small_labels": "text-xs font-medium uppercase tracking-wider",
+      "nav_labels": "text-[10px] font-medium mt-1"
+    }
+  },
+  "layout_and_spacing": {
+    "container": "w-full max-w-[412px] mx-auto min-h-[100dvh] relative overflow-hidden bg-background shadow-2xl shadow-black/10 flex flex-col",
+    "main_content": "flex-1 overflow-y-auto pb-[calc(80px+env(safe-area-inset-bottom))] pt-[calc(64px+env(safe-area-inset-top))] px-4 md:px-6",
+    "safe_area_handling": {
+      "meta_tag": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=0\">",
+      "css_variables": "Must use env(safe-area-inset-bottom) for bottom nav padding and env(safe-area-inset-top) for top bar padding."
+    },
+    "touch_targets": "All interactive elements (buttons, nav items) MUST have a minimum height and width of 48px to exceed the 44px HIG requirement.",
+    "interactions": "NO hover-only interactions. Use active states (active:scale-95, active:opacity-70) for touch feedback."
+  },
+  "components": {
+    "top_bar": {
+      "layout": "Fixed top, w-full max-w-[412px] z-50 flex items-center justify-between px-4 h-16 pt-[env(safe-area-inset-top)] border-b",
+      "styles": "bg-surface/80 backdrop-blur-md border-border",
+      "elements": "Left: User Avatar (circle, colored based on logged-in user) + Display Name. Right: Dark Mode Toggle (Sun/Moon icon).",
+      "avatar": "w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm"
+    },
+    "bottom_nav": {
+      "layout": "Fixed bottom, w-full max-w-[412px] z-50 flex items-center justify-around border-t",
+      "styles": "bg-surface/90 backdrop-blur-xl border-border pb-[env(safe-area-inset-bottom)]",
+      "tabs": [
+        {"id": "home", "label": "Home", "icon": "House"},
+        {"id": "shopping", "label": "Shopping", "icon": "ShoppingCart"},
+        {"id": "tasks", "label": "Tasks", "icon": "CheckSquare"},
+        {"id": "chores", "label": "Chores", "icon": "Repeat"},
+        {"id": "more", "label": "More", "icon": "MoreHorizontal"}
+      ],
+      "item_styles": "flex flex-col items-center justify-center w-[20%] min-h-[64px] transition-colors",
+      "active_state": "Color should reflect the current logged-in user's color (Tim=Blue, Iris=Rose). Inactive=text-slate-400."
+    },
+    "empty_states": {
+      "layout": "flex flex-col items-center justify-center h-full text-center space-y-4 py-12",
+      "elements": "1. Large light Lucide icon (w-16 h-16 stroke-1 text-slate-300 dark:text-slate-700). 2. Headline (h2). 3. Subtle description. 4. Optional CTA button colored with current user's theme."
+    },
+    "login_page": {
+      "layout": "flex flex-col items-center justify-center min-h-[100dvh] p-6 space-y-8",
+      "brand": "Icon (House with Heart) + 'Wanger Family Hub'",
+      "form": "2 inputs (Email, Password), 1 primary CTA button. Native styling, large inputs (h-14)."
+    }
+  },
+  "motion": {
+    "tab_transitions": "Use Framer Motion <AnimatePresence mode='wait'>. Very subtle fade and vertical shift (y: 10 -> 0) with a quick spring duration (0.2s) to keep it feeling snappy and native.",
+    "buttons": "active:scale-[0.97] transition-transform duration-100"
+  },
+  "assets": {
+    "icons": "Use 'lucide-react' for all UI icons. It is clean, lightweight, and scales well.",
+    "fonts_installation": "Add Google Fonts imports for 'Manrope' (Headings) and 'DM Sans' (Body) in index.css."
+  },
+  "instructions_to_main_agent": [
+    "1. Setup Context: Create an Auth/User Context that stores whether 'Tim' or 'Iris' is logged in, and their associated color theme (#3B82F6 or #F43F5E).",
+    "2. Theme Provider: Implement standard Tailwind dark mode with system preference auto-detection + a manual override state.",
+    "3. PWA Shell: Ensure index.html has <meta name='viewport' content='width=device-width, initial-scale=1, viewport-fit=cover'> to enable safe-area css variables.",
+    "4. Component Architecture: Create AppShell component that wraps the selected tab content, holding the TopBar and BottomNav.",
+    "5. Testing Attributes: Apply data-testid to Login form, BottomNav tabs, Theme toggle, and Logout button.",
+    "6. Styling: Ensure the app width is restricted to max-w-[412px] mx-auto on larger screens to simulate a mobile device, with a subtle border/shadow.",
+    "7. Mock Authentication: For MVP, a simple hardcoded login checking against 'tim@...' and 'iris@...' or a user selector button on the login screen is acceptable if backend isn't requested."
+  ]
+}
