@@ -5,6 +5,7 @@ import { useGrocery } from '../../contexts/GroceryContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AddItemInput from '../grocery/AddItemInput';
 import GroceryItemRow from '../grocery/GroceryItemRow';
+import BrainDump from '../grocery/BrainDump';
 
 function EmptyState({ color }) {
   return (
@@ -180,6 +181,9 @@ export default function ShoppingTab() {
 
         {/* Add input */}
         <AddItemInput onAdd={handleAdd} />
+
+        {/* AI Brain Dump (collapsible) */}
+        <BrainDump />
       </div>
 
       {/* ---- Items list ---- */}
