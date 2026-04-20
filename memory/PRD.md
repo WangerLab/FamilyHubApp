@@ -79,6 +79,33 @@ household_members: id (uuid PK), household_id (uuid FK), user_id (uuid FK → au
 - [x] Fonts: Manrope (headings) + DM Sans (body)
 - [x] Dark/light mode theme settings in More tab (Follow System / Light / Dark)
 
+## Implemented Features (Session 2 — Grocery List, April 2026)
+
+- [x] Grocery list module on Shopping tab (Einkaufsliste)
+- [x] Add item by typing + Enter or + button
+- [x] Auto-category detection by keyword matching (German keywords, 9 categories)
+- [x] Live emoji preview while typing item name
+- [x] Auto unit suggestion per item (g, L, Stück, Packung, etc.)
+- [x] Items grouped by 9 fixed Aldi-layout categories with sticky section headers
+- [x] Category order: Obst→Fleisch→Bäckerei→Milch→Kühlregal→Konserven→Gewürze→Getränke→Snacks
+- [x] Inline quantity + unit editing (tap quantity to edit)
+- [x] Per-item note field (tap note icon to expand textarea)
+- [x] Manual category override via CategoryPicker bottom sheet
+- [x] Checked items: strikethrough + faded
+- [x] Swipe-left to reveal delete button
+- [x] Undo snackbar (5s) — "Rückgängig" button
+- [x] Reset list button with confirmation dialog
+- [x] Shopping mode toggle ("Einkaufen"/"Fertig") — larger 56px checkboxes, checked items sorted to bottom
+- [x] Creator color dot on each item (Tim=blue, Iris=rose)
+- [x] Supabase Realtime subscription — live sync between Tim & Iris
+- [x] Red badge on Shopping tab (bottom nav) showing unchecked item count
+- [x] Friendly empty state in German
+- [x] Scroll to newly added item's category
+
+## SQL Setup Required
+
+Run `/app/supabase_grocery_setup.sql` in Supabase Dashboard → SQL Editor to activate the grocery list.
+
 ---
 
 ## P0 Backlog (Next Sessions)
