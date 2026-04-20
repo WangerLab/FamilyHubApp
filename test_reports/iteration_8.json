@@ -1,0 +1,74 @@
+{
+  "summary": "Session 7 (Expenses + Weekly Recap) backend & frontend validated. Backend: 25/25 pytest PASS (18 regression: grocery 6 + misc 6 + todos 6, plus 7 NEW expense tests covering schema/amounts 12.99/45.8/62.0/categories Essen/Transport/Unterhaltung, gestern→date populated, stale>60d nulled, malformed-amount skip, invalid-category→Sonstiges, default-mode backwards-compat, validation 400s, rate-limit shared across ALL 4 modes). Frontend (Tim): /expenses route renders, BalanceCard quitt by default, More→Ausgaben link navigates, add-expense Tim pays 100€ → 'Iris schuldet Tim 50,00€' (50/50 split CORRECT), settlement-button appears post-imbalance, dashboard-expenses-card visible with 'Ihr seid quitt!', regression nav (home/shopping/tasks/chores/more) intact, zero pageerrors. Brain Dump expense section UI present and expandable but parse-button testid mismatch prevented full preview validation. WeeklyRecap card NOT rendered on dashboard despite recent activity_log rows — likely a bug.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "WeeklyRecap (DashboardHome)", "issue": "[data-testid=weekly-recap-card] not present in DOM on Tim's dashboard despite multiple activity_log entries created in last 24h (todos, expense, etc). Card supposed to be at bottom of dashboard. Either rendering condition is too strict (e.g. requires activity from BOTH users in last 7d) or component is not being mounted.", "selector": "[data-testid=weekly-recap-card]", "priority": "MEDIUM"},
+      {"component": "BrainDump (expense mode)", "issue": "Parse-button testid not standard. Visible button text is 'KI-Parse' but no [data-testid=brain-dump-parse] (or similar) attribute. Blocked automated preview validation. Manual UI works (input accepts text, section expands).", "selector": "[data-testid=brain-dump-parse]", "priority": "LOW"},
+      {"component": "ExpensesTab Archive", "issue": "Archive-month button visible as 'Archivieren' top-right but [data-testid=expenses-archive-month] selector returned count=0 when checked on initial empty-state load. May need to verify actual testid (might be applied conditionally or with a different name).", "selector": "[data-testid=expenses-archive-month]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passing_backend_tests": [
+    "test_brain_dump.py: 6/6 (validation 400s, normal parse, rate-limit 429)",
+    "test_brain_dump_misc.py: 6/6 (default mode grocery, explicit modes, location_tag whitelist, validation, shared rate-limit)",
+    "test_brain_dump_todos.py: 6/6 (HEUTE injection, stale-date null-out, schema, validation, 3-mode shared rate-limit)",
+    "test_brain_dump_expense.py: 7/7 (NEW — basic 3-item extraction with EUR amounts 12.99/45.8/62.0, category heuristics Rewe→Essen/Tanken→Transport/Netflix→Unterhaltung, gestern→date today-1, invalid category→Sonstiges fallback, stale>60d null, default mode still grocery, validation 400s, 4-mode shared rate-limit 429)"
+  ],
+  "passing_frontend_tests": [
+    "Login Tim works",
+    "[data-testid=dashboard-home] renders",
+    "[data-testid=dashboard-expenses-card] visible showing 'Ihr seid quitt!' 🎉 (initially)",
+    "[data-testid=more-expenses-link] visible in More tab → click navigates to /expenses",
+    "[data-testid=expenses-tab] renders at /expenses",
+    "[data-testid=balance-card] visible — initial state 'Ihr seid quitt!' with 0,00€/0,00€ per user",
+    "[data-testid=add-expense-expand] → opens form with [data-testid=add-expense-description] + [data-testid=add-expense-amount] inputs",
+    "Add 100€ expense as Tim → balance updates correctly to 'Iris schuldet Tim 50,00€' (50/50 split convention validated)",
+    "Per-user totals correct after add: Tim 100,00€ / Iris 0,00€",
+    "[data-testid=settlement-button] appears on balance-card post-imbalance with prefilled amount '(50,00 €)'",
+    "Bottom-nav regression: home/shopping/tasks/chores all navigate correctly",
+    "Shopping tab shows 3 Nahrungsmittel badge — grocery flow intact",
+    "Zero pageerrors during full flow"
+  ],
+  "untested_due_to_selector_or_constraint": [
+    "Brain Dump expense end-to-end parse + preview ([data-testid=brain-dump-preview-amount/expense-category/paidby]) — blocked by parse-button testid mismatch",
+    "Brain Dump expense save → ONE aggregate activity_log entry — not exercised",
+    "Single expense add → activity_log 'Tim hat eine Ausgabe eingetragen: „{desc}\" {amount} €' — not directly verified in panel (functional check only)",
+    "Settlement flow click → opens prefilled AddExpenseInput with is_settlement=true — not exercised",
+    "Archive month dialog → [data-testid=expenses-archive-confirm] → monthly_balance_archive row + carryOver — not exercised (testid mismatch)",
+    "WeeklyRecap per-user [data-testid=recap-user-{user_id}] counts + 🏆 trophy — card not rendered",
+    "Cross-user (Iris) settlement balance test — not exercised (single-user test session)"
+  ],
+  "test_report_links": [
+    "/app/test_reports/pytest/session7_results.xml",
+    "/app/backend/tests/test_brain_dump.py",
+    "/app/backend/tests/test_brain_dump_misc.py",
+    "/app/backend/tests/test_brain_dump_todos.py",
+    "/app/backend/tests/test_brain_dump_expense.py",
+    "/app/backend/tests/conftest.py"
+  ],
+  "action_items": [
+    "[MEDIUM] WeeklyRecap card not rendering on dashboard — investigate gating condition in WeeklyRecap.jsx / DashboardHome.jsx; expected when any activity_log rows exist in last 7d (Tim has plenty). May be a hard guard like 'both users have activity' or 'todos completed > 0'. Confirm + relax/log.",
+    "[LOW] Add [data-testid=brain-dump-parse] (or document the actual testid) on the 'KI-Parse' button inside BrainDump.jsx so automated preview tests can run for all 4 modes.",
+    "[LOW] Confirm the actual data-testid on the 'Archivieren' button on ExpensesTab — request specifies [data-testid=expenses-archive-month] but selector returned 0 in test. Add it if missing.",
+    "[INFO] Created /app/backend/tests/conftest.py to load REACT_APP_BACKEND_URL from frontend/.env; fixed collection-time AttributeError in older test files that omitted a default URL."
+  ],
+  "critical_code_review_comments": [
+    "_normalize_expense_item: stale-date check uses naive datetime.now() vs ISO datetime.fromisoformat(date) — works for date-only strings but if Claude returns full ISO timestamp with timezone, fromisoformat may fail or compare offset-aware vs naive. Consider .date() normalization for both sides for safety.",
+    "Brain dump expense prompt example dates (2026-04-19/20) are in the past relative to current test date (2026-04-20) — Claude may anchor on these. The HEUTE-injection prefix mitigates this, but consider templating the example dates dynamically.",
+    "Frontend ExpensesTab: archive button only meaningful at month-end — UX could disable/hide unless there are expenses to archive (currently visible even on empty state — may confuse users).",
+    "Balance logic |diff| < 0.005 → quitt is fine, but consider rounding to 2 decimals throughout to avoid float drift accumulation across many transactions."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_brain_dump_expense.py (NEW — 7 tests)",
+    "/app/backend/tests/conftest.py (NEW — env loader so older tests don't fail collection)"
+  ],
+  "success_rate": {"backend": "100% (25/25 pytest)", "frontend": "~85% (all directly-tested core flows pass; WeeklyRecap missing + 2 testid mismatches block 3 secondary tests)"},
+  "test_credentials": "Tim: tmp.wanger@gmail.com / Fini63720 (used)",
+  "seed_data_creation": "Created 1 test expense 'TEST_E2E_Wocheneinkauf' 100,00€ paid by Tim on 20.04.2026 in expenses table. Should be cleaned up manually if desired (or carried into archive when month closes).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Session 7 expenses + monthly_balance_archive tables ARE provisioned (verified via Supabase REST GET → 200). Backend brain-dump 4-mode is solid (25/25 pytest). Frontend balance math is CORRECT (Tim 100€ → Iris owes 50€ matches 50/50 split convention). Open: WeeklyRecap not rendering (likely conditional logic), brain-dump-parse + expenses-archive-month testids may need to be added/renamed. Login button text on /login page is 'Sign In' (English). conftest.py now loads frontend/.env automatically — keep using pytest as before.",
+  "rca_of_issue": "WeeklyRecap missing: most likely DashboardHome.jsx gates the card on a condition that is not met (e.g., requires both users to have activity, or specific event types like chore-completion which household lacks). Confirm in /app/frontend/src/components/home/WeeklyRecap.jsx and DashboardHome.jsx render guards. Brain-dump-parse / expenses-archive-month testid mismatch: simply missing data-testid attributes on the buttons; add them per the request spec."
+}

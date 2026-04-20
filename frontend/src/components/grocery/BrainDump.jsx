@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
 import { useTodos } from '../../contexts/TodosContext';
+import { useExpenses } from '../../contexts/ExpensesContext';
 import { useActivity } from '../../contexts/ActivityContext';
 
 const MAX_CHARS = 500;
@@ -47,8 +48,7 @@ export default function BrainDump({ mode = 'grocery' }) {
 
   const isMisc = mode === 'misc';
   const isTodos = mode === 'todos';
-
-  // Reset preview when mode changes
+  const isExpense = mode === 'expense';
   useEffect(() => {
     setPreview(null);
     setError('');
@@ -70,7 +70,9 @@ export default function BrainDump({ mode = 'grocery' }) {
   const overLimit = text.length > MAX_CHARS;
   const canParse = !loading && text.trim().length > 0 && !overLimit && retryAfter === 0 && userId;
 
-  const placeholder = isTodos
+  const placeholder = isExpense
+    ? 'z.B. Rewe 73,20 €, gestern Tanken 62, Restaurant am Montag 45…'
+    : isTodos
     ? 'z.B. Iris soll morgen Auto waschen, Müll heute raus, Arzttermin in drei Tagen hochprio…'
     : isMisc
     ? 'z.B. Ibuprofen, Schrauben 4mm, Hundefutter Nassfutter, Zahnpasta, Batterien AA…'
@@ -101,7 +103,6 @@ export default function BrainDump({ mode = 'grocery' }) {
       const items = (data.items || []).map((it, idx) => {
         const base = { ...it, _localId: `${Date.now()}-${idx}`, _selected: true };
         if (isTodos) {
-          // Resolve assignee_hint → user_id against house members
           const hint = (it.assignee_hint || '').toLowerCase().trim();
           let assigned_to = null;
           if (hint === 'ich' || hint === 'mir' || hint === 'me') {
@@ -113,6 +114,10 @@ export default function BrainDump({ mode = 'grocery' }) {
             if (match) assigned_to = match.user_id;
           }
           return { ...base, assigned_to };
+        }
+        if (isExpense) {
+          // Default paid_by = current user
+          return { ...base, paid_by: userId };
         }
         return base;
       });
@@ -158,6 +163,15 @@ export default function BrainDump({ mode = 'grocery' }) {
           assigned_to: it.assigned_to || null,
           comment: it.comment?.trim() || null,
         }, { silent: true });
+      } else if (isExpense) {
+        if (!addExpenseItem) continue;
+        await addExpenseItem({
+          description: it.description.trim(),
+          amount: Number(it.amount) || 0,
+          paid_by: it.paid_by || userId,
+          expense_date: it.expense_date || null,
+          category: it.category || null,
+        }, { silent: true });
       } else {
         await addGroceryItem({
           name: it.name.trim(),
@@ -171,12 +185,13 @@ export default function BrainDump({ mode = 'grocery' }) {
     // Aggregate activity log entry for the whole brain dump
     if (activity?.logActivity && toSave.length > 0 && member) {
       const noun =
-        isTodos ? `${toSave.length} Aufgabe${toSave.length === 1 ? '' : 'n'}` :
-        isMisc  ? `${toSave.length} Sonstiges-Item${toSave.length === 1 ? '' : 's'}` :
-                  `${toSave.length} Nahrungsmittel`;
+        isTodos   ? `${toSave.length} Aufgabe${toSave.length === 1 ? '' : 'n'}` :
+        isExpense ? `${toSave.length} Ausgabe${toSave.length === 1 ? '' : 'n'}` :
+        isMisc    ? `${toSave.length} Sonstiges-Item${toSave.length === 1 ? '' : 's'}` :
+                    `${toSave.length} Nahrungsmittel`;
       activity.logActivity({
-        action_type: isTodos ? 'todo_create' : (isMisc ? 'misc_add' : 'grocery_add'),
-        module: isTodos ? 'todos' : (isMisc ? 'misc' : 'grocery'),
+        action_type: isTodos ? 'todo_create' : isExpense ? 'expense_add' : (isMisc ? 'misc_add' : 'grocery_add'),
+        module: isTodos ? 'todos' : isExpense ? 'expenses' : (isMisc ? 'misc' : 'grocery'),
         item_id: null,
         description: `${member.display_name} hat per KI Brain Dump ${noun} hinzugefügt`,
       });
@@ -215,7 +230,10 @@ export default function BrainDump({ mode = 'grocery' }) {
           KI Brain Dump
         </span>
         <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-          {isTodos ? 'Aufgaben erkennen' : isMisc ? 'Non-Food in Artikel umwandeln' : 'freien Text in Artikel umwandeln'}
+          {isExpense ? 'Ausgaben erfassen'
+            : isTodos ? 'Aufgaben erkennen'
+            : isMisc ? 'Non-Food in Artikel umwandeln'
+            : 'freien Text in Artikel umwandeln'}
         </span>
         <ChevronDown
           className={`w-4 h-4 ml-auto text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
@@ -354,14 +372,15 @@ export default function BrainDump({ mode = 'grocery' }) {
 function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
   const isMisc = mode === 'misc';
   const isTodos = mode === 'todos';
-  const cat = (!isMisc && !isTodos) ? CATEGORIES.find((c) => c.name === item.category) : null;
+  const isExpense = mode === 'expense';
+  const cat = (!isMisc && !isTodos && !isExpense) ? CATEGORIES.find((c) => c.name === item.category) : null;
   const locMeta = isMisc ? getLocationMeta(item.location_tag || 'Sonstiges') : null;
   const todosCtx = useTodos();
   const houseMembers = todosCtx?.houseMembers || [];
 
   const prioEmoji = { high: '🔴', medium: '🟡', low: '🟢' };
   const todoIcon = item.priority ? prioEmoji[item.priority] || '📝' : '📝';
-  const titleFieldName = isTodos ? 'title' : 'name';
+  const titleFieldName = isTodos ? 'title' : (isExpense ? 'description' : 'name');
 
   return (
     <div
@@ -388,7 +407,7 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
         <div className="flex-1 min-w-0 space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="text-base shrink-0">
-              {isTodos ? todoIcon : isMisc ? locMeta?.emoji : (cat?.emoji || '🛒')}
+              {isExpense ? '💶' : isTodos ? todoIcon : isMisc ? locMeta?.emoji : (cat?.emoji || '🛒')}
             </span>
             <input
               data-testid="brain-dump-preview-name"
@@ -407,7 +426,7 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
             </button>
           </div>
 
-          {!isMisc && !isTodos && (
+          {!isMisc && !isTodos && !isExpense && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <input
                 data-testid="brain-dump-preview-qty"
@@ -438,6 +457,47 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
                   <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {isExpense && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="relative">
+                <input
+                  data-testid="brain-dump-preview-amount"
+                  type="text"
+                  inputMode="decimal"
+                  value={item.amount ?? ''}
+                  onChange={(e) => onChange({ amount: e.target.value.replace(/[^\d.]/g, '') })}
+                  className="w-20 h-8 pl-2 pr-6 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-right tabular-nums text-slate-700 dark:text-slate-200 focus:outline-none"
+                />
+                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">€</span>
+              </div>
+              <select
+                data-testid="brain-dump-preview-expense-category"
+                value={item.category || 'Sonstiges'}
+                onChange={(e) => onChange({ category: e.target.value })}
+                className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                {['Essen','Haushalt','Transport','Unterhaltung','Sonstiges'].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <select
+                data-testid="brain-dump-preview-paidby"
+                value={item.paid_by || ''}
+                onChange={(e) => onChange({ paid_by: e.target.value })}
+                className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                {houseMembers.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
+                ))}
+              </select>
+              {item.expense_date && (
+                <span className="h-8 inline-flex items-center px-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[11px] text-blue-600 dark:text-blue-300 font-medium">
+                  📅 {item.expense_date}
+                </span>
+              )}
             </div>
           )}
 

@@ -105,6 +105,43 @@ ALLOWED_MISC_LOCATIONS = [
 ALLOWED_PRIORITIES = ["high", "medium", "low"]
 
 
+BRAIN_DUMP_SYSTEM_PROMPT_EXPENSE = """Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Ausgaben-Einträge für einen gemeinsamen Haushalt umwandelt.
+
+Der Nutzer liefert einen freien Text wie "Wocheneinkauf Rewe 73 Euro, Tanken 62,50, gestern Restaurant 45". Deine Aufgabe: daraus eine saubere JSON-Liste extrahieren.
+
+REGELN:
+1. Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
+2. Format: {"items": [{"description": string, "amount": number, "category": string, "expense_date": string|null}, ...]}
+3. "description" ist eine kurze deutsche Beschreibung (z.B. "Wocheneinkauf Rewe", "Tanken", "Restaurant"), erster Buchstabe gross.
+4. "amount" ist die Zahl in Euro (Komma ODER Punkt als Dezimaltrennzeichen akzeptieren, im JSON aber als number mit Punkt). Immer > 0. Wenn keine Zahl erkennbar → skip den Eintrag.
+5. "category" MUSS einer dieser Werte sein: ["Essen","Haushalt","Transport","Unterhaltung","Sonstiges"]. Heuristik:
+   - Essen: Supermarkt/Rewe/Edeka/Aldi/Lidl/Bäcker/Restaurant/Cafe/Imbiss/Pizza/Lieferando
+   - Haushalt: Putzmittel/Waschmittel/Möbel/IKEA/Reparatur/Handwerker/Strom/Wasser
+   - Transport: Tanken/Benzin/Diesel/Bahn/Uber/Taxi/Parkticket/ÖPNV
+   - Unterhaltung: Kino/Theater/Konzert/Netflix/Spotify/Buch/Spiel
+   - Sonstiges: alles andere
+6. "expense_date" ist ein ISO-Datum (YYYY-MM-DD) ODER null. Erkenne Zeitphrasen:
+   - "heute" / fehlend → null (Client nimmt heute)
+   - "gestern" → gestern
+   - "am Montag" / Wochentage → letzter passender Wochentag
+   - "vor 3 Tagen" → today - 3
+   - Nutze HEUTE als Referenz (im System-Prompt als Variable gesetzt).
+7. Ignoriere Gespräche, Füllwörter, Namen von Personen (wer bezahlt hat wird im Frontend ausgewählt).
+8. Gib IMMER ein items-Array zurück: {"items": []} wenn nichts extrahierbar.
+
+BEISPIEL-INPUT:
+"Wocheneinkauf Rewe 73,20 €, gestern Tanken 62 EUR, Restaurant am Montag 45,80, und Netflix 12,99"
+
+BEISPIEL-OUTPUT (die Daten sind Platzhalter, pass an HEUTE an):
+{"items": [
+  {"description": "Wocheneinkauf Rewe", "amount": 73.20, "category": "Essen", "expense_date": null},
+  {"description": "Tanken", "amount": 62.00, "category": "Transport", "expense_date": "2026-04-19"},
+  {"description": "Restaurant", "amount": 45.80, "category": "Essen", "expense_date": "2026-04-20"},
+  {"description": "Netflix", "amount": 12.99, "category": "Unterhaltung", "expense_date": null}
+]}"""
+
+
+
 BRAIN_DUMP_SYSTEM_PROMPT_GROCERY = f"""Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
 
 Der Nutzer liefert einen freien Text (z.B. diktiert oder eingetippt) mit Lebensmitteln und anderen Einkaufsartikeln. Deine Aufgabe ist es, daraus eine saubere JSON-Liste zu extrahieren.
@@ -215,7 +252,7 @@ BEISPIEL-OUTPUT:
 class BrainDumpParseRequest(BaseModel):
     user_id: str
     text: str
-    mode: Literal["grocery", "misc", "todos"] = "grocery"
+    mode: Literal["grocery", "misc", "todos", "expense"] = "grocery"
 
 
 # In-memory rate limiter: user_id -> deque of timestamps (seconds)
@@ -318,6 +355,44 @@ def _normalize_todo_item(raw_item: dict) -> Optional[dict]:
     }
 
 
+def _normalize_expense_item(raw_item: dict) -> Optional[dict]:
+    if not isinstance(raw_item, dict):
+        return None
+    description = str(raw_item.get("description", "")).strip()
+    try:
+        amount_raw = raw_item.get("amount")
+        if isinstance(amount_raw, str):
+            amount_raw = amount_raw.replace(",", ".").replace("€", "").strip()
+        amount = float(amount_raw) if amount_raw is not None else 0
+    except (TypeError, ValueError):
+        return None
+    if amount <= 0:
+        return None
+    if not description:
+        description = "Ausgabe"
+    category = str(raw_item.get("category", "")).strip()
+    if category not in ["Essen", "Haushalt", "Transport", "Unterhaltung", "Sonstiges"]:
+        category = "Sonstiges"
+    expense_date = raw_item.get("expense_date")
+    if expense_date is not None:
+        expense_date = str(expense_date).strip() or None
+        # Validate ISO date
+        if expense_date:
+            try:
+                datetime.fromisoformat(expense_date)
+                # Also null-out stale (>60 days in past)
+                if datetime.fromisoformat(expense_date) < datetime.now() - timedelta(days=60):
+                    expense_date = None
+            except (ValueError, TypeError):
+                expense_date = None
+    return {
+        "description": description,
+        "amount": round(amount, 2),
+        "category": category,
+        "expense_date": expense_date,
+    }
+
+
 async def _call_claude(user_text: str, system_prompt: str) -> tuple[str, str]:
     session_id = f"braindump-{uuid.uuid4().hex[:12]}"
     chat = LlmChat(
@@ -352,11 +427,11 @@ async def brain_dump_parse(req: BrainDumpParseRequest):
     system_prompt = (
         BRAIN_DUMP_SYSTEM_PROMPT_MISC if req.mode == "misc"
         else BRAIN_DUMP_SYSTEM_PROMPT_TODOS if req.mode == "todos"
+        else BRAIN_DUMP_SYSTEM_PROMPT_EXPENSE if req.mode == "expense"
         else BRAIN_DUMP_SYSTEM_PROMPT_GROCERY
     )
-    # Inject today's date into the todos prompt so Claude returns fresh ISO dates
-    # instead of stale ones from its training cutoff.
-    if req.mode == "todos":
+    # Inject today's date into the todos/expense prompt so Claude returns fresh ISO dates.
+    if req.mode in ("todos", "expense"):
         today_iso = datetime.now(timezone.utc).date().isoformat()
         system_prompt = f"HEUTE ist {today_iso} (UTC). Nutze dieses Datum als Referenz für alle relativen Zeitangaben.\n\n" + system_prompt
 
@@ -407,6 +482,8 @@ async def brain_dump_parse(req: BrainDumpParseRequest):
         normalizer = _normalize_misc_item
     elif req.mode == "todos":
         normalizer = _normalize_todo_item
+    elif req.mode == "expense":
+        normalizer = _normalize_expense_item
     else:
         normalizer = _normalize_grocery_item
     items = [n for n in (normalizer(ri) for ri in raw_items) if n]

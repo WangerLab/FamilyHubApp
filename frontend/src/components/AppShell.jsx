@@ -6,6 +6,7 @@ import { MiscProvider } from '../contexts/MiscContext';
 import { TodosProvider } from '../contexts/TodosContext';
 import { ChoresProvider } from '../contexts/ChoresContext';
 import { ActivityProvider } from '../contexts/ActivityContext';
+import { ExpensesProvider } from '../contexts/ExpensesContext';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import HomeTab from './tabs/HomeTab';
@@ -13,6 +14,7 @@ import ShoppingTab from './tabs/ShoppingTab';
 import TasksTab from './tabs/TasksTab';
 import ChoresTab from './tabs/ChoresTab';
 import MoreTab from './tabs/MoreTab';
+import ExpensesTab from './tabs/ExpensesTab';
 
 export default function AppShell() {
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
@@ -60,6 +62,7 @@ export default function AppShell() {
     <MiscProvider>
     <TodosProvider>
     <ChoresProvider>
+    <ExpensesProvider>
     <div className="relative w-full max-w-[412px] mx-auto min-h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950">
       {/* Top bar */}
       <TopBar />
@@ -138,6 +141,7 @@ export default function AppShell() {
           <Route path="/tasks" element={<TasksTab />} />
           <Route path="/chores" element={<ChoresTab />} />
           <Route path="/more" element={<MoreTab />} />
+          <Route path="/expenses" element={<ExpensesTab />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </main>
@@ -145,6 +149,7 @@ export default function AppShell() {
       {/* Bottom nav */}
       <BottomNav />
     </div>
+    </ExpensesProvider>
     </ChoresProvider>
     </TodosProvider>
     </MiscProvider>

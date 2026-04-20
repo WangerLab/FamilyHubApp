@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { LogOut, User, Palette, Monitor, Sun, Moon, ChevronRight, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, User, Palette, Monitor, Sun, Moon, ChevronRight, Check, Wallet } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -13,6 +14,7 @@ const PRESET_COLORS = [
 ];
 
 export default function MoreTab() {
+  const navigate = useNavigate();
   const { member, signOut, updateMemberColor, updateDisplayName } = useAuth();
   const { mode, resolvedTheme, toggleTheme, resetToAuto } = useTheme();
   const [editingName, setEditingName] = useState(false);
@@ -51,6 +53,32 @@ export default function MoreTab() {
       className="space-y-6 pb-4"
       style={{ fontFamily: 'DM Sans, sans-serif' }}
     >
+      {/* Features section */}
+      <section className="space-y-1">
+        <h3
+          className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 pt-2"
+          style={{ fontFamily: 'Manrope, sans-serif' }}
+        >
+          Module
+        </h3>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <button
+            data-testid="more-expenses-link"
+            onClick={() => navigate('/expenses')}
+            className="flex items-center gap-3 w-full px-4 py-3.5 text-left active:bg-slate-50 dark:active:bg-slate-800 transition-colors"
+          >
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-violet-100 dark:bg-violet-950/40">
+              <Wallet className="w-5 h-5 text-violet-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">Ausgaben</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Gemeinsame Ausgaben & Saldo</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
+      </section>
+
       {/* Profile section */}
       <section className="space-y-1">
         <h3

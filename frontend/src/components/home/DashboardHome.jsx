@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, CheckSquare, RefreshCw, Calendar, ChevronRight, AlertCircle, Sparkles, Package } from 'lucide-react';
+import { ShoppingCart, CheckSquare, RefreshCw, Calendar, ChevronRight, AlertCircle, Sparkles, Package, Wallet } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
 import { useTodos } from '../../contexts/TodosContext';
 import { useChores } from '../../contexts/ChoresContext';
+import { useExpenses } from '../../contexts/ExpensesContext';
 import { formatDueDateDE } from '../../utils/smartDate';
+import WeeklyRecap from './WeeklyRecap';
 
 function greeting() {
   const h = new Date().getHours();
@@ -72,6 +74,7 @@ export default function DashboardHome() {
   const misc = useMisc();
   const { activeTodos = [] } = useTodos() || {};
   const chores = useChores();
+  const expenses = useExpenses();
 
   const color = member?.color || '#3B82F6';
   const name = member?.display_name || '';
@@ -258,6 +261,33 @@ export default function DashboardHome() {
         )}
       </SectionCard>
 
+      {/* Section: Expenses balance */}
+      <SectionCard
+        testid="dashboard-expenses-card"
+        accentColor="#8B5CF6"
+        onClick={() => navigate('/expenses')}
+      >
+        <SectionHeader icon={Wallet} title="Ausgaben" color="#8B5CF6" />
+        {expenses?.balance?.quitt ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            🎉 Ihr seid quitt!
+          </p>
+        ) : expenses?.balance ? (
+          <p className="text-sm text-slate-700 dark:text-slate-200" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+            <span className="font-semibold">
+              {expenses.memberNameMap[expenses.balance.owed_by] || '—'}
+            </span>
+            {' '}schuldet{' '}
+            <span className="font-semibold" style={{ color: expenses.memberColorMap[expenses.balance.owed_to] }}>
+              {expenses.memberNameMap[expenses.balance.owed_to] || '—'}{' '}
+              {Number(expenses.balance.amount || 0).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+            </span>
+          </p>
+        ) : (
+          <p className="text-sm text-slate-400 dark:text-slate-500">Noch keine Ausgaben erfasst</p>
+        )}
+      </SectionCard>
+
       {/* Section: Birthdays placeholder */}
       <SectionCard testid="dashboard-birthdays-card" onClick={() => { /* noop for Session 6 */ }} accentColor="#F43F5E">
         <SectionHeader icon={Calendar} title="Geburtstage & Termine" color="#F43F5E" trailingText="bald" />
@@ -266,6 +296,8 @@ export default function DashboardHome() {
           Kommt in Session 8
         </p>
       </SectionCard>
+
+      <WeeklyRecap />
     </div>
   );
 }
