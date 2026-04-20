@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Literal
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from collections import defaultdict, deque
 
 from emergentintegrations.llm.chat import LlmChat, UserMessage
@@ -102,6 +102,9 @@ ALLOWED_MISC_LOCATIONS = [
     "Sonstiges",
 ]
 
+ALLOWED_PRIORITIES = ["high", "medium", "low"]
+
+
 BRAIN_DUMP_SYSTEM_PROMPT_GROCERY = f"""Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
 
 Der Nutzer liefert einen freien Text (z.B. diktiert oder eingetippt) mit Lebensmitteln und anderen Einkaufsartikeln. Deine Aufgabe ist es, daraus eine saubere JSON-Liste zu extrahieren.
@@ -133,7 +136,48 @@ BEISPIEL-OUTPUT:
 ]}}"""
 
 
+BRAIN_DUMP_SYSTEM_PROMPT_TODOS = f"""Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte To-Do-Einträge für einen gemeinsamen Haushalt umwandelt.
+
+Der Nutzer liefert einen freien Text mit Aufgaben (z.B. "Iris soll Auto waschen, morgen Müll raus, Arzttermin nächste Woche hochprio"). Deine Aufgabe: daraus eine saubere JSON-Liste extrahieren.
+
+REGELN:
+1. Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
+2. Format: {{"items": [{{"title": string, "priority": string, "due_date": string|null, "assignee_hint": string, "comment": string}}, ...]}}
+3. "priority" MUSS genau einer dieser Werte sein: {json.dumps(ALLOWED_PRIORITIES)}
+   - high: dringend, wichtig, sofort, heute, "asap", "hochprio"
+   - medium: normal (Default wenn unklar)
+   - low: irgendwann, nice-to-have, "low prio"
+4. "due_date" ist ein ISO-8601 Timestamp (UTC) ODER null. Erkenne Zeitphrasen relativ zu HEUTE:
+   - "heute" → heute 23:59 lokal
+   - "morgen" → morgen 09:00 lokal
+   - "übermorgen" → +2 Tage 09:00
+   - "in N Tagen" → +N Tage 23:59
+   - "Ende der Woche" → kommender Freitag 23:59
+   - "nächste Woche" → kommender Montag 09:00
+   - "am Freitag" / "Montag" → nächster passender Wochentag 09:00
+   - Konkrete Datumsangaben → ISO konvertieren
+   - Wenn keine Zeitangabe erkennbar → null.
+5. "assignee_hint" ist der Vorname oder "Tim"/"Iris"/"ich"/"wir"/"" (leer). Beispiele: "Iris soll X machen" → assignee_hint: "Iris". "Ich muss Y" → "ich". "Müll rausbringen" (keine Zuweisung) → "".
+6. "title" ist die Aufgabe kurz & klar auf Deutsch, ohne Datum/Prio-Wörter, erster Buchstabe groß. Keine Anrede.
+7. "comment" optional für Kontext, sonst "".
+8. Gib IMMER ein items-Array zurück: {{"items": []}} wenn nichts erkennbar.
+9. HEUTE ist gemeint als Zeitpunkt des Requests (du brauchst das konkrete Datum nicht zu kennen – gib Zeitphrasen wie "morgen" als passenden ISO-Timestamp in deiner besten Näherung zurück; der Server wird absolute Zeiten bei Bedarf nachberechnen).
+
+BEISPIEL-INPUT:
+"Iris soll morgen früh Auto waschen. Müll heute raus bringen ist wichtig. Arzttermin in drei Tagen. Irgendwann mal Rasen mähen."
+
+BEISPIEL-OUTPUT (das Datum dient nur als Format-Hinweis, echte Zeiten können variieren):
+{{"items": [
+  {{"title": "Auto waschen", "priority": "medium", "due_date": "2026-04-21T09:00:00Z", "assignee_hint": "Iris", "comment": ""}},
+  {{"title": "Müll rausbringen", "priority": "high", "due_date": "2026-04-20T23:59:00Z", "assignee_hint": "", "comment": ""}},
+  {{"title": "Arzttermin", "priority": "medium", "due_date": "2026-04-23T23:59:00Z", "assignee_hint": "", "comment": ""}},
+  {{"title": "Rasen mähen", "priority": "low", "due_date": null, "assignee_hint": "", "comment": ""}}
+]}}"""
+
+
+
 BRAIN_DUMP_SYSTEM_PROMPT_MISC = f"""Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufs-Einträge für NICHT-Lebensmittel umwandelt.
+
 
 Der Nutzer liefert einen freien Text mit Non-Food-Artikeln (Medikamente, Werkzeug, Drogerie-/Körperpflege-Artikel, Tierbedarf, Kleidung etc.). Deine Aufgabe: daraus eine saubere JSON-Liste extrahieren und jeden Artikel einem LOCATION_TAG (Geschäft) zuordnen.
 
@@ -171,7 +215,7 @@ BEISPIEL-OUTPUT:
 class BrainDumpParseRequest(BaseModel):
     user_id: str
     text: str
-    mode: Literal["grocery", "misc"] = "grocery"
+    mode: Literal["grocery", "misc", "todos"] = "grocery"
 
 
 # In-memory rate limiter: user_id -> deque of timestamps (seconds)
@@ -241,6 +285,39 @@ def _normalize_misc_item(raw_item: dict) -> Optional[dict]:
     return {"name": name, "location_tag": location, "note": note}
 
 
+def _normalize_todo_item(raw_item: dict) -> Optional[dict]:
+    if not isinstance(raw_item, dict):
+        return None
+    title = str(raw_item.get("title", "")).strip()
+    if not title:
+        return None
+    priority = str(raw_item.get("priority", "medium")).strip().lower()
+    if priority not in ALLOWED_PRIORITIES:
+        priority = "medium"
+    due_date = raw_item.get("due_date")
+    if due_date is not None:
+        due_date = str(due_date).strip() or None
+        # Drop dates that are clearly bogus (more than 30 days in the past) or
+        # malformed — Claude's training cutoff can produce stale/odd dates.
+        # User can set an explicit date in the preview.
+        if due_date:
+            try:
+                parsed_dt = datetime.fromisoformat(due_date.replace("Z", "+00:00"))
+                if parsed_dt < datetime.now(timezone.utc) - timedelta(days=30):
+                    due_date = None
+            except (ValueError, TypeError):
+                due_date = None
+    assignee_hint = str(raw_item.get("assignee_hint", "") or "").strip()
+    comment = str(raw_item.get("comment", "") or "").strip()
+    return {
+        "title": title,
+        "priority": priority,
+        "due_date": due_date,
+        "assignee_hint": assignee_hint,
+        "comment": comment,
+    }
+
+
 async def _call_claude(user_text: str, system_prompt: str) -> tuple[str, str]:
     session_id = f"braindump-{uuid.uuid4().hex[:12]}"
     chat = LlmChat(
@@ -273,8 +350,15 @@ async def brain_dump_parse(req: BrainDumpParseRequest):
         )
 
     system_prompt = (
-        BRAIN_DUMP_SYSTEM_PROMPT_MISC if req.mode == "misc" else BRAIN_DUMP_SYSTEM_PROMPT_GROCERY
+        BRAIN_DUMP_SYSTEM_PROMPT_MISC if req.mode == "misc"
+        else BRAIN_DUMP_SYSTEM_PROMPT_TODOS if req.mode == "todos"
+        else BRAIN_DUMP_SYSTEM_PROMPT_GROCERY
     )
+    # Inject today's date into the todos prompt so Claude returns fresh ISO dates
+    # instead of stale ones from its training cutoff.
+    if req.mode == "todos":
+        today_iso = datetime.now(timezone.utc).date().isoformat()
+        system_prompt = f"HEUTE ist {today_iso} (UTC). Nutze dieses Datum als Referenz für alle relativen Zeitangaben.\n\n" + system_prompt
 
     last_error: Optional[Exception] = None
     raw_response: Optional[str] = None
@@ -319,7 +403,12 @@ async def brain_dump_parse(req: BrainDumpParseRequest):
         raise HTTPException(status_code=502, detail="KI-Antwort konnte nicht verarbeitet werden.")
 
     raw_items = parsed.get("items", []) if isinstance(parsed, dict) else []
-    normalizer = _normalize_misc_item if req.mode == "misc" else _normalize_grocery_item
+    if req.mode == "misc":
+        normalizer = _normalize_misc_item
+    elif req.mode == "todos":
+        normalizer = _normalize_todo_item
+    else:
+        normalizer = _normalize_grocery_item
     items = [n for n in (normalizer(ri) for ri in raw_items) if n]
     return {"items": items, "mode": req.mode}
 

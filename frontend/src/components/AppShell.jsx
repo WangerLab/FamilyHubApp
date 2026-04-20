@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Share } from 'lucide-react';
 import { GroceryProvider } from '../contexts/GroceryContext';
 import { MiscProvider } from '../contexts/MiscContext';
+import { TodosProvider } from '../contexts/TodosContext';
+import { ChoresProvider } from '../contexts/ChoresContext';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import HomeTab from './tabs/HomeTab';
@@ -54,6 +56,8 @@ export default function AppShell() {
   return (
     <GroceryProvider>
     <MiscProvider>
+    <TodosProvider>
+    <ChoresProvider>
     <div className="relative w-full max-w-[412px] mx-auto min-h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950">
       {/* Top bar */}
       <TopBar />
@@ -139,6 +143,8 @@ export default function AppShell() {
       {/* Bottom nav */}
       <BottomNav />
     </div>
+    </ChoresProvider>
+    </TodosProvider>
     </MiscProvider>
     </GroceryProvider>
   );

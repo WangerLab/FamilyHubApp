@@ -5,6 +5,7 @@ import { MISC_LOCATIONS, getLocationMeta } from '../../constants/miscLocations';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
+import { useTodos } from '../../contexts/TodosContext';
 
 const MAX_CHARS = 500;
 const UNITS = ['Stück', 'g', 'kg', 'ml', 'L', 'Packung', 'Dose', 'Flasche', 'Bund', 'Glas'];
@@ -40,6 +41,7 @@ export default function BrainDump({ mode = 'grocery' }) {
   const API = process.env.REACT_APP_BACKEND_URL;
 
   const isMisc = mode === 'misc';
+  const isTodos = mode === 'todos';
 
   // Reset preview when mode changes
   useEffect(() => {
@@ -63,7 +65,9 @@ export default function BrainDump({ mode = 'grocery' }) {
   const overLimit = text.length > MAX_CHARS;
   const canParse = !loading && text.trim().length > 0 && !overLimit && retryAfter === 0 && userId;
 
-  const placeholder = isMisc
+  const placeholder = isTodos
+    ? 'z.B. Iris soll morgen Auto waschen, Müll heute raus, Arzttermin in drei Tagen hochprio…'
+    : isMisc
     ? 'z.B. Ibuprofen, Schrauben 4mm, Hundefutter Nassfutter, Zahnpasta, Batterien AA…'
     : 'z.B. 2 Äpfel, 500g Hack, eine Packung Nudeln, Milch laktosefrei, 6 Eier…';
 
@@ -89,11 +93,24 @@ export default function BrainDump({ mode = 'grocery' }) {
         return;
       }
       const data = await res.json();
-      const items = (data.items || []).map((it, idx) => ({
-        ...it,
-        _localId: `${Date.now()}-${idx}`,
-        _selected: true,
-      }));
+      const items = (data.items || []).map((it, idx) => {
+        const base = { ...it, _localId: `${Date.now()}-${idx}`, _selected: true };
+        if (isTodos) {
+          // Resolve assignee_hint → user_id against house members
+          const hint = (it.assignee_hint || '').toLowerCase().trim();
+          let assigned_to = null;
+          if (hint === 'ich' || hint === 'mir' || hint === 'me') {
+            assigned_to = userId;
+          } else if (hint) {
+            const match = todosMembers.find((m) =>
+              (m.display_name || '').toLowerCase().startsWith(hint)
+            );
+            if (match) assigned_to = match.user_id;
+          }
+          return { ...base, assigned_to };
+        }
+        return base;
+      });
       if (items.length === 0) {
         setError('Keine Artikel erkannt. Versuche es mit einem klareren Text.');
         return;
@@ -125,6 +142,15 @@ export default function BrainDump({ mode = 'grocery' }) {
           name: it.name.trim(),
           location_tag: it.location_tag || 'Sonstiges',
           note: it.note?.trim() || null,
+        });
+      } else if (isTodos) {
+        if (!addTodoItem) continue;
+        await addTodoItem({
+          title: it.title.trim(),
+          priority: it.priority || 'medium',
+          due_date: it.due_date || null,
+          assigned_to: it.assigned_to || null,
+          comment: it.comment?.trim() || null,
         });
       } else {
         await addGroceryItem({
@@ -170,7 +196,7 @@ export default function BrainDump({ mode = 'grocery' }) {
           KI Brain Dump
         </span>
         <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-          {isMisc ? 'Non-Food in Artikel umwandeln' : 'freien Text in Artikel umwandeln'}
+          {isTodos ? 'Aufgaben erkennen' : isMisc ? 'Non-Food in Artikel umwandeln' : 'freien Text in Artikel umwandeln'}
         </span>
         <ChevronDown
           className={`w-4 h-4 ml-auto text-slate-400 dark:text-slate-500 transition-transform duration-200 ${
@@ -308,8 +334,16 @@ export default function BrainDump({ mode = 'grocery' }) {
 
 function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
   const isMisc = mode === 'misc';
-  const cat = !isMisc ? CATEGORIES.find((c) => c.name === item.category) : null;
+  const isTodos = mode === 'todos';
+  const cat = (!isMisc && !isTodos) ? CATEGORIES.find((c) => c.name === item.category) : null;
   const locMeta = isMisc ? getLocationMeta(item.location_tag || 'Sonstiges') : null;
+  const todosCtx = useTodos();
+  const houseMembers = todosCtx?.houseMembers || [];
+
+  const prioEmoji = { high: '🔴', medium: '🟡', low: '🟢' };
+  const todoIcon = item.priority ? prioEmoji[item.priority] || '📝' : '📝';
+  const titleFieldName = isTodos ? 'title' : 'name';
+
   return (
     <div
       data-testid="brain-dump-preview-row"
@@ -334,11 +368,13 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
 
         <div className="flex-1 min-w-0 space-y-1.5">
           <div className="flex items-center gap-2">
-            <span className="text-base shrink-0">{isMisc ? locMeta?.emoji : (cat?.emoji || '🛒')}</span>
+            <span className="text-base shrink-0">
+              {isTodos ? todoIcon : isMisc ? locMeta?.emoji : (cat?.emoji || '🛒')}
+            </span>
             <input
               data-testid="brain-dump-preview-name"
-              value={item.name}
-              onChange={(e) => onChange({ name: e.target.value })}
+              value={item[titleFieldName] || ''}
+              onChange={(e) => onChange({ [titleFieldName]: e.target.value })}
               className="flex-1 min-w-0 bg-transparent text-[15px] font-semibold text-slate-800 dark:text-slate-100 focus:outline-none"
               style={{ fontFamily: 'Manrope, sans-serif' }}
             />
@@ -352,7 +388,7 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
             </button>
           </div>
 
-          {!isMisc && (
+          {!isMisc && !isTodos && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <input
                 data-testid="brain-dump-preview-qty"
@@ -386,6 +422,40 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
             </div>
           )}
 
+          {isTodos && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <select
+                data-testid="brain-dump-preview-priority"
+                value={item.priority || 'medium'}
+                onChange={(e) => onChange({ priority: e.target.value })}
+                className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                <option value="high">🔴 Hoch</option>
+                <option value="medium">🟡 Mittel</option>
+                <option value="low">🟢 Niedrig</option>
+              </select>
+              <select
+                data-testid="brain-dump-preview-assignee"
+                value={item.assigned_to || ''}
+                onChange={(e) => onChange({ assigned_to: e.target.value || null })}
+                className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+              >
+                <option value="">Nicht zugewiesen</option>
+                {houseMembers.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
+                ))}
+              </select>
+              {item.due_date && (
+                <span
+                  data-testid="brain-dump-preview-due"
+                  className="h-8 inline-flex items-center px-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[11px] text-blue-600 dark:text-blue-300 font-medium"
+                >
+                  📅 {new Date(item.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </div>
+          )}
+
           {isMisc && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <select
@@ -401,23 +471,30 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
             </div>
           )}
 
-          {(item.note || item._showNote) && (
-            <input
-              data-testid="brain-dump-preview-note"
-              value={item.note || ''}
-              onChange={(e) => onChange({ note: e.target.value })}
-              placeholder="Notiz…"
-              className="w-full h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-600 dark:text-slate-300 focus:outline-none"
-            />
-          )}
-          {!item.note && !item._showNote && (
-            <button
-              onClick={() => onChange({ _showNote: true })}
-              className="text-[11px] text-slate-400 dark:text-slate-500 font-medium active:opacity-60"
-            >
-              + Notiz
-            </button>
-          )}
+          {(() => {
+            const noteField = isTodos ? 'comment' : 'note';
+            const value = item[noteField] || '';
+            const hasValue = !!value;
+            if (hasValue || item._showNote) {
+              return (
+                <input
+                  data-testid="brain-dump-preview-note"
+                  value={value}
+                  onChange={(e) => onChange({ [noteField]: e.target.value })}
+                  placeholder={isTodos ? 'Kommentar…' : 'Notiz…'}
+                  className="w-full h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-600 dark:text-slate-300 focus:outline-none"
+                />
+              );
+            }
+            return (
+              <button
+                onClick={() => onChange({ _showNote: true })}
+                className="text-[11px] text-slate-400 dark:text-slate-500 font-medium active:opacity-60"
+              >
+                + {isTodos ? 'Kommentar' : 'Notiz'}
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>
