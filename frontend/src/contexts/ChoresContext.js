@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
+import { useActivity } from './ActivityContext';
 
 const ChoresContext = createContext(null);
 
@@ -16,6 +17,7 @@ function isoWeekInfo(date = new Date()) {
 
 export const ChoresProvider = ({ children }) => {
   const { member } = useAuth();
+  const activity = useActivity();
   const [chores, setChores] = useState([]);
   const [completions, setCompletions] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
@@ -136,6 +138,15 @@ export const ChoresProvider = ({ children }) => {
       .select()
       .single();
     if (inserted) setCompletions((prev) => (prev.some((c) => c.id === inserted.id) ? prev : [inserted, ...prev]));
+    const chore = chores.find((c) => c.id === choreId);
+    if (inserted && chore && activity?.logActivity) {
+      activity.logActivity({
+        action_type: 'chore_complete',
+        module: 'chores',
+        item_id: choreId,
+        description: `${member.display_name} hat „${chore.title}" erledigt`,
+      });
+    }
     return inserted;
   };
 

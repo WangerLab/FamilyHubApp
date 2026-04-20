@@ -1,11 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
+import { useActivity } from './ActivityContext';
 
 const TodosContext = createContext(null);
 
 export const TodosProvider = ({ children }) => {
   const { user, member } = useAuth();
+  const activity = useActivity();
   const [todos, setTodos] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ export const TodosProvider = ({ children }) => {
   });
 
   // ---- CRUD ----
-  const addTodo = async ({ title, priority = 'medium', due_date = null, assigned_to = null, comment = null }) => {
+  const addTodo = async ({ title, priority = 'medium', due_date = null, assigned_to = null, comment = null }, opts = {}) => {
     if (!member?.household_id || !title?.trim()) return null;
     const { data: inserted } = await supabase
       .from('todos')
@@ -117,6 +119,14 @@ export const TodosProvider = ({ children }) => {
     if (inserted) {
       setTodos((prev) => (prev.some((t) => t.id === inserted.id) ? prev : [inserted, ...prev]));
       previousTodoMap.current[inserted.id] = inserted;
+      if (!opts.silent && activity?.logActivity) {
+        activity.logActivity({
+          action_type: 'todo_create',
+          module: 'todos',
+          item_id: inserted.id,
+          description: `${member.display_name} hat eine Aufgabe erstellt: „${title.trim()}"`,
+        });
+      }
     }
     return inserted;
   };
@@ -144,6 +154,14 @@ export const TodosProvider = ({ children }) => {
       completed_at: completed ? new Date().toISOString() : null,
       completed_by: completed ? member.user_id : null,
     });
+    if (completed && activity?.logActivity) {
+      activity.logActivity({
+        action_type: 'todo_complete',
+        module: 'todos',
+        item_id: id,
+        description: `${member.display_name} hat „${todo.title}" erledigt`,
+      });
+    }
   };
 
   const deleteTodo = async (id) => {
@@ -165,6 +183,14 @@ export const TodosProvider = ({ children }) => {
       nudge_sent_at: new Date().toISOString(),
       nudge_sent_by: user.id,
     });
+    if (activity?.logActivity) {
+      activity.logActivity({
+        action_type: 'todo_nudge',
+        module: 'todos',
+        item_id: id,
+        description: `${member.display_name} hat angestupst: „${todo.title}"`,
+      });
+    }
     return { ok: true };
   };
 

@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
 import { useTodos } from '../../contexts/TodosContext';
+import { useActivity } from '../../contexts/ActivityContext';
 
 const MAX_CHARS = 500;
 const UNITS = ['Stück', 'g', 'kg', 'ml', 'L', 'Packung', 'Dose', 'Flasche', 'Bund', 'Glas'];
@@ -31,6 +32,7 @@ export default function BrainDump({ mode = 'grocery' }) {
   const todosCtx = useTodos();
   const addTodoItem = todosCtx?.addTodo;
   const todosMembers = todosCtx?.houseMembers || [];
+  const activity = useActivity();
 
   const [expanded, setExpanded] = useState(false);
   const [text, setText] = useState('');
@@ -146,7 +148,7 @@ export default function BrainDump({ mode = 'grocery' }) {
           name: it.name.trim(),
           location_tag: it.location_tag || 'Sonstiges',
           note: it.note?.trim() || null,
-        });
+        }, { silent: true });
       } else if (isTodos) {
         if (!addTodoItem) continue;
         await addTodoItem({
@@ -155,7 +157,7 @@ export default function BrainDump({ mode = 'grocery' }) {
           due_date: it.due_date || null,
           assigned_to: it.assigned_to || null,
           comment: it.comment?.trim() || null,
-        });
+        }, { silent: true });
       } else {
         await addGroceryItem({
           name: it.name.trim(),
@@ -163,8 +165,21 @@ export default function BrainDump({ mode = 'grocery' }) {
           quantity: Number(it.quantity) || 1,
           unit: it.unit || null,
           note: it.note?.trim() || null,
-        });
+        }, { silent: true });
       }
+    }
+    // Aggregate activity log entry for the whole brain dump
+    if (activity?.logActivity && toSave.length > 0 && member) {
+      const noun =
+        isTodos ? `${toSave.length} Aufgabe${toSave.length === 1 ? '' : 'n'}` :
+        isMisc  ? `${toSave.length} Sonstiges-Item${toSave.length === 1 ? '' : 's'}` :
+                  `${toSave.length} Nahrungsmittel`;
+      activity.logActivity({
+        action_type: isTodos ? 'todo_create' : (isMisc ? 'misc_add' : 'grocery_add'),
+        module: isTodos ? 'todos' : (isMisc ? 'misc' : 'grocery'),
+        item_id: null,
+        description: `${member.display_name} hat per KI Brain Dump ${noun} hinzugefügt`,
+      });
     }
     setLoading(false);
     setText('');

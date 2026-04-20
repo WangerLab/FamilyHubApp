@@ -1,12 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
+import { useActivity } from './ActivityContext';
 import { DEFAULT_MISC_LOCATION } from '../constants/miscLocations';
 
 const MiscContext = createContext(null);
 
 export const MiscProvider = ({ children }) => {
   const { member } = useAuth();
+  const activity = useActivity();
   const [items, setItems] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +67,7 @@ export const MiscProvider = ({ children }) => {
   houseMembers.forEach((m) => { memberColorMap[m.user_id] = m.color; });
 
   // --- CRUD ---
-  const addItem = async ({ name, location_tag, note }) => {
+  const addItem = async ({ name, location_tag, note }, opts = {}) => {
     if (!member?.household_id) return null;
     const { data: inserted } = await supabase
       .from('misc_items')
@@ -81,6 +83,14 @@ export const MiscProvider = ({ children }) => {
       .single();
     if (inserted) {
       setItems((prev) => (prev.some((i) => i.id === inserted.id) ? prev : [inserted, ...prev]));
+      if (!opts.silent && activity?.logActivity) {
+        activity.logActivity({
+          action_type: 'misc_add',
+          module: 'misc',
+          item_id: inserted.id,
+          description: `${member.display_name} hat „${name}" (${location_tag || DEFAULT_MISC_LOCATION}) notiert`,
+        });
+      }
     }
     return inserted;
   };
@@ -105,6 +115,14 @@ export const MiscProvider = ({ children }) => {
       checked_at: checked ? new Date().toISOString() : null,
       checked_by: checked ? member.user_id : null,
     });
+    if (checked && activity?.logActivity) {
+      activity.logActivity({
+        action_type: 'misc_check',
+        module: 'misc',
+        item_id: id,
+        description: `${member.display_name} hat „${item.name}" abgehakt`,
+      });
+    }
   };
 
   const softDelete = (id) => {

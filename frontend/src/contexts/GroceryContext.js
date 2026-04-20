@@ -1,11 +1,13 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
+import { useActivity } from './ActivityContext';
 
 const GroceryContext = createContext(null);
 
 export const GroceryProvider = ({ children }) => {
   const { member } = useAuth();
+  const activity = useActivity();
   const [items, setItems] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,7 @@ export const GroceryProvider = ({ children }) => {
   houseMembers.forEach((m) => { memberColorMap[m.user_id] = m.color; });
 
   // --- CRUD ---
-  const addItem = async (data) => {
+  const addItem = async (data, opts = {}) => {
     if (!member?.household_id) return;
     const { data: inserted } = await supabase
       .from('grocery_items')
@@ -87,6 +89,14 @@ export const GroceryProvider = ({ children }) => {
       .single();
     if (inserted) {
       setItems((prev) => (prev.some((i) => i.id === inserted.id) ? prev : [inserted, ...prev]));
+      if (!opts.silent && activity?.logActivity) {
+        activity.logActivity({
+          action_type: 'grocery_add',
+          module: 'grocery',
+          item_id: inserted.id,
+          description: `${member.display_name} hat „${data.name}" zur Einkaufsliste hinzugefügt`,
+        });
+      }
     }
     return inserted;
   };
@@ -111,6 +121,14 @@ export const GroceryProvider = ({ children }) => {
       checked_at: checked ? new Date().toISOString() : null,
       checked_by: checked ? member.user_id : null,
     });
+    if (checked && activity?.logActivity) {
+      activity.logActivity({
+        action_type: 'grocery_check',
+        module: 'grocery',
+        item_id: id,
+        description: `${member.display_name} hat „${item.name}" abgehakt`,
+      });
+    }
   };
 
   const softDelete = (id) => {

@@ -5,6 +5,7 @@ import { GroceryProvider } from '../contexts/GroceryContext';
 import { MiscProvider } from '../contexts/MiscContext';
 import { TodosProvider } from '../contexts/TodosContext';
 import { ChoresProvider } from '../contexts/ChoresContext';
+import { ActivityProvider } from '../contexts/ActivityContext';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import HomeTab from './tabs/HomeTab';
@@ -54,6 +55,7 @@ export default function AppShell() {
   };
 
   return (
+    <ActivityProvider>
     <GroceryProvider>
     <MiscProvider>
     <TodosProvider>
@@ -147,5 +149,6 @@ export default function AppShell() {
     </TodosProvider>
     </MiscProvider>
     </GroceryProvider>
+    </ActivityProvider>
   );
 }
