@@ -174,6 +174,22 @@ household_members: id (uuid PK), household_id (uuid FK), user_id (uuid FK → au
 - [x] Card-Navigation: Tap → entsprechender Tab
 - [x] Testing: Backend 18/18 pytest regression grün, Frontend alle direkt-testbaren Flows 100% (Dashboard render, 4 Cards, 3 Card-Navigations, Bell+Panel+MarkAllRead, Realtime activity log für todo create), keine Console-Errors, alle Sessions 1-5 Regressions grün
 
+## Implemented Features (Session 7 — Expenses + Weekly Recap, April 2026)
+
+- [x] Neue Tabellen `expenses` + `monthly_balance_archive` mit Trigger für `month_key` Auto-Populate + RLS + Realtime (SQL: `/app/supabase_session7_setup.sql`)
+- [x] `ExpensesContext` mit Balance-Berechnung (50/50 Split), Realtime, Monats-Filter, Archiv-Liste
+- [x] `BalanceCard`: große quitt/owed-Display mit User-Color, Settlement-Button
+- [x] `AddExpenseInput`: Description + Amount (EUR Format) + Date + Paid-By Chips + Kategorie-Tags
+- [x] `ExpenseRow`: Datum, Beschreibung, Paid-By-Dot mit User-Farbe, Kategorie-Chip, Löschen, Settlements mit Icon/Italic
+- [x] `ExpensesTab` (Route `/expenses`) mit Settlement-Prefill-Flow, Archivieren-Dialog + carryOver Berechnung, Archive-Liste collapsible (letzte 12 Monate)
+- [x] Brain Dump **mode="expense"**: Extraktion von `description/amount/category/expense_date`. HEUTE-Injection auch für expense. Stale-Dates (>60d) nulled. Preview zeigt Amount+Kategorie+PaidBy Dropdowns.
+- [x] MoreTab: „Module"-Sektion mit Ausgaben-Link → `/expenses`
+- [x] Dashboard: Neue Ausgaben-Card (Balance/quitt Anzeige, Tap → /expenses)
+- [x] **Weekly Family Recap** Card auf Dashboard: aggregiert letzte 7 Tage (Todos completed per user, Chores completions, Shopping-Adds/Checks aus activity_log). 🏆 Trophy für Top-Performer. Mood-Line je nach Aktivitätsvolumen. Rendert jetzt IMMER (mit „Diese Woche noch ruhig 🌿" Fallback).
+- [x] Activity-Log Integration für expense_add (+settlement-Variante)
+- [x] **Backend 25/25 pytest grün** (inkl. 7 neue expense-Tests: EUR-Amounts, Kategorien, gestern→Date, stale-null, 4-Modi Rate-Limit)
+- [x] **Frontend E2E verifiziert**: /expenses Route, BalanceCard quitt, Tim 100€ → Iris schuldet Tim 50,00€ (50/50 Split korrekt!), Settlement-Button, MoreTab-Link, Dashboard-Ausgaben-Card mit Live-Balance, WeeklyRecap sichtbar
+
 ## SQL Setup Required
 
 Run `/app/supabase_grocery_setup.sql` in Supabase Dashboard → SQL Editor to activate the grocery list.

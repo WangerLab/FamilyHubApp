@@ -65,7 +65,7 @@ export default function WeeklyRecap() {
     };
   }, [entries, todos, completions, houseMembers, memberMap]);
 
-  if (!stats.anyActivity) return null;
+  if (houseMembers.length === 0) return null;
 
   // Cheerful closer lines vary slightly with activity volume
   const totalActions = stats.totalTodos + stats.totalChores + stats.shoppingAdds + stats.shoppingChecks;
@@ -95,14 +95,16 @@ export default function WeeklyRecap() {
         className="text-[15px] font-semibold text-slate-800 dark:text-slate-100 mb-3 leading-snug"
         style={{ fontFamily: 'Manrope, sans-serif' }}
       >
-        {stats.topUser ? (
+        {stats.anyActivity && stats.topUser ? (
           <>
             <Trophy className="inline w-4 h-4 text-amber-500 mr-1 -mt-0.5" />
             <span style={{ color: stats.topUser.color }}>{stats.topUser.display_name}</span>{' '}
             führt mit <span className="font-bold">{stats.topCount}</span> Erledigungen
           </>
-        ) : (
+        ) : stats.anyActivity ? (
           <>Diese Woche in Zahlen</>
+        ) : (
+          <>Diese Woche noch ruhig 🌿</>
         )}
       </p>
 
@@ -138,7 +140,7 @@ export default function WeeklyRecap() {
       )}
 
       <p className="text-[13px] font-medium text-slate-700 dark:text-slate-200 mt-3 italic">
-        {mood}
+        {stats.anyActivity ? mood : 'Tag für Tag ein Stück weiter. ✨'}
       </p>
     </div>
   );
