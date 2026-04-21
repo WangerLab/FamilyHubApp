@@ -78,7 +78,7 @@ export default function SonstigesList({ stickyTop }) {
         const tagItems = groups[tag];
         const uncheckedInTag = tagItems.filter((i) => !i.checked).length;
         return (
-          <div key={tag} data-tag={tag} style={{ scrollMarginTop: stickyTop }}>
+          <div key={tag} data-tag={tag}>
             <div
               className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
               style={{ top: stickyTop }}
@@ -107,7 +107,7 @@ export default function SonstigesList({ stickyTop }) {
 }
 
 // Expose the AddInput so ShoppingTab can render it inside the sticky header
-SonstigesList.AddInput = function MiscAddInputConnected() {
+SonstigesList.AddInput = function MiscAddInputConnected({ onAdd }) {
   const { addItem } = useMisc();
-  return <AddMiscItemInput onAdd={(data) => addItem(data)} />;
+  return <AddMiscItemInput onAdd={onAdd || ((data) => addItem(data))} />;
 };

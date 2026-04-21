@@ -113,12 +113,29 @@ export default function ShoppingTab() {
     return groups;
   }, [grocery.items, grocery.shoppingMode]);
 
+  const scrollGroupBelowHeader = (selector) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const groupEl = document.querySelector(selector);
+      const mainEl = groupEl?.closest('main');
+      const headerEl = headerRef.current;
+      if (!groupEl || !mainEl || !headerEl) return;
+      const mainRect = mainEl.getBoundingClientRect();
+      const groupRect = groupEl.getBoundingClientRect();
+      const offset = (groupRect.top - mainRect.top) + mainEl.scrollTop - headerEl.offsetHeight;
+      mainEl.scrollTo({ top: offset, behavior: 'smooth' });
+    }));
+  };
+
   const handleAddGrocery = async (data) => {
     await grocery.addItem(data);
-    setTimeout(() => {
-      const el = document.querySelector(`[data-category-id="${CATEGORIES.find((c) => c.name === data.category)?.id}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 250);
+    const catId = CATEGORIES.find((c) => c.name === data.category)?.id;
+    if (catId) scrollGroupBelowHeader(`[data-category-id="${catId}"]`);
+  };
+
+  const handleAddMisc = async (data) => {
+    await misc.addItem(data);
+    const tag = data.location_tag || 'Sonstiges';
+    scrollGroupBelowHeader(`[data-tag="${CSS.escape(tag)}"]`);
   };
 
   const handleReset = async () => {
@@ -216,7 +233,7 @@ export default function ShoppingTab() {
         {isGrocery ? (
           <AddItemInput onAdd={handleAddGrocery} />
         ) : (
-          <SonstigesList.AddInput />
+          <SonstigesList.AddInput onAdd={handleAddMisc} />
         )}
 
         {/* Brain Dump */}
@@ -238,7 +255,7 @@ export default function ShoppingTab() {
               if (!catItems?.length) return null;
               const uncheckedInCat = catItems.filter((i) => !i.checked).length;
               return (
-                <div key={cat.id} data-category-id={cat.id} style={{ scrollMarginTop: catStickyTop }}>
+                <div key={cat.id} data-category-id={cat.id}>
                   <div
                     className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
                     style={{ top: catStickyTop }}
