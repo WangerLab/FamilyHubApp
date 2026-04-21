@@ -119,9 +119,9 @@ export default function ShoppingTab() {
       const mainEl = groupEl?.closest('main');
       const headerEl = headerRef.current;
       if (!groupEl || !mainEl || !headerEl) return;
-      const mainRect = mainEl.getBoundingClientRect();
-      const groupRect = groupEl.getBoundingClientRect();
-      const offset = (groupRect.top - mainRect.top) + mainEl.scrollTop - headerEl.offsetHeight;
+      const headerBottom = headerEl.getBoundingClientRect().bottom;
+      const groupTop = groupEl.getBoundingClientRect().top;
+      const offset = (groupTop - headerBottom) + mainEl.scrollTop;
       mainEl.scrollTo({ top: offset, behavior: 'smooth' });
     }));
   };
