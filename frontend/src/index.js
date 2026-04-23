@@ -10,12 +10,5 @@ root.render(
   </React.StrictMode>
 );
 
-// Register service worker for PWA offline support
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((reg) => console.log('SW registered:', reg.scope))
-      .catch((err) => console.warn('SW registration failed:', err));
-  });
-}
+// Service worker disabled — app runs as standard website
+// Kill-switch sw.js will deregister any previously installed SW on next visit

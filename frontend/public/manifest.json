@@ -2,7 +2,7 @@
   "name": "Wanger Family Hub",
   "short_name": "FamilyHub",
   "description": "Wanger family household management app",
-  "display": "standalone",
+  "display": "browser",
   "start_url": "/",
   "scope": "/",
   "theme_color": "#3B82F6",
