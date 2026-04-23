@@ -127,13 +127,12 @@ export default function GroceryItemRow({ item, shoppingMode }) {
               aria-label={item.checked ? 'Als unerledigt markieren' : 'Als erledigt markieren'}
               className={`shrink-0 rounded-full border-2 flex items-center justify-center transition-colors active:scale-90 ${checkboxSize} ${
                 item.checked
-                  ? 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
-                  : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900'
+                  ? 'bg-emerald-500/15 border-emerald-500'
+                  : 'border-slate-300 dark:border-slate-600 bg-transparent'
               }`}
-              style={!item.checked ? { borderColor: creatorColor } : {}}
             >
               {item.checked && (
-                <Check className={`${checkIconSize} text-slate-400 dark:text-slate-500`} />
+                <Check className={`${checkIconSize} text-emerald-400`} strokeWidth={3} />
               )}
             </button>
 
