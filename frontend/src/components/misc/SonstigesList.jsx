@@ -85,8 +85,8 @@ export default function SonstigesList({ stickyTop }) {
             >
               <span className="text-base">{meta.emoji}</span>
               <span
-                className="text-sm font-semibold"
-                style={{ fontFamily: 'Manrope, sans-serif', color: meta.color }}
+                className="text-sm font-semibold text-slate-900 dark:text-slate-50"
+                style={{ fontFamily: 'Manrope, sans-serif' }}
               >
                 {meta.name}
               </span>
