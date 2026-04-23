@@ -77,24 +77,23 @@ export default function ShoppingTab() {
   );
   const [showResetDialog, setShowResetDialog] = useState(false);
   const headerRef = useRef(null);
-  const [headerBottom, setHeaderBottom] = useState(297);
+  const [headerHeight, setHeaderHeight] = useState(200);
   const userColor = member?.color || '#3B82F6';
 
   useEffect(() => {
     localStorage.setItem(SUBTAB_STORAGE_KEY, subTab);
   }, [subTab]);
 
+  // Measure sticky header height for category/tag sticky offset
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
-    const measure = () => {
-      const rect = el.getBoundingClientRect();
-      setHeaderBottom(rect.bottom);
-    };
+    const measure = () => setHeaderHeight(el.getBoundingClientRect().height);
     measure();
+    const raf = requestAnimationFrame(() => requestAnimationFrame(measure));
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); cancelAnimationFrame(raf); };
   }, [subTab]);
 
   // ---- Grocery derived ----
@@ -145,7 +144,7 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = `${headerBottom}px`;
+  const catStickyTop = `calc(64px + env(safe-area-inset-top) + ${headerHeight}px)`;
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
@@ -237,26 +236,29 @@ export default function ShoppingTab() {
           <SonstigesList.AddInput onAdd={handleAddMisc} />
         )}
 
+        {/* Brain Dump */}
+        <BrainDump mode={isGrocery ? 'grocery' : 'misc'} />
       </div>
 
       {/* ---- Items list ---- */}
       {isGrocery ? (
         grocery.loading ? (
-          <div className="flex items-center justify-center py-16" style={{ paddingTop: `${headerBottom - 128}px` }}>
+          <div className="flex items-center justify-center py-16">
             <div className="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-blue-500 animate-spin" />
           </div>
         ) : grocery.items.length === 0 ? (
-          <div style={{ paddingTop: `${headerBottom - 128}px` }}><EmptyState color={userColor} /></div>
+          <EmptyState color={userColor} />
         ) : (
-          <div style={{ paddingTop: `${headerBottom - 128}px` }}>
+          <div>
             {CATEGORIES.map((cat) => {
               const catItems = groupedGrocery[cat.name];
               if (!catItems?.length) return null;
               const uncheckedInCat = catItems.filter((i) => !i.checked).length;
               return (
-                <div key={cat.id} data-category-id={cat.id} style={{ scrollMarginTop: catStickyTop, isolation: 'isolate' }}>
+                <div key={cat.id} data-category-id={cat.id} style={{ scrollMarginTop: catStickyTop }}>
                   <div
-                    className="flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+                    className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+                    style={{ top: catStickyTop }}
                   >
                     <span className="text-base">{cat.emoji}</span>
                     <span
@@ -280,9 +282,7 @@ export default function ShoppingTab() {
           </div>
         )
       ) : (
-        <div style={{ paddingTop: `${headerBottom - 128}px` }}>
-          <SonstigesList stickyTop={catStickyTop} />
-        </div>
+        <SonstigesList stickyTop={catStickyTop} />
       )}
 
       {showResetDialog && (
@@ -309,14 +309,6 @@ export default function ShoppingTab() {
           onUndo={misc.undoDelete}
         />
       )}
-
-      {/* ---- Floating Brain Dump ---- */}
-      <div
-        className="fixed z-40 right-4"
-        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom) + 12px)' }}
-      >
-        <BrainDump mode={isGrocery ? 'grocery' : 'misc'} floating />
-      </div>
     </div>
   );
 }
