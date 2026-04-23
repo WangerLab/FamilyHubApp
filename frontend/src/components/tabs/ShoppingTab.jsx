@@ -161,22 +161,20 @@ export default function ShoppingTab() {
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            {isGrocery && (
-              <button
-                data-testid="shopping-mode-toggle"
-                onClick={grocery.toggleShoppingMode}
-                className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-sm font-medium active:scale-95 transition-all duration-150 ${
-                  grocery.shoppingMode
-                    ? 'text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                }`}
-                style={grocery.shoppingMode ? { backgroundColor: userColor } : {}}
-                aria-pressed={grocery.shoppingMode}
-              >
-                <ShoppingCart className="w-4 h-4" />
-                {grocery.shoppingMode ? 'Fertig' : 'Einkaufen'}
-              </button>
-            )}
+            <button
+              data-testid="shopping-mode-toggle"
+              onClick={grocery.toggleShoppingMode}
+              className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-sm font-medium active:scale-95 transition-all duration-150 ${
+                grocery.shoppingMode
+                  ? 'text-white'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+              }`}
+              style={grocery.shoppingMode ? { backgroundColor: userColor } : {}}
+              aria-pressed={grocery.shoppingMode}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {grocery.shoppingMode ? 'Fertig' : 'Einkaufen'}
+            </button>
             <button
               data-testid="reset-list-button"
               onClick={() => setShowResetDialog(true)}
@@ -265,7 +263,7 @@ export default function ShoppingTab() {
           </div>
         )
       ) : (
-        <SonstigesList stickyTop={catStickyTop} />
+        <SonstigesList stickyTop={catStickyTop} shoppingMode={grocery.shoppingMode} />
       )}
 
       {showResetDialog && (

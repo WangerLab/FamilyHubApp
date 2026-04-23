@@ -2,8 +2,11 @@ import React, { useRef, useState } from 'react';
 import { Check, FileText, Trash2 } from 'lucide-react';
 import { useMisc } from '../../contexts/MiscContext';
 
-export default function MiscItemRow({ item }) {
+export default function MiscItemRow({ item, shoppingMode }) {
   const { updateItem, toggleItem, softDelete, memberColorMap, memberNameMap } = useMisc();
+
+  const checkboxSize = shoppingMode ? 'w-14 h-14' : 'w-6 h-6 mt-0.5';
+  const checkIconSize = shoppingMode ? 'w-7 h-7' : 'w-3.5 h-3.5';
 
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
@@ -94,13 +97,13 @@ export default function MiscItemRow({ item }) {
             data-testid={`toggle-misc-${item.id}`}
             onClick={(e) => { e.stopPropagation(); if (!swipeOpen) toggleItem(item.id); }}
             aria-label={item.checked ? 'Als unerledigt markieren' : 'Als erledigt markieren'}
-            className={`shrink-0 rounded-full border-2 flex items-center justify-center transition-colors active:scale-90 w-6 h-6 mt-0.5 ${
+            className={`shrink-0 rounded-full border-2 flex items-center justify-center transition-colors active:scale-90 ${checkboxSize} ${
               item.checked
                 ? 'bg-emerald-500/15 border-emerald-500'
                 : 'border-slate-300 dark:border-slate-600 bg-transparent'
             }`}
           >
-            {item.checked && <Check className="w-3.5 h-3.5 text-emerald-400" strokeWidth={3} />}
+            {item.checked && <Check className={`${checkIconSize} text-emerald-400`} strokeWidth={3} />}
           </button>
 
           {/* Content */}

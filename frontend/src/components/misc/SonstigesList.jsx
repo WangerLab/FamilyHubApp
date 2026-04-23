@@ -33,7 +33,7 @@ function EmptyState({ color }) {
  * The AddInput + BrainDump live in ShoppingTab's sticky header; this component
  * renders only the grouped list + empty state.
  */
-export default function SonstigesList({ stickyTop }) {
+export default function SonstigesList({ stickyTop, shoppingMode }) {
   const { member } = useAuth();
   const { items, loading } = useMisc();
   const userColor = member?.color || '#3B82F6';
@@ -96,7 +96,7 @@ export default function SonstigesList({ stickyTop }) {
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {tagItems.map((item) => (
-                <MiscItemRow key={item.id} item={item} />
+                <MiscItemRow key={item.id} item={item} shoppingMode={shoppingMode} />
               ))}
             </div>
           </div>
