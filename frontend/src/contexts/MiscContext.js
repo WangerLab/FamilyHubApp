@@ -65,6 +65,8 @@ export const MiscProvider = ({ children }) => {
 
   const memberColorMap = {};
   houseMembers.forEach((m) => { memberColorMap[m.user_id] = m.color; });
+  const memberNameMap = {};
+  houseMembers.forEach((m) => { memberNameMap[m.user_id] = m.display_name; });
 
   // --- CRUD ---
   const addItem = async ({ name, location_tag, note }, opts = {}) => {
@@ -159,7 +161,7 @@ export const MiscProvider = ({ children }) => {
   return (
     <MiscContext.Provider
       value={{
-        items, loading, uncheckedCount, memberColorMap,
+        items, loading, uncheckedCount, memberColorMap, memberNameMap,
         addItem, updateItem, toggleItem,
         softDelete, undoDelete, pendingDelete,
         clearList,
