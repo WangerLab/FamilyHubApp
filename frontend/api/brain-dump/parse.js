@@ -2,9 +2,10 @@
 // Replaces the Python FastAPI backend/server.py endpoint
 
 const ALLOWED_CATEGORIES = [
-  "Obst & Gemüse","Frisches Fleisch & Fisch","Bäckerei & Brot",
-  "Milch & Alternativen","Kühlregal & Tiefkühl","Konserven & Saucen",
-  "Gewürze","Getränke","Snacks & Süsses",
+  "Obst & Gemüse","Bäckerei & Brot","Fisch & Meeresfrüchte",
+  "Pflanzliche Proteine","Fleisch & Wurst","Milchprodukte pflanzlich & Milch",
+  "Käse & Aufschnitt","Tiefkühl","Trockenwaren & Backen",
+  "Konserven & Saucen","Gewürze & Öl","Getränke","Snacks & Süßes",
 ];
 const ALLOWED_UNITS = ["Stück","g","kg","ml","L","Packung","Dose","Flasche","Bund","Glas"];
 const ALLOWED_MISC_LOCATIONS = ["Apotheke","Baumarkt","Drogerie","Zoohandlung","Kleidung","Sonstiges"];
@@ -109,7 +110,7 @@ function normalizeExpense(item) {
 const PROMPT_GROCERY = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
 Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
 Format: {"items": [{"name": string, "quantity": number|null, "unit": string|null, "category": string, "note": string}, ...]}
-Kategorien (wörtlich): ["Obst & Gemüse","Frisches Fleisch & Fisch","Bäckerei & Brot","Milch & Alternativen","Kühlregal & Tiefkühl","Konserven & Saucen","Gewürze","Getränke","Snacks & Süsses"]
+Kategorien (wörtlich): ["Obst & Gemüse","Bäckerei & Brot","Fisch & Meeresfrüchte","Pflanzliche Proteine","Fleisch & Wurst","Milchprodukte pflanzlich & Milch","Käse & Aufschnitt","Tiefkühl","Trockenwaren & Backen","Konserven & Saucen","Gewürze & Öl","Getränke","Snacks & Süßes"]
 Einheiten (wenn genannt): ["Stück","g","kg","ml","L","Packung","Dose","Flasche","Bund","Glas"]
 WICHTIG zu Menge und Einheit:
 - quantity: NUR setzen wenn im Text explizit eine Zahl steht ("500g Mehl" → 500, "2 Liter Milch" → 2). Sonst null.
