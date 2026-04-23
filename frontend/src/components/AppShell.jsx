@@ -15,6 +15,7 @@ import TasksTab from './tabs/TasksTab';
 import ChoresTab from './tabs/ChoresTab';
 import MoreTab from './tabs/MoreTab';
 import ExpensesTab from './tabs/ExpensesTab';
+import FloatingBrainDumpButton from './FloatingBrainDumpButton';
 
 export default function AppShell() {
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
@@ -145,6 +146,9 @@ export default function AppShell() {
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </main>
+
+      {/* Floating Brain Dump Button */}
+      <FloatingBrainDumpButton />
 
       {/* Bottom nav */}
       <BottomNav />
