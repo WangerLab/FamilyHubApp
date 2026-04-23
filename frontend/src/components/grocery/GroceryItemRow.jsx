@@ -5,7 +5,7 @@ import { useGrocery } from '../../contexts/GroceryContext';
 import CategoryPicker from './CategoryPicker';
 
 export default function GroceryItemRow({ item, shoppingMode }) {
-  const { updateItem, toggleItem, softDelete, memberColorMap } = useGrocery();
+  const { updateItem, toggleItem, softDelete, memberColorMap, memberNameMap } = useGrocery();
 
   // Swipe state
   const touchStartX = useRef(null);
@@ -22,6 +22,8 @@ export default function GroceryItemRow({ item, shoppingMode }) {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   const creatorColor = memberColorMap[item.created_by] || '#94a3b8';
+  const creatorName = memberNameMap[item.created_by] || '';
+  const hasQuantity = item.quantity != null || item.unit;
   const cat = CATEGORIES.find((c) => c.name === item.category);
 
   // --- Swipe handlers ---
@@ -105,12 +107,21 @@ export default function GroceryItemRow({ item, shoppingMode }) {
 
             {/* Content */}
             <div className={`flex-1 min-w-0 transition-opacity duration-150 ${item.checked ? 'opacity-45' : ''}`}>
-              {/* Name */}
+              {/* Name (with quantity in parens if set) */}
               <p
                 className={`text-base text-slate-900 dark:text-slate-50 leading-snug ${item.checked ? 'line-through' : ''}`}
                 style={{ fontFamily: 'DM Sans, sans-serif' }}
               >
                 {item.name}
+                {hasQuantity && (
+                  <button
+                    data-testid={`qty-display-${item.id}`}
+                    onClick={(e) => { e.stopPropagation(); openPanel(); }}
+                    className="ml-1.5 text-sm text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums"
+                  >
+                    ({item.quantity != null ? item.quantity : ''}{item.quantity != null && item.unit ? ' ' : ''}{item.unit || ''})
+                  </button>
+                )}
               </p>
 
               {/* Meta row */}
@@ -125,16 +136,8 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                   <span className="truncate max-w-[72px]">{item.category}</span>
                 </button>
 
-                {/* Quantity display OR + Menge button */}
-                {(item.quantity != null || item.unit) ? (
-                  <button
-                    data-testid={`qty-display-${item.id}`}
-                    onClick={(e) => { e.stopPropagation(); openPanel(); }}
-                    className="text-[11px] text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums"
-                  >
-                    {item.quantity != null ? item.quantity : ''}{item.quantity != null && item.unit ? ' ' : ''}{item.unit || ''}
-                  </button>
-                ) : (
+                {/* + Menge only when no quantity yet */}
+                {!hasQuantity && (
                   <button
                     data-testid={`qty-add-${item.id}`}
                     onClick={(e) => { e.stopPropagation(); openPanel(); }}
@@ -143,18 +146,6 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                     + Menge
                   </button>
                 )}
-
-                {/* Note toggle — opens same panel */}
-                <button
-                  data-testid={`note-toggle-${item.id}`}
-                  onClick={(e) => { e.stopPropagation(); openPanel(); }}
-                  className={`p-0.5 rounded transition-colors active:opacity-70 ${
-                    item.note ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
-                  }`}
-                  aria-label="Details"
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                </button>
               </div>
 
               {/* Compact note preview when panel closed */}
@@ -207,12 +198,26 @@ export default function GroceryItemRow({ item, shoppingMode }) {
               )}
             </div>
 
-            {/* Creator color dot */}
-            <div
-              className="w-2 h-2 rounded-full shrink-0 mt-1.5"
-              style={{ backgroundColor: creatorColor }}
-              title="Hinzugefügt von"
-            />
+            {/* Right column: creator name + note toggle */}
+            <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
+              <span
+                className="text-[11px] font-medium leading-none"
+                style={{ color: creatorColor }}
+                title="Hinzugefügt von"
+              >
+                {creatorName}
+              </span>
+              <button
+                data-testid={`note-toggle-${item.id}`}
+                onClick={(e) => { e.stopPropagation(); openPanel(); }}
+                className={`p-0.5 rounded transition-colors active:opacity-70 ${
+                  item.note ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
+                }`}
+                aria-label="Details"
+              >
+                <FileText className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

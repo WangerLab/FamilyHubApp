@@ -68,6 +68,8 @@ export const GroceryProvider = ({ children }) => {
   // Map user_id → color
   const memberColorMap = {};
   houseMembers.forEach((m) => { memberColorMap[m.user_id] = m.color; });
+  const memberNameMap = {};
+  houseMembers.forEach((m) => { memberNameMap[m.user_id] = m.display_name; });
 
   // --- CRUD ---
   const addItem = async (data, opts = {}) => {
@@ -174,7 +176,7 @@ export const GroceryProvider = ({ children }) => {
   return (
     <GroceryContext.Provider
       value={{
-        items, loading, uncheckedCount, memberColorMap,
+        items, loading, uncheckedCount, memberColorMap, memberNameMap,
         shoppingMode, toggleShoppingMode,
         addItem, updateItem, toggleItem,
         softDelete, undoDelete, pendingDelete,
