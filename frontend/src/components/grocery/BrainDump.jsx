@@ -176,7 +176,9 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
         await addGroceryItem({
           name: it.name.trim(),
           category: it.category,
-          quantity: Number(it.quantity) || 1,
+          quantity: it.quantity !== '' && it.quantity != null && Number(it.quantity) > 0
+            ? Number(it.quantity)
+            : null,
           unit: it.unit || null,
           note: it.note?.trim() || null,
         }, { silent: true });
@@ -434,16 +436,17 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
                 type="number"
                 min="0"
                 step="any"
-                value={item.quantity}
-                onChange={(e) => onChange({ quantity: e.target.value })}
+                value={item.quantity ?? ''}
+                onChange={(e) => onChange({ quantity: e.target.value === '' ? null : e.target.value })}
                 className="w-14 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-center text-sm tabular-nums text-slate-700 dark:text-slate-200 focus:outline-none"
               />
               <select
                 data-testid="brain-dump-preview-unit"
-                value={item.unit}
-                onChange={(e) => onChange({ unit: e.target.value })}
+                value={item.unit ?? ''}
+                onChange={(e) => onChange({ unit: e.target.value || null })}
                 className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
               >
+                <option value="">— keine —</option>
                 {UNITS.map((u) => (
                   <option key={u} value={u}>{u}</option>
                 ))}
