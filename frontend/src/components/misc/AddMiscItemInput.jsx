@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { MISC_LOCATIONS, detectLocation } from '../../constants/miscLocations';
+import { MISC_LOCATIONS, detectLocation, DEFAULT_MISC_LOCATION } from '../../constants/miscLocations';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMisc } from '../../contexts/MiscContext';
 
 export default function AddMiscItemInput({ onAdd }) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
+  const { user } = useAuth();
+  const { updateItem } = useMisc();
 
   const detectedLocation = value.trim() ? detectLocation(value.trim()) : null;
   const detectedMeta = detectedLocation
@@ -16,9 +20,27 @@ export default function AddMiscItemInput({ onAdd }) {
     if (!name || busy) return;
     setBusy(true);
     const location_tag = detectLocation(name);
-    await onAdd({ name, location_tag });
+    const inserted = await onAdd({ name, location_tag });
     setValue('');
     setBusy(false);
+
+    if (inserted && location_tag === DEFAULT_MISC_LOCATION && user?.id) {
+      try {
+        const r = await fetch('/api/categorize/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, name, mode: 'misc' }),
+        });
+        if (r.ok) {
+          const { location_tag: aiTag } = await r.json();
+          if (aiTag && aiTag !== DEFAULT_MISC_LOCATION) {
+            await updateItem(inserted.id, { location_tag: aiTag });
+          }
+        }
+      } catch {
+        // Silent
+      }
+    }
   };
 
   const handleKeyDown = (e) => {

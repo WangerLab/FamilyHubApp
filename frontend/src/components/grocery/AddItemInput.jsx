@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { CATEGORIES, detectCategory } from '../../constants/categories';
+import { CATEGORIES, detectCategory, DEFAULT_CATEGORY } from '../../constants/categories';
+import { useAuth } from '../../contexts/AuthContext';
+import { useGrocery } from '../../contexts/GroceryContext';
 
 export default function AddItemInput({ onAdd }) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
+  const { user } = useAuth();
+  const { updateItem } = useGrocery();
 
   const detectedCat = value.trim() ? detectCategory(value.trim()) : null;
   const detectedEmoji = detectedCat ? CATEGORIES.find((c) => c.name === detectedCat)?.emoji : null;
@@ -14,9 +18,27 @@ export default function AddItemInput({ onAdd }) {
     if (!name || busy) return;
     setBusy(true);
     const category = detectCategory(name);
-    await onAdd({ name, category });
+    const inserted = await onAdd({ name, category });
     setValue('');
     setBusy(false);
+
+    if (inserted && category === DEFAULT_CATEGORY && user?.id) {
+      try {
+        const r = await fetch('/api/categorize/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, name, mode: 'grocery' }),
+        });
+        if (r.ok) {
+          const { category: aiCategory } = await r.json();
+          if (aiCategory && aiCategory !== DEFAULT_CATEGORY) {
+            await updateItem(inserted.id, { category: aiCategory });
+          }
+        }
+      } catch {
+        // Silent: Item bleibt in Default, kein User-Feedback nötig
+      }
+    }
   };
 
   const handleKeyDown = (e) => {
