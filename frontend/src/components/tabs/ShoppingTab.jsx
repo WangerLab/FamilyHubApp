@@ -129,7 +129,7 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = 'calc(64px + env(safe-area-inset-top) + 160px)';
+  const catStickyTop = 'calc(64px + env(safe-area-inset-top) + 170px)';
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
@@ -140,7 +140,7 @@ export default function ShoppingTab() {
       <div
         data-shopping-header
         className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"
-        style={{ top: 'calc(64px + env(safe-area-inset-top))', minHeight: '160px' }}
+        style={{ top: 'calc(64px + env(safe-area-inset-top))', minHeight: '170px' }}
       >
         {/* Title row */}
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
