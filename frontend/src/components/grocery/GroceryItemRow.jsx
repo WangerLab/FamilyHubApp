@@ -57,6 +57,15 @@ export default function GroceryItemRow({ item, shoppingMode }) {
     setPanelOpen(true);
   };
 
+  const togglePanel = () => {
+    if (swipeOpen) return;
+    if (panelOpen) {
+      savePanel();
+    } else {
+      openPanel();
+    }
+  };
+
   const checkboxSize = shoppingMode ? 'w-14 h-14' : 'w-6 h-6 mt-0.5';
   const checkIconSize = shoppingMode ? 'w-7 h-7' : 'w-3.5 h-3.5';
 
@@ -116,7 +125,7 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                 {hasQuantity && (
                   <button
                     data-testid={`qty-display-${item.id}`}
-                    onClick={(e) => { e.stopPropagation(); openPanel(); }}
+                    onClick={(e) => { e.stopPropagation(); togglePanel(); }}
                     className="ml-1.5 text-sm text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums"
                   >
                     ({item.quantity != null ? item.quantity : ''}{item.quantity != null && item.unit ? ' ' : ''}{item.unit || ''})
@@ -140,7 +149,7 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                 {!hasQuantity && (
                   <button
                     data-testid={`qty-add-${item.id}`}
-                    onClick={(e) => { e.stopPropagation(); openPanel(); }}
+                    onClick={(e) => { e.stopPropagation(); togglePanel(); }}
                     className="text-[11px] text-slate-400 dark:text-slate-600 active:opacity-70 italic"
                   >
                     + Menge
@@ -209,7 +218,7 @@ export default function GroceryItemRow({ item, shoppingMode }) {
               </span>
               <button
                 data-testid={`note-toggle-${item.id}`}
-                onClick={(e) => { e.stopPropagation(); openPanel(); }}
+                onClick={(e) => { e.stopPropagation(); togglePanel(); }}
                 className={`p-0.5 rounded transition-colors active:opacity-70 ${
                   item.note ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
                 }`}
