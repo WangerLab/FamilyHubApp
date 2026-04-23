@@ -77,10 +77,24 @@ export default function ShoppingTab() {
   );
   const [showResetDialog, setShowResetDialog] = useState(false);
   const headerRef = useRef(null);
+  const [headerBottom, setHeaderBottom] = useState(297);
   const userColor = member?.color || '#3B82F6';
 
   useEffect(() => {
     localStorage.setItem(SUBTAB_STORAGE_KEY, subTab);
+  }, [subTab]);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const measure = () => {
+      const rect = el.getBoundingClientRect();
+      setHeaderBottom(rect.bottom);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
   }, [subTab]);
 
   // ---- Grocery derived ----
@@ -131,7 +145,7 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = 'calc(64px + env(safe-area-inset-top) + 160px)';
+  const catStickyTop = `${headerBottom}px`;
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
