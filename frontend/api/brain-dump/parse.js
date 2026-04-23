@@ -41,12 +41,18 @@ function extractJson(raw) {
 function normalizeGrocery(item) {
   const name = String(item.name || "").trim();
   if (!name) return null;
+
+  // Menge: nur setzen wenn explizit genannt (Zahl > 0), sonst null
   let quantity = parseFloat(item.quantity);
-  if (!quantity || quantity <= 0) quantity = 1;
-  let unit = String(item.unit || "Stück").trim();
-  if (!ALLOWED_UNITS.includes(unit)) unit = "Stück";
+  if (!quantity || quantity <= 0) quantity = null;
+
+  // Einheit: nur setzen wenn explizit und erlaubt, sonst null
+  let unit = item.unit ? String(item.unit).trim() : null;
+  if (unit && !ALLOWED_UNITS.includes(unit)) unit = null;
+
   let category = String(item.category || "").trim();
   if (!ALLOWED_CATEGORIES.includes(category)) category = "Konserven & Saucen";
+
   return { name, quantity, unit, category, note: String(item.note || "").trim() };
 }
 
@@ -102,10 +108,15 @@ function normalizeExpense(item) {
 
 const PROMPT_GROCERY = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
 Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
-Format: {"items": [{"name": string, "quantity": number, "unit": string, "category": string, "note": string}, ...]}
+Format: {"items": [{"name": string, "quantity": number|null, "unit": string|null, "category": string, "note": string}, ...]}
 Kategorien (wörtlich): ["Obst & Gemüse","Frisches Fleisch & Fisch","Bäckerei & Brot","Milch & Alternativen","Kühlregal & Tiefkühl","Konserven & Saucen","Gewürze","Getränke","Snacks & Süsses"]
-Einheiten: ["Stück","g","kg","ml","L","Packung","Dose","Flasche","Bund","Glas"]. Wenn unklar → "Stück".
-name: Singular, Deutsch, Großbuchstabe. quantity: Zahl > 0, default 1. note: Marke/Variante oder "".
+Einheiten (wenn genannt): ["Stück","g","kg","ml","L","Packung","Dose","Flasche","Bund","Glas"]
+WICHTIG zu Menge und Einheit:
+- quantity: NUR setzen wenn im Text explizit eine Zahl steht ("500g Mehl" → 500, "2 Liter Milch" → 2). Sonst null.
+- unit: NUR setzen wenn im Text explizit eine Einheit steht ("500g Mehl" → "g"). Sonst null.
+- Beispiele: "Mehl" → quantity:null, unit:null. "500g Mehl" → quantity:500, unit:"g". "2 Packungen Nudeln" → quantity:2, unit:"Packung".
+- NIEMALS raten. Keine Menge im Text = null.
+name: Singular, Deutsch, Großbuchstabe. note: Marke/Variante oder "".
 Gib {"items": []} zurück wenn nichts erkennbar.`;
 
 const PROMPT_MISC = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in Non-Food-Einkaufs-Einträge umwandelt.
