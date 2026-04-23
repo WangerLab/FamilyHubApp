@@ -77,23 +77,10 @@ export default function ShoppingTab() {
   );
   const [showResetDialog, setShowResetDialog] = useState(false);
   const headerRef = useRef(null);
-  const [headerHeight, setHeaderHeight] = useState(200);
   const userColor = member?.color || '#3B82F6';
 
   useEffect(() => {
     localStorage.setItem(SUBTAB_STORAGE_KEY, subTab);
-  }, [subTab]);
-
-  // Measure sticky header height for category/tag sticky offset
-  useEffect(() => {
-    const el = headerRef.current;
-    if (!el) return;
-    const measure = () => setHeaderHeight(el.getBoundingClientRect().height);
-    measure();
-    const raf = requestAnimationFrame(() => requestAnimationFrame(measure));
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => { ro.disconnect(); cancelAnimationFrame(raf); };
   }, [subTab]);
 
   // ---- Grocery derived ----
@@ -144,7 +131,7 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = `calc(64px + env(safe-area-inset-top) + ${headerHeight}px)`;
+  const catStickyTop = 'calc(64px + env(safe-area-inset-top) + var(--shopping-header-h, 200px))';
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
@@ -153,7 +140,18 @@ export default function ShoppingTab() {
     <div data-testid="shopping-tab" className="-mx-4">
       {/* ---- Sticky header ---- */}
       <div
-        ref={headerRef}
+        ref={(el) => {
+          headerRef.current = el;
+          if (el) {
+            const update = () => {
+              const h = el.getBoundingClientRect().height;
+              document.documentElement.style.setProperty('--shopping-header-h', `${h}px`);
+            };
+            update();
+            const ro = new ResizeObserver(update);
+            ro.observe(el);
+          }
+        }}
         className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"
         style={{ top: 'calc(64px + env(safe-area-inset-top))' }}
       >
