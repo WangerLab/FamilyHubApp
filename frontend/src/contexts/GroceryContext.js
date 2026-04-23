@@ -79,7 +79,7 @@ export const GroceryProvider = ({ children }) => {
         created_by: member.user_id,
         name: data.name,
         category: data.category,
-        quantity: data.quantity ?? 1,
+        quantity: data.quantity ?? null,
         unit: data.unit || null,
         note: data.note || null,
         checked: false,

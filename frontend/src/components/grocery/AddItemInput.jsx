@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { CATEGORIES, detectCategory, suggestUnit } from '../../constants/categories';
+import { CATEGORIES, detectCategory } from '../../constants/categories';
 
 export default function AddItemInput({ onAdd }) {
   const [value, setValue] = useState('');
@@ -14,8 +14,7 @@ export default function AddItemInput({ onAdd }) {
     if (!name || busy) return;
     setBusy(true);
     const category = detectCategory(name);
-    const unit = suggestUnit(name, category);
-    await onAdd({ name, category, quantity: 1, unit });
+    await onAdd({ name, category });
     setValue('');
     setBusy(false);
   };
