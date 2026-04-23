@@ -9,37 +9,19 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const loadMember = useCallback(async (userId) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('household_members')
       .select('id, household_id, user_id, display_name, color, created_at')
       .eq('user_id', userId)
       .single();
 
-    if (data) {
-      setMember(data);
+    if (error) {
+      console.error('loadMember failed:', error);
+      setMember(null);
       return;
     }
 
-    // Fallback: create a new household for this user
-    const householdId = crypto.randomUUID();
-    await supabase.from('households').insert({ id: householdId, name: 'Wanger Family Hub' });
-
-    const memberId = crypto.randomUUID();
-    await supabase.from('household_members').insert({
-      id: memberId,
-      household_id: householdId,
-      user_id: userId,
-      display_name: 'Family Member',
-      color: '#3B82F6',
-    });
-
-    const { data: newMember } = await supabase
-      .from('household_members')
-      .select('id, household_id, user_id, display_name, color, created_at')
-      .eq('id', memberId)
-      .single();
-
-    setMember(newMember);
+    setMember(data);
   }, []);
 
   useEffect(() => {
@@ -53,13 +35,16 @@ export const AuthProvider = ({ children }) => {
     });
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
         setUser(session.user);
-        await loadMember(session.user.id);
+        loadMember(session.user.id);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setMember(null);
+      } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+        setUser(session.user);
+        // Member stays in state — token refresh doesn't change member data
       }
     });
 
@@ -67,13 +52,11 @@ export const AuthProvider = ({ children }) => {
     const handleVisibilityChange = async () => {
       if (document.visibilityState !== 'visible') return;
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await loadMember(session.user.id);
-      } else {
+      if (!session?.user) {
         setUser(null);
         setMember(null);
       }
+      // Member data stays in state — no need to re-fetch
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
