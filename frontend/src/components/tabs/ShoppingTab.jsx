@@ -77,7 +77,7 @@ export default function ShoppingTab() {
   );
   const [showResetDialog, setShowResetDialog] = useState(false);
   const headerRef = useRef(null);
-  const [headerHeight, setHeaderHeight] = useState(116);
+  const [headerHeight, setHeaderHeight] = useState(200);
   const userColor = member?.color || '#3B82F6';
 
   useEffect(() => {
@@ -88,12 +88,12 @@ export default function ShoppingTab() {
   useEffect(() => {
     const el = headerRef.current;
     if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      for (const e of entries) setHeaderHeight(e.contentRect.height);
-    });
+    const measure = () => setHeaderHeight(el.getBoundingClientRect().height);
+    measure();
+    const raf = requestAnimationFrame(() => requestAnimationFrame(measure));
+    const ro = new ResizeObserver(measure);
     ro.observe(el);
-    setHeaderHeight(el.offsetHeight);
-    return () => ro.disconnect();
+    return () => { ro.disconnect(); cancelAnimationFrame(raf); };
   }, [subTab]);
 
   // ---- Grocery derived ----
@@ -255,7 +255,7 @@ export default function ShoppingTab() {
               if (!catItems?.length) return null;
               const uncheckedInCat = catItems.filter((i) => !i.checked).length;
               return (
-                <div key={cat.id} data-category-id={cat.id}>
+                <div key={cat.id} data-category-id={cat.id} style={{ scrollMarginTop: catStickyTop }}>
                   <div
                     className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
                     style={{ top: catStickyTop }}
