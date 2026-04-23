@@ -8,7 +8,10 @@ const ALLOWED_CATEGORIES = [
   "Konserven & Saucen","Gewürze & Öl","Getränke","Snacks & Süßes",
 ];
 const ALLOWED_UNITS = ["Stück","g","kg","ml","L","Packung","Dose","Flasche","Bund","Glas"];
-const ALLOWED_MISC_LOCATIONS = ["Apotheke","Baumarkt","Drogerie","Zoohandlung","Kleidung","Sonstiges"];
+const ALLOWED_MISC_LOCATIONS = [
+  "Apotheke","Baumarkt","Hygieneartikel","Haushalt","Zoohandlung",
+  "Kleidung","Bücher & Büro","Elektro & Technik","Geschenke","Sonstiges",
+];
 const ALLOWED_PRIORITIES = ["high","medium","low"];
 
 // In-memory rate limit (resets on cold start — good enough for 2 users)
@@ -123,8 +126,8 @@ Gib {"items": []} zurück wenn nichts erkennbar.`;
 const PROMPT_MISC = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in Non-Food-Einkaufs-Einträge umwandelt.
 Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Markdown-Codeblöcke.
 Format: {"items": [{"name": string, "location_tag": string, "note": string}, ...]}
-location_tag MUSS einer sein: ["Apotheke","Baumarkt","Drogerie","Zoohandlung","Kleidung","Sonstiges"]
-Apotheke: Medikamente, Vitamine, Pflaster. Baumarkt: Schrauben, Werkzeug. Drogerie: Kosmetik, Körperpflege. Zoohandlung: Tierfutter. Kleidung: Textilien. Sonstiges: alles andere.
+location_tag MUSS einer sein: ["Apotheke","Baumarkt","Hygieneartikel","Haushalt","Zoohandlung","Kleidung","Bücher & Büro","Elektro & Technik","Geschenke","Sonstiges"]
+Apotheke: Medikamente, Vitamine, Pflaster, Tests. Baumarkt: Schrauben, Werkzeug, Farbe, Garten, Bauholz. Hygieneartikel: Shampoo, Zahnpasta, Kosmetik, Körperpflege, Deo, Rasur, Periode, Windeln. Haushalt: Waschmittel, Reiniger, Küchenrolle, Müllbeutel, Kerzen, Haushaltsbatterien. Zoohandlung: Tierfutter, Katzenstreu, Spielzeug für Haustiere. Kleidung: Textilien, Schuhe, Accessoires, Taschen. Bücher & Büro: Bücher, Stifte, Hefte, Ordner, Drucker-Tinte, Bastelzubehör. Elektro & Technik: Kabel, Ladegeräte, Akkus, Lampen, Kopfhörer, Adapter, Handyzubehör. Geschenke: Grußkarten, Geschenkpapier, Blumen, Gutscheine. Sonstiges: alles andere.
 name: Singular, Deutsch, Großbuchstabe. note: Größe/Menge/Variante oder "".
 Gib {"items": []} zurück wenn nichts erkennbar.`;
 
