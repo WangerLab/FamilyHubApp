@@ -99,23 +99,6 @@ overflow-y: auto
 
 ## 🐛 Bekannte Bugs & Fallstricke
 
-### OFFEN: Erstes Item in Einkaufsliste überdeckt
-**Problem:** ShoppingTab hat sticky Header (~169px). Items darunter starten direkt nach
-`paddingTop` von `<main>` — der sticky Header überdeckt sie physisch.
-
-**Bereits versucht (alles gescheitert):**
-- ResizeObserver für headerHeight → misst falsch wenn BrainDump ausgeklappt (691px)
-- scrollMarginTop → nur für programmatisches Scrollen
-- isolation:isolate + z-index → keine Wirkung
-- CSS Custom Property --shopping-header-h → selbes Problem
-- paddingTop auf Items-Container → Items verschwinden
-- Sticky von Kategorie-Headern entfernen → keine Wirkung
-
-**Hinweis für nächsten Fix-Versuch:**
-Der `<main>` Container in AppShell.jsx muss je nach aktivem Tab unterschiedliches
-paddingTop bekommen — oder ShoppingTab muss seinen sticky Header anders positionieren
-sodass er ÜBER dem <main> paddingTop sitzt, nicht innerhalb.
-
 ### RESOLVED: Brain Dump 404
 War: FastAPI Backend auf Netlify nicht lauffähig.
 Fix: Vercel Serverless Function in `frontend/api/brain-dump/parse.js`
@@ -124,6 +107,48 @@ Fix: Vercel Serverless Function in `frontend/api/brain-dump/parse.js`
 War: vercel.json im Repo-Root → wird von Vercel ignoriert (Root Dir = frontend)
 Fix: Immer in `frontend/vercel.json`
 
+### RESOLVED: Erstes Item in Einkaufsliste überdeckt (April 2026)
+
+War: Sechs Fix-Versuche (ResizeObserver, scrollMarginTop, isolation, CSS-Custom-Properties,
+paddingTop-Tricks) alle erfolglos weil sie am falschen Ende ansetzten.
+
+Ursache: Redundanter 64px-Offset. `<main>` hat `padding-top: calc(64px + env(safe-area-inset-top))`
+für die TopBar, UND der Shopping-Header hatte `sticky top: calc(64px + env(safe-area-inset-top))`.
+Sticky hat den Header dann 64px AUS seiner Natural-Flow-Position nach unten verschoben — in diese
+64-Pixel-Lücke fielen die Items.
+
+Fix (Commit 4763cd4): `sticky top: 0` am Shopping-Header, `catStickyTop: '170px'` — beide relativ
+zum bereits durch `<main>` padding offset Scroll-Port-Start.
+
+Lehre: Sticky-Elemente in einem Scroll-Container mit padding dürfen den padding-Wert NICHT
+nochmal als top-Offset addieren. Das padding reserviert bereits Platz; sticky-top:0 klebt am
+Content-Box-Rand.
+
+### RESOLVED: Items-Hinzufügen schlägt still fehl (April 2026)
+
+War: Plus-Button-Klick löste keinen Supabase-Insert aus. Keine Fehler in Console, nur stummes
+Nichts. Gleichzeitig teilweise App-Funktionalität (FAB BrainDump ging, + Button nicht).
+
+Ursache: Service Worker mit stale-while-revalidate Cache-First-Strategie servierte Mix aus
+alten und neuen JS-Bundles nach Deploys. Alte Context-Versionen hingen ohne gültige `member.household_id`,
+sodass `addItem` am initialen `if (!member?.household_id) return` still ausstieg.
+
+Fix (Commit chore(pwa) ...): Service Worker komplett deaktiviert, App läuft jetzt als
+normale Website ohne PWA-Caching. Re-enable mit Workbox später geplant.
+
+### RESOLVED: Zombie-Households in Supabase (April 2026)
+
+War: 9 household_members-Rows statt 2, jeder Login erzeugte neue Orphan-Memberships.
+Führte zu 406 auf `.single()`-Calls und 403 auf nachfolgenden queries.
+
+Ursache: `household_members_insert`-Policy mit `qual = NULL` ließ beliebige Inserts zu.
+Irgendein Code-Pfad (Auth-Hook?) schickte bei jedem Login einen Insert ohne Existenz-Check.
+
+Fix: Manual DELETE der 7 Zombie-Rows per SQL. Policies blieben unverändert
+— die root cause (undichter Insert-Pfad im Client) wurde nicht ermittelt, ist seitdem aber
+nicht wieder aufgetreten. TODO: Bei Gelegenheit `household_members_insert`-Policy mit
+`qual = (user_id = auth.uid())` härten.
+
 ---
 
 ## 📋 Modul-Status
@@ -131,7 +156,7 @@ Fix: Immer in `frontend/vercel.json`
 | Modul | Status |
 |-------|--------|
 | Auth + PWA Shell + Navigation | ✅ Fertig |
-| Einkaufsliste Nahrungsmittel | ✅ Fertig (Bug: erstes Item) |
+| Einkaufsliste Nahrungsmittel | ✅ Fertig |
 | AI Brain Dump (alle Module) | ✅ Fertig |
 | Einkaufsliste Sonstiges | ✅ Fertig |
 | To-Dos + Wöchentliche Pflichten | ✅ Fertig |
@@ -139,6 +164,7 @@ Fix: Immer in `frontend/vercel.json`
 | Ausgaben-Tracker | ✅ Fertig |
 | Pinboard + Geburtstage | ❌ Noch nicht gebaut |
 | Google Calendar Integration | ❌ Noch nicht gebaut |
+| BrainDump Floating Button (alle Tabs) | ✅ Fertig |
 
 ---
 
@@ -176,6 +202,38 @@ Tim testet auf Mobile → gibt Feedback im Chat
 - `chores`, `chore_completions` — Wöchentliche Pflichten
 - `activity_log` — Notification Center
 - `expenses`, `monthly_balance_archive` — Ausgaben-Tracker
+
+---
+
+## 🏗️ Architektur-Leitplanken
+
+Lehren aus behobenen Bugs, damit sie nicht wiederkommen:
+
+### Sticky-Positionen in `<main>`
+`<main>` hat bereits `padding-top: calc(64px + env(safe-area-inset-top))` für die TopBar.
+Sticky-Children in main dürfen diesen Wert NICHT nochmal als `top:` addieren. Verwende:
+- `sticky top: 0` → klebt direkt unter TopBar
+- `sticky top: <header-höhe>px` → klebt unter einem darüberliegenden Sticky-Element
+
+NIEMALS: `sticky top: calc(64px + env(safe-area-inset-top) + ...)` — das führt zum
+Item-überdeckt-Bug.
+
+### Keine dynamischen Messungen für Sticky-Offsets
+Wenn ein sticky-Element unter einem anderen sticky-Element kleben soll, NICHT per
+`getBoundingClientRect()` + State-Update messen. Das führt zu Initial-Render-Glitches.
+Stattdessen: Shopping-Header auf fixe Höhe (`min-height: 170px`) designen und den
+Kategorie-Header mit konstantem Offset positionieren.
+
+### Silent Returns in Async-Context-Methods
+Methoden in Context-Providern (GroceryContext, MiscContext, etc.) die mit
+`if (!member?.household_id) return;` stumm aussteigen sind gefährlich — sie schlucken
+jeden Fehler ohne User-Feedback. TODO: Bei Gelegenheit durch Error-Events ersetzen
+die via Notification-System sichtbar werden.
+
+### Service Worker aktuell deaktiviert
+PWA-Funktion ist im April 2026 abgeschaltet (siehe RESOLVED: Items-Hinzufügen schlägt
+still fehl). Vor Re-Enable muss Workbox-basierte Network-First-Strategy implementiert
+werden, nicht self-rolled Cache-Logic.
 
 ---
 
