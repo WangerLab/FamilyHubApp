@@ -25,7 +25,7 @@ function formatCountdown(sec) {
  * Props:
  *   mode: 'grocery' | 'misc' (default 'grocery')
  */
-export default function BrainDump({ mode = 'grocery', embedded = false }) {
+export default function BrainDump({ mode = 'grocery', embedded = false, onSuccess }) {
   const { user, member } = useAuth();
   const { addItem: addGroceryItem } = useGrocery();
   const miscCtx = useMisc();
@@ -200,6 +200,7 @@ export default function BrainDump({ mode = 'grocery', embedded = false }) {
     setText('');
     setPreview(null);
     setExpanded(false);
+    if (onSuccess) onSuccess();
   };
 
   const handleDiscardPreview = () => setPreview(null);

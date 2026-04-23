@@ -68,7 +68,7 @@ export default function BrainDumpSheet({ open, onClose, mode }) {
         </div>
 
         {/* Content */}
-        <BrainDump mode={mode} embedded={true} />
+        <BrainDump mode={mode} embedded={true} onSuccess={onClose} />
       </div>
     </div>
   );

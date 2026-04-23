@@ -6,7 +6,6 @@ import { useMisc } from '../../contexts/MiscContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AddItemInput from '../grocery/AddItemInput';
 import GroceryItemRow from '../grocery/GroceryItemRow';
-import BrainDump from '../grocery/BrainDump';
 import SonstigesList from '../misc/SonstigesList';
 
 function EmptyState({ color }) {
@@ -236,8 +235,6 @@ export default function ShoppingTab() {
           <SonstigesList.AddInput onAdd={handleAddMisc} />
         )}
 
-        {/* Brain Dump */}
-        <BrainDump mode={isGrocery ? 'grocery' : 'misc'} />
       </div>
 
       {/* ---- Items list ---- */}
