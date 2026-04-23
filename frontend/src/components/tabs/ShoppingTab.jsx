@@ -256,8 +256,7 @@ export default function ShoppingTab() {
               return (
                 <div key={cat.id} data-category-id={cat.id} style={{ scrollMarginTop: catStickyTop, isolation: 'isolate' }}>
                   <div
-                    className="sticky z-10 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
-                    style={{ top: catStickyTop }}
+                    className="flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
                   >
                     <span className="text-base">{cat.emoji}</span>
                     <span
