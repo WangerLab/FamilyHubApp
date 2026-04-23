@@ -131,7 +131,7 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = 'calc(64px + env(safe-area-inset-top) + var(--shopping-header-h, 200px))';
+  const catStickyTop = 'calc(64px + env(safe-area-inset-top) + 160px)';
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
@@ -140,18 +140,7 @@ export default function ShoppingTab() {
     <div data-testid="shopping-tab" className="-mx-4">
       {/* ---- Sticky header ---- */}
       <div
-        ref={(el) => {
-          headerRef.current = el;
-          if (el) {
-            const update = () => {
-              const h = el.getBoundingClientRect().height;
-              document.documentElement.style.setProperty('--shopping-header-h', `${h}px`);
-            };
-            update();
-            const ro = new ResizeObserver(update);
-            ro.observe(el);
-          }
-        }}
+        ref={headerRef}
         className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"
         style={{ top: 'calc(64px + env(safe-area-inset-top))' }}
       >
@@ -234,8 +223,6 @@ export default function ShoppingTab() {
           <SonstigesList.AddInput onAdd={handleAddMisc} />
         )}
 
-        {/* Brain Dump */}
-        <BrainDump mode={isGrocery ? 'grocery' : 'misc'} />
       </div>
 
       {/* ---- Items list ---- */}
@@ -307,6 +294,14 @@ export default function ShoppingTab() {
           onUndo={misc.undoDelete}
         />
       )}
+
+      {/* ---- Floating Brain Dump ---- */}
+      <div
+        className="fixed z-40 right-4"
+        style={{ bottom: 'calc(80px + env(safe-area-inset-bottom) + 12px)' }}
+      >
+        <BrainDump mode={isGrocery ? 'grocery' : 'misc'} floating />
+      </div>
     </div>
   );
 }

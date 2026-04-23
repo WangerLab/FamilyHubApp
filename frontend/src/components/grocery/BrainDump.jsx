@@ -25,7 +25,7 @@ function formatCountdown(sec) {
  * Props:
  *   mode: 'grocery' | 'misc' (default 'grocery')
  */
-export default function BrainDump({ mode = 'grocery' }) {
+export default function BrainDump({ mode = 'grocery', floating = false }) {
   const { user, member } = useAuth();
   const { addItem: addGroceryItem } = useGrocery();
   const miscCtx = useMisc();
@@ -206,7 +206,7 @@ export default function BrainDump({ mode = 'grocery' }) {
 
   const selectedCount = preview ? preview.filter((it) => it._selected).length : 0;
 
-  return (
+  const inner = (
     <div
       data-testid={`brain-dump-section-${mode}`}
       className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
@@ -367,6 +367,16 @@ export default function BrainDump({ mode = 'grocery' }) {
       )}
     </div>
   );
+
+  if (floating) {
+    return (
+      <div className="w-72 rounded-2xl shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden">
+        {inner}
+      </div>
+    );
+  }
+
+  return inner;
 }
 
 function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
