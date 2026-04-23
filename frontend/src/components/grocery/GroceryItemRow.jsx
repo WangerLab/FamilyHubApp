@@ -14,7 +14,7 @@ export default function GroceryItemRow({ item, shoppingMode }) {
 
   // Inline quantity editing
   const [editingQty, setEditingQty] = useState(false);
-  const [qtyValue, setQtyValue] = useState(String(item.quantity ?? 1));
+  const [qtyValue, setQtyValue] = useState(item.quantity != null ? String(item.quantity) : '');
   const [unitValue, setUnitValue] = useState(item.unit || '');
 
   // Note
@@ -43,7 +43,8 @@ export default function GroceryItemRow({ item, shoppingMode }) {
 
   // --- Qty save ---
   const saveQty = () => {
-    const qty = parseFloat(qtyValue) || 1;
+    const parsed = parseFloat(qtyValue);
+    const qty = !isNaN(parsed) && parsed > 0 ? parsed : null;
     const unit = unitValue.trim() || null;
     updateItem(item.id, { quantity: qty, unit });
     setEditingQty(false);
@@ -150,20 +151,35 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                       className="w-16 text-xs border-b-2 border-blue-400 bg-transparent text-slate-700 dark:text-slate-300 focus:outline-none placeholder:text-slate-300"
                     />
                   </div>
-                ) : (
+                ) : (item.quantity != null || item.unit) ? (
                   <button
                     data-testid={`qty-display-${item.id}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!swipeOpen) {
-                        setQtyValue(String(item.quantity ?? 1));
+                        setQtyValue(item.quantity != null ? String(item.quantity) : '');
                         setUnitValue(item.unit || '');
                         setEditingQty(true);
                       }
                     }}
                     className="text-[11px] text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums"
                   >
-                    {item.quantity ?? 1}{item.unit ? ` ${item.unit}` : '×'}
+                    {item.quantity != null ? item.quantity : ''}{item.quantity != null && item.unit ? ' ' : ''}{item.unit || ''}
+                  </button>
+                ) : (
+                  <button
+                    data-testid={`qty-add-${item.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!swipeOpen) {
+                        setQtyValue('');
+                        setUnitValue('');
+                        setEditingQty(true);
+                      }
+                    }}
+                    className="text-[11px] text-slate-400 dark:text-slate-600 active:opacity-70 italic"
+                  >
+                    + Menge
                   </button>
                 )}
 
