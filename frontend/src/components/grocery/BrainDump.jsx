@@ -25,7 +25,7 @@ function formatCountdown(sec) {
  * Props:
  *   mode: 'grocery' | 'misc' (default 'grocery')
  */
-export default function BrainDump({ mode = 'grocery' }) {
+export default function BrainDump({ mode = 'grocery', embedded = false }) {
   const { user, member } = useAuth();
   const { addItem: addGroceryItem } = useGrocery();
   const miscCtx = useMisc();
@@ -35,7 +35,7 @@ export default function BrainDump({ mode = 'grocery' }) {
   const todosMembers = todosCtx?.houseMembers || [];
   const activity = useActivity();
 
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(embedded);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -211,7 +211,7 @@ export default function BrainDump({ mode = 'grocery' }) {
       data-testid={`brain-dump-section-${mode}`}
       className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950"
     >
-      <button
+      {!embedded && <button
         data-testid={`brain-dump-toggle-${mode}`}
         onClick={() => setExpanded((v) => !v)}
         className="w-full flex items-center gap-2 px-4 py-2.5 active:bg-slate-100 dark:active:bg-slate-900 transition-colors"
@@ -240,7 +240,7 @@ export default function BrainDump({ mode = 'grocery' }) {
             expanded ? 'rotate-180' : ''
           }`}
         />
-      </button>
+      </button>}
 
       {expanded && (
         <div className="px-4 pb-3 space-y-2">

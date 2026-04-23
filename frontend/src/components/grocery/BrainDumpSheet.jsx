@@ -11,9 +11,15 @@ const SUBTITLES = {
 
 export default function BrainDumpSheet({ open, onClose, mode }) {
   const [visible, setVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (open) setVisible(true);
+    if (open) {
+      setVisible(true);
+      requestAnimationFrame(() => setMounted(true));
+    } else {
+      setMounted(false);
+    }
   }, [open]);
 
   useEffect(() => {
@@ -36,13 +42,13 @@ export default function BrainDumpSheet({ open, onClose, mode }) {
       {/* Panel */}
       <div
         className={`relative max-w-[412px] w-full mx-auto max-h-[85dvh] rounded-t-3xl bg-slate-50 dark:bg-slate-950 overflow-y-auto transition-transform duration-300 ${
-          open ? 'translate-y-0' : 'translate-y-full'
+          mounted ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         onTransitionEnd={() => { if (!open) setVisible(false); }}
       >
         {/* Grabber + close */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-1">
+        <div className="relative pt-3 pb-1">
           <div className="w-12 h-1 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto" />
           <button
             onClick={onClose}
@@ -62,7 +68,7 @@ export default function BrainDumpSheet({ open, onClose, mode }) {
         </div>
 
         {/* Content */}
-        <BrainDump mode={mode} />
+        <BrainDump mode={mode} embedded={true} />
       </div>
     </div>
   );
