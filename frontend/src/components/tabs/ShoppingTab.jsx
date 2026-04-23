@@ -242,13 +242,13 @@ export default function ShoppingTab() {
       {/* ---- Items list ---- */}
       {isGrocery ? (
         grocery.loading ? (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex items-center justify-center py-16" style={{ paddingTop: `${headerBottom}px` }}>
             <div className="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-blue-500 animate-spin" />
           </div>
         ) : grocery.items.length === 0 ? (
-          <EmptyState color={userColor} />
+          <div style={{ paddingTop: `${headerBottom}px` }}><EmptyState color={userColor} /></div>
         ) : (
-          <div>
+          <div style={{ paddingTop: `${headerBottom}px` }}>
             {CATEGORIES.map((cat) => {
               const catItems = groupedGrocery[cat.name];
               if (!catItems?.length) return null;
@@ -280,7 +280,9 @@ export default function ShoppingTab() {
           </div>
         )
       ) : (
-        <SonstigesList stickyTop={catStickyTop} />
+        <div style={{ paddingTop: `${headerBottom}px` }}>
+          <SonstigesList stickyTop={catStickyTop} />
+        </div>
       )}
 
       {showResetDialog && (
