@@ -18,6 +18,10 @@ export default function GroceryItemRow({ item, shoppingMode }) {
   const [unitValue, setUnitValue] = useState(item.unit || '');
   const [noteValue, setNoteValue] = useState(item.note || '');
 
+  // Inline name editing
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(item.name);
+
   // Category picker
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
@@ -64,6 +68,25 @@ export default function GroceryItemRow({ item, shoppingMode }) {
     } else {
       openPanel();
     }
+  };
+
+  const saveName = () => {
+    const trimmed = nameValue.trim();
+    if (trimmed && trimmed !== item.name) {
+      updateItem(item.id, { name: trimmed });
+    }
+    setEditingName(false);
+  };
+
+  const cancelNameEdit = () => {
+    setNameValue(item.name);
+    setEditingName(false);
+  };
+
+  const startNameEdit = () => {
+    if (swipeOpen) return;
+    setNameValue(item.name);
+    setEditingName(true);
   };
 
   const checkboxSize = shoppingMode ? 'w-14 h-14' : 'w-6 h-6 mt-0.5';
@@ -117,21 +140,45 @@ export default function GroceryItemRow({ item, shoppingMode }) {
             {/* Content */}
             <div className={`flex-1 min-w-0 transition-opacity duration-150 ${item.checked ? 'opacity-45' : ''}`}>
               {/* Name (with quantity in parens if set) */}
-              <p
-                className={`text-base text-slate-900 dark:text-slate-50 leading-snug ${item.checked ? 'line-through' : ''}`}
-                style={{ fontFamily: 'DM Sans, sans-serif' }}
-              >
-                {item.name}
+              <div className="flex items-baseline gap-1.5">
+                {editingName ? (
+                  <input
+                    data-testid={`name-input-${item.id}`}
+                    type="text"
+                    value={nameValue}
+                    onChange={(e) => setNameValue(e.target.value)}
+                    onBlur={saveName}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); saveName(); }
+                      if (e.key === 'Escape') { e.preventDefault(); cancelNameEdit(); }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    autoFocus
+                    onFocus={(e) => e.target.select()}
+                    className="flex-1 min-w-0 text-base leading-snug bg-transparent border-b-2 border-blue-400 focus:outline-none text-slate-900 dark:text-slate-50 px-0.5"
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  />
+                ) : (
+                  <button
+                    data-testid={`name-display-${item.id}`}
+                    onClick={(e) => { e.stopPropagation(); startNameEdit(); }}
+                    className={`text-base text-slate-900 dark:text-slate-50 leading-snug text-left active:opacity-70 ${item.checked ? 'line-through' : ''}`}
+                    style={{ fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    {item.name}
+                  </button>
+                )}
                 {hasQuantity && (
                   <button
                     data-testid={`qty-display-${item.id}`}
                     onClick={(e) => { e.stopPropagation(); togglePanel(); }}
-                    className="ml-1.5 text-sm text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums"
+                    disabled={editingName}
+                    className="text-sm text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums shrink-0 disabled:opacity-60"
                   >
                     ({item.quantity != null ? item.quantity : ''}{item.quantity != null && item.unit ? ' ' : ''}{item.unit || ''})
                   </button>
                 )}
-              </p>
+              </div>
 
               {/* Meta row */}
               <div className="flex items-center gap-2 mt-1 flex-wrap">
