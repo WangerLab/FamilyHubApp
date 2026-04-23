@@ -44,7 +44,7 @@ export default function BrainDump({ mode = 'grocery' }) {
   const textareaRef = useRef(null);
   const userColor = member?.color || '#3B82F6';
   const userId = user?.id;
-  const API = process.env.REACT_APP_BACKEND_URL;
+  const API = '';
 
   const isMisc = mode === 'misc';
   const isTodos = mode === 'todos';
