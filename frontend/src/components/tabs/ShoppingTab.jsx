@@ -255,7 +255,7 @@ export default function ShoppingTab() {
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span
                     className="text-[13px] font-bold text-white leading-none tracking-wide"
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.9), 0 0 3px rgba(0,0,0,0.7)' }}
                   >
                     {progressLabel}
                   </span>
