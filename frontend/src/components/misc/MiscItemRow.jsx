@@ -5,7 +5,7 @@ import { useMisc } from '../../contexts/MiscContext';
 export default function MiscItemRow({ item, shoppingMode }) {
   const { updateItem, toggleItem, softDelete, memberColorMap, memberNameMap } = useMisc();
 
-  const checkboxSize = shoppingMode ? 'w-14 h-14' : 'w-6 h-6 mt-0.5';
+  const checkboxSize = shoppingMode ? 'w-14 h-14' : 'w-6 h-6';
   const checkIconSize = shoppingMode ? 'w-7 h-7' : 'w-3.5 h-3.5';
 
   const touchStartX = useRef(null);
@@ -91,7 +91,7 @@ export default function MiscItemRow({ item, shoppingMode }) {
         onTouchEnd={handleTouchEnd}
         onClick={() => swipeOpen && setSwipeOpen(false)}
       >
-        <div className="flex items-start gap-3 px-4 py-3">
+        <div className="flex items-center gap-3 px-4 py-3">
           {/* Checkbox */}
           <button
             data-testid={`toggle-misc-${item.id}`}
@@ -168,9 +168,9 @@ export default function MiscItemRow({ item, shoppingMode }) {
           </div>
 
           {/* Right column: creator name + note toggle */}
-          <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
+          <div className="flex flex-col items-end gap-1 shrink-0">
             <span
-              className="text-[11px] font-medium leading-none"
+              className="text-[13px] font-medium leading-none"
               style={{ color: creatorColor }}
               title="Hinzugefügt von"
             >
