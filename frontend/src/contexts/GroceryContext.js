@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
+import { celebrateShoppingComplete } from '../lib/confetti';
 
 const GroceryContext = createContext(null);
 
@@ -119,13 +120,18 @@ export const GroceryProvider = ({ children }) => {
     });
     // Only fire "shopping_complete" when THIS toggle brings the list to 100%
     // i.e. we're checking (not unchecking) AND it was the last unchecked one
-    if (checked && uncheckedBefore === 1 && items.length > 0 && activity?.logActivity) {
-      activity.logActivity({
-        action_type: 'shopping_complete',
-        module: 'grocery',
-        item_id: null,
-        description: `${member.display_name} hat die Nahrungsmittel-Liste komplett erledigt 🎉`,
-      });
+    if (checked && uncheckedBefore === 1 && items.length > 0) {
+      if (shoppingMode) {
+        celebrateShoppingComplete();
+      }
+      if (activity?.logActivity) {
+        activity.logActivity({
+          action_type: 'shopping_complete',
+          module: 'grocery',
+          item_id: null,
+          description: `${member.display_name} hat die Nahrungsmittel-Liste komplett erledigt 🎉`,
+        });
+      }
     }
   };
 

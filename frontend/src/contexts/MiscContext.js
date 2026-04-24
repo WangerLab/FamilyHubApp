@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { DEFAULT_MISC_LOCATION } from '../constants/miscLocations';
+import { celebrateShoppingComplete } from '../lib/confetti';
 
 const MiscContext = createContext(null);
 
@@ -110,13 +111,21 @@ export const MiscProvider = ({ children }) => {
       checked_at: checked ? new Date().toISOString() : null,
       checked_by: checked ? member.user_id : null,
     });
-    if (checked && uncheckedBefore === 1 && items.length > 0 && activity?.logActivity) {
-      activity.logActivity({
-        action_type: 'shopping_complete',
-        module: 'misc',
-        item_id: null,
-        description: `${member.display_name} hat die Sonstiges-Liste komplett erledigt 🎉`,
-      });
+    if (checked && uncheckedBefore === 1 && items.length > 0) {
+      // shoppingMode lives in GroceryContext but is persisted to localStorage —
+      // read it directly here to avoid a cross-context dependency
+      const shoppingMode = typeof window !== 'undefined' && localStorage.getItem('shoppingMode') === 'true';
+      if (shoppingMode) {
+        celebrateShoppingComplete();
+      }
+      if (activity?.logActivity) {
+        activity.logActivity({
+          action_type: 'shopping_complete',
+          module: 'misc',
+          item_id: null,
+          description: `${member.display_name} hat die Sonstiges-Liste komplett erledigt 🎉`,
+        });
+      }
     }
   };
 
