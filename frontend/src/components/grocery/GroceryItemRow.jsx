@@ -264,7 +264,7 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                 <button
                   data-testid={`note-toggle-${item.id}`}
                   onClick={(e) => { e.stopPropagation(); togglePanel(); }}
-                  className={`p-0.5 rounded transition-colors active:opacity-70 ${
+                  className={`p-0.5 -mr-0.5 rounded transition-colors active:opacity-70 ${
                     item.note ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
                   }`}
                   aria-label="Details"
