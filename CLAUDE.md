@@ -161,7 +161,7 @@ nicht wieder aufgetreten. TODO: Bei Gelegenheit `household_members_insert`-Polic
 | Modul | Status |
 |-------|--------|
 | Auth + Shell + Navigation | ✅ Fertig |
-| 🛒 Einkaufsliste Nahrungsmittel (13 Kategorien, KI-Hybrid) | ✅ Fertig |
+| 🛒 Einkaufsliste Nahrungsmittel (12 Kategorien, KI-Hybrid) | ✅ Fertig |
 | 📦 Einkaufsliste Sonstiges (10 Locations, KI-Hybrid) | ✅ Fertig |
 | 📋 To-Dos (Priorität, Deadlines, Nudges) | ✅ Fertig |
 | 🔄 Wöchentliche Pflichten | ✅ Fertig |
@@ -218,10 +218,10 @@ Tim testet auf Mobile → gibt Feedback im Chat
 
 ## 🛒 Einkaufsliste — Kategorien & Locations
 
-### Grocery-Kategorien (13, Aldi-Reihenfolge)
+### Grocery-Kategorien (12, Aldi-Reihenfolge)
 Definiert in `frontend/src/constants/categories.js`:
 produce (🥬 Obst & Gemüse), bakery (🥖 Bäckerei & Brot), fish (🐟 Fisch & Meeresfrüchte),
-plantprotein (🌱 Pflanzliche Proteine), meat (🥩 Fleisch & Wurst),
+protein (🥩 Protein — pflanzlich, tierisch, Eier),
 dairy (🥛 Milchprodukte pflanzlich & Milch), cheese (🧀 Käse & Aufschnitt),
 frozen (❄️ Tiefkühl), dry (🌾 Trockenwaren & Backen), canned (🥫 Konserven & Saucen),
 spices (🌶️ Gewürze & Öl), drinks (🥤 Getränke), snacks (🍫 Snacks & Süßes).

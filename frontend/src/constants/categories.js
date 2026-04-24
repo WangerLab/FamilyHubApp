@@ -53,10 +53,11 @@ export const CATEGORIES = [
     ],
   },
   {
-    id: 'plantprotein',
-    name: 'Pflanzliche Proteine',
-    emoji: '🌱',
+    id: 'protein',
+    name: 'Protein',
+    emoji: '🥩',
     keywords: [
+      // Pflanzlich
       'tofu','räuchertofu','seidentofu','naturtofu','tempeh','seitan','lupinen','lupinenschnetzel',
       'sojaschnetzel','sojahack','sojagranulat','veganes hack','veganer hack','vegan hack',
       'vegan-hack','pflanzenhack','beyond','beyond meat','beyond burger','incredible burger',
@@ -65,23 +66,21 @@ export const CATEGORIES = [
       'hummus','humus','edamame','sojaschnitzel','vegane schnitzel','vegane würstchen',
       'vegane wurst','vegane salami','vegane bolognese','sojacreme','proteinpulver',
       'proteindrink','proteinmilch','erbsenprotein','hafer-protein',
-    ],
-  },
-  {
-    id: 'meat',
-    name: 'Fleisch & Wurst',
-    emoji: '🥩',
-    keywords: [
+      // Tierisch — Rind/Schwein/Geflügel/Lamm
       'hack','hackfleisch','gehacktes','rinderhack','schweinehack','gemischtes hack',
       'steak','rindersteak','hüftsteak','rumpsteak','entrecote','filet','rinderfilet',
       'schweinefilet','schnitzel','wiener schnitzel','hähnchen','hähnchenbrust','hähnchenschenkel',
       'pute','putenbrust','putenschnitzel','huhn','hühnchen','hühnerbrust','ente','entenbrust',
       'lamm','lammkeule','lammkotelett','lammfilet','kotelett','koteletts','rippchen',
       'braten','sauerbraten','schweinebraten','rinderbraten','gulasch','rindergulasch',
+      // Wurstwaren
       'bratwurst','bratwürste','grillwurst','weißwurst','bockwurst','wiener','frankfurter',
       'thüringer','knacker','salami-frisch','salamistange','mettwurst','mett','hackepeter',
       'leberkäse','fleischkäse','speck','bacon','schinkenspeck','pancetta','chorizo',
       'merguez','kabanossi',
+      // Eier
+      'eier','ei','freilandeier','bodenhaltung','bio-eier','bioeier','wachteleier',
+      'eiweiß','eigelb','flüssigei',
     ],
   },
   {
