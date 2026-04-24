@@ -82,20 +82,26 @@ export default function ShoppingTab() {
   }, [subTab]);
 
   // ---- Grocery derived ----
-  const groupedGrocery = useMemo(() => {
+  // In Shopping-Mode, checked items leave their category and go into a "__done__"
+  // pseudo-group rendered at the end. In Normal-Mode, items stay in their category.
+  const { groupedGrocery, doneGroceryItems } = useMemo(() => {
     const groups = {};
+    const done = [];
     CATEGORIES.forEach((cat) => {
       const catItems = grocery.items.filter((i) => i.category === cat.name);
       if (!catItems.length) return;
       if (grocery.shoppingMode) {
         const unchecked = catItems.filter((i) => !i.checked).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         const checked = catItems.filter((i) => i.checked);
-        groups[cat.name] = [...unchecked, ...checked];
+        if (unchecked.length) groups[cat.name] = unchecked;
+        done.push(...checked);
       } else {
         groups[cat.name] = [...catItems].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       }
     });
-    return groups;
+    // Sort done items newest-first so last-checked appears at top of done section
+    done.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return { groupedGrocery: groups, doneGroceryItems: done };
   }, [grocery.items, grocery.shoppingMode]);
 
   const scrollGroupBelowHeader = (selector) => {
@@ -300,6 +306,31 @@ export default function ShoppingTab() {
                 </div>
               );
             })}
+            {/* ✅ Erledigt pseudo-section — Shopping-Mode only, only if anything checked */}
+            {grocery.shoppingMode && doneGroceryItems.length > 0 && (
+              <div key="__done__" data-category-id="__done__" style={{ scrollMarginTop: catStickyTop }}>
+                <div
+                  className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-800 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+                  style={{ top: catStickyTop }}
+                >
+                  <span className="text-base">✅</span>
+                  <span
+                    className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    Erledigt
+                  </span>
+                  <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                    ✓ {doneGroceryItems.length}
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {doneGroceryItems.map((item) => (
+                    <GroceryItemRow key={item.id} item={item} shoppingMode={grocery.shoppingMode} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )
       ) : (

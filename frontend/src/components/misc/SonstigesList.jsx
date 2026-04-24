@@ -38,26 +38,32 @@ export default function SonstigesList({ stickyTop, shoppingMode }) {
   const { items, loading } = useMisc();
   const userColor = member?.color || '#3B82F6';
 
-  // Group items by location_tag. Predefined order first, custom tags A→Z afterwards.
-  const { groups, orderedTags } = useMemo(() => {
+  // Group items by location_tag. In Shopping-Mode, checked items leave their
+  // location and go into a "__done__" pseudo-group rendered at the end.
+  const { groups, orderedTags, doneItems } = useMemo(() => {
     const groupMap = {};
+    const done = [];
     for (const it of items) {
+      if (shoppingMode && it.checked) {
+        done.push(it);
+        continue;
+      }
       const tag = it.location_tag || 'Sonstiges';
       (groupMap[tag] ||= []).push(it);
     }
     Object.values(groupMap).forEach((arr) => {
-      // Unchecked first, then checked (within a tag group)
       arr.sort((a, b) => {
         if (a.checked !== b.checked) return a.checked ? 1 : -1;
         return new Date(b.created_at) - new Date(a.created_at);
       });
     });
+    done.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     const predefined = MISC_LOCATIONS.map((l) => l.name).filter((n) => groupMap[n]);
     const customTags = Object.keys(groupMap)
       .filter((t) => !MISC_LOCATIONS.some((l) => l.name === t))
       .sort((a, b) => a.localeCompare(b, 'de'));
-    return { groups: groupMap, orderedTags: [...predefined, ...customTags] };
-  }, [items]);
+    return { groups: groupMap, orderedTags: [...predefined, ...customTags], doneItems: done };
+  }, [items, shoppingMode]);
 
   if (loading) {
     return (
@@ -102,6 +108,31 @@ export default function SonstigesList({ stickyTop, shoppingMode }) {
           </div>
         );
       })}
+      {/* ✅ Erledigt pseudo-section — Shopping-Mode only, only if anything checked */}
+      {shoppingMode && doneItems.length > 0 && (
+        <div key="__done__" data-tag="__done__" style={{ scrollMarginTop: stickyTop }}>
+          <div
+            className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-800 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+            style={{ top: stickyTop }}
+          >
+            <span className="text-base">✅</span>
+            <span
+              className="text-sm font-semibold text-slate-900 dark:text-slate-50"
+              style={{ fontFamily: 'Manrope, sans-serif' }}
+            >
+              Erledigt
+            </span>
+            <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+              ✓ {doneItems.length}
+            </span>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+            {doneItems.map((item) => (
+              <MiscItemRow key={item.id} item={item} shoppingMode={shoppingMode} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
