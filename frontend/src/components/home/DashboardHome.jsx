@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, CheckSquare, RefreshCw, Wallet,
-  Calendar, Pin, Cake, Settings as SettingsIcon,
+  Calendar, Pin, Cake, Settings as SettingsIcon, Trophy,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
@@ -10,7 +10,6 @@ import { useMisc } from '../../contexts/MiscContext';
 import { useTodos } from '../../contexts/TodosContext';
 import { useChores } from '../../contexts/ChoresContext';
 import { useExpenses } from '../../contexts/ExpensesContext';
-import WeeklyRecap from './WeeklyRecap';
 
 function greeting() {
   const h = new Date().getHours();
@@ -26,7 +25,7 @@ function formatDate() {
 }
 
 function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, testid }) {
-  const base = 'aspect-square rounded-2xl p-3 flex flex-col justify-between border transition-all';
+  const base = 'h-full rounded-2xl p-3 flex flex-col justify-between border transition-all';
   const enabled = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 active:scale-[0.97] shadow-sm hover:shadow-md cursor-pointer';
   const disabledStyle = 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/50 opacity-60 cursor-default';
 
@@ -84,15 +83,6 @@ function PlaceholderTile({ icon: Icon, label, testid }) {
   );
 }
 
-function EmptyTile() {
-  return (
-    <div
-      aria-hidden="true"
-      className="aspect-square rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/50 opacity-40"
-    />
-  );
-}
-
 export default function DashboardHome() {
   const navigate = useNavigate();
   const { member } = useAuth();
@@ -114,8 +104,11 @@ export default function DashboardHome() {
   const expensesSub = expenses?.balanceLabel || 'Übersicht';
 
   return (
-    <div data-testid="dashboard-home" className="pb-4">
-      <div className="pt-3 pb-5 px-1">
+    <div
+      data-testid="dashboard-home"
+      className="flex flex-col h-[calc(100dvh-140px)] min-h-[520px]"
+    >
+      <div className="pt-3 pb-4 px-1 shrink-0">
         <h1
           className="text-xl font-bold text-slate-900 dark:text-slate-50"
           style={{ fontFamily: 'Manrope, sans-serif' }}
@@ -127,7 +120,7 @@ export default function DashboardHome() {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 grid-rows-3 gap-3 flex-1 min-h-0 pb-2">
         <Tile
           testid="tile-shopping"
           icon={ShoppingCart}
@@ -181,11 +174,13 @@ export default function DashboardHome() {
           color="#64748B"
           onClick={() => navigate('/settings')}
         />
-        <EmptyTile />
-      </div>
-
-      <div className="mt-6">
-        <WeeklyRecap />
+        <Tile
+          testid="tile-statistics"
+          icon={Trophy}
+          label="Statistik"
+          color="#F59E0B"
+          onClick={() => navigate('/statistics')}
+        />
       </div>
     </div>
   );

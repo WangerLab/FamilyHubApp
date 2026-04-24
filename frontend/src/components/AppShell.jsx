@@ -15,6 +15,7 @@ import TasksTab from './tabs/TasksTab';
 import ChoresTab from './tabs/ChoresTab';
 import MoreTab from './tabs/MoreTab';
 import ExpensesTab from './tabs/ExpensesTab';
+import StatisticsPage from './home/StatisticsPage';
 import FloatingBrainDumpButton from './FloatingBrainDumpButton';
 
 export default function AppShell() {
@@ -143,6 +144,7 @@ export default function AppShell() {
           <Route path="/chores" element={<ChoresTab />} />
           <Route path="/more" element={<MoreTab />} />
           <Route path="/expenses" element={<ExpensesTab />} />
+          <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </main>
