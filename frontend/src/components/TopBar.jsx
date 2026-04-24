@@ -19,7 +19,7 @@ export default function TopBar() {
   return (
     <>
       <header
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md max-w-[412px] mx-auto"
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-16 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sm:max-w-[480px] mx-auto"
         style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(64px + env(safe-area-inset-top))' }}
       >
         {/* User info */}

@@ -64,7 +64,7 @@ export default function AppShell() {
     <TodosProvider>
     <ChoresProvider>
     <ExpensesProvider>
-    <div className="relative w-full max-w-[412px] mx-auto min-h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950">
+    <div className="relative w-full sm:max-w-[480px] mx-auto min-h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950">
       {/* Top bar */}
       <TopBar />
 
@@ -72,7 +72,7 @@ export default function AppShell() {
       {showIOSBanner && (
         <div
           data-testid="ios-install-banner"
-          className="fixed top-0 left-0 right-0 z-40 max-w-[412px] mx-auto"
+          className="fixed top-0 left-0 right-0 z-40 sm:max-w-[480px] mx-auto"
           style={{ top: 'calc(64px + env(safe-area-inset-top))' }}
         >
           <div className="mx-3 mt-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 p-3 flex items-start gap-3 shadow-lg">
@@ -100,7 +100,7 @@ export default function AppShell() {
       {showAndroidBanner && (
         <div
           data-testid="android-install-banner"
-          className="fixed top-0 left-0 right-0 z-40 max-w-[412px] mx-auto"
+          className="fixed top-0 left-0 right-0 z-40 sm:max-w-[480px] mx-auto"
           style={{ top: 'calc(64px + env(safe-area-inset-top))' }}
         >
           <div className="mx-3 mt-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 p-3 flex items-center gap-3 shadow-lg">

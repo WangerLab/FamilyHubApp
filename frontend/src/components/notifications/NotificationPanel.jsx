@@ -51,7 +51,7 @@ export default function NotificationPanel({ open, onClose }) {
       />
       <div
         data-testid="notification-panel"
-        className="fixed z-[56] left-0 right-0 bottom-0 max-w-[412px] mx-auto bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl animate-[slideUp_0.25s_ease-out] max-h-[80vh] flex flex-col"
+        className="fixed z-[56] left-0 right-0 bottom-0 sm:max-w-[480px] mx-auto bg-white dark:bg-slate-950 rounded-t-3xl shadow-2xl animate-[slideUp_0.25s_ease-out] max-h-[80vh] flex flex-col"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Handle */}

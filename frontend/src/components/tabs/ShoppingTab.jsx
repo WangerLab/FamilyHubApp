@@ -329,7 +329,7 @@ function UndoSnackbar({ testid, name, onUndo }) {
   return (
     <div
       data-testid={testid}
-      className="fixed z-50 left-3 right-3 max-w-[406px] mx-auto"
+      className="fixed z-50 left-3 right-3 sm:max-w-[476px] mx-auto"
       style={{ bottom: 'calc(80px + env(safe-area-inset-bottom) + 12px)' }}
     >
       <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 dark:bg-slate-100 shadow-xl shadow-black/20">
