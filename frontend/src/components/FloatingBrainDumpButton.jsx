@@ -24,7 +24,7 @@ export default function FloatingBrainDumpButton() {
         className="fixed z-40 w-14 h-14 rounded-full bg-blue-500 shadow-lg flex items-center justify-center active:scale-95 transition-transform"
         style={{
           bottom: 'calc(80px + env(safe-area-inset-bottom) + 16px)',
-          right: 'calc(16px + max(0px, (100vw - 412px) / 2))',
+          right: '16px',
         }}
         aria-label="KI Brain Dump öffnen"
       >
