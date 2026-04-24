@@ -129,10 +129,17 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = '170px';
+  const catStickyTop = '185px';
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
+  const totalForSubTab = itemsForSubTab.length;
+  const checkedForSubTab = totalForSubTab - uncheckedForSubTab;
+  const progress = totalForSubTab > 0 ? checkedForSubTab / totalForSubTab : 0;
+  const progressPercent = Math.round(progress * 100);
+  // HSL-Interpolation: Hue 0 (rot) → 140 (grün) entlang des Fortschritts
+  const progressHue = Math.round(progress * 140);
+  const progressColor = `hsl(${progressHue}, 75%, 45%)`;
 
   return (
     <div data-testid="shopping-tab" className="-mx-4">
@@ -140,7 +147,7 @@ export default function ShoppingTab() {
       <div
         data-shopping-header
         className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"
-        style={{ top: '0', minHeight: '170px' }}
+        style={{ top: '0', minHeight: '185px' }}
       >
         {/* Title row */}
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -151,14 +158,6 @@ export default function ShoppingTab() {
             >
               Einkaufsliste
             </h2>
-            {uncheckedForSubTab > 0 && (
-              <span
-                data-testid="unchecked-count-badge"
-                className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center"
-              >
-                {uncheckedForSubTab}
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-1.5">
             <button
@@ -217,6 +216,36 @@ export default function ShoppingTab() {
           <AddItemInput onAdd={handleAddGrocery} />
         ) : (
           <SonstigesList.AddInput onAdd={handleAddMisc} />
+        )}
+
+        {/* Progress bar — active sub-tab, smooth hue interpolation red→green */}
+        {totalForSubTab > 0 && (
+          <div className="px-4 pt-2 pb-3">
+            <div
+              data-testid="shopping-progress-bar"
+              className="relative w-full h-[7px] rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
+              role="progressbar"
+              aria-valuenow={progressPercent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`${progressPercent}% erledigt`}
+            >
+              <div
+                className="h-full transition-all duration-300 ease-out"
+                style={{
+                  width: `${progressPercent}%`,
+                  backgroundColor: progressColor,
+                }}
+              />
+              {progressPercent === 100 && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[10px] font-bold text-white leading-none tracking-wide">
+                    Alle erledigt ✓
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
       </div>
