@@ -8,6 +8,7 @@ const ACTION_ICON = {
   grocery_check:  { Icon: Check,        color: '#0EA5E9' },
   misc_add:       { Icon: Package,      color: '#A855F7' },
   misc_check:     { Icon: Check,        color: '#A855F7' },
+  shopping_complete: { Icon: ShoppingCart, color: '#22C55E' },
   todo_create:    { Icon: CheckSquare,  color: '#3B82F6' },
   todo_complete:  { Icon: Check,        color: '#22C55E' },
   todo_nudge:     { Icon: Bell,         color: '#F59E0B' },

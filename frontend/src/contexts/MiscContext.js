@@ -85,14 +85,6 @@ export const MiscProvider = ({ children }) => {
       .single();
     if (inserted) {
       setItems((prev) => (prev.some((i) => i.id === inserted.id) ? prev : [inserted, ...prev]));
-      if (!opts.silent && activity?.logActivity) {
-        activity.logActivity({
-          action_type: 'misc_add',
-          module: 'misc',
-          item_id: inserted.id,
-          description: `${member.display_name} hat „${name}" (${location_tag || DEFAULT_MISC_LOCATION}) notiert`,
-        });
-      }
     }
     return inserted;
   };
@@ -112,17 +104,18 @@ export const MiscProvider = ({ children }) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
     const checked = !item.checked;
+    const uncheckedBefore = items.filter((i) => !i.checked).length;
     await updateItem(id, {
       checked,
       checked_at: checked ? new Date().toISOString() : null,
       checked_by: checked ? member.user_id : null,
     });
-    if (checked && activity?.logActivity) {
+    if (checked && uncheckedBefore === 1 && items.length > 0 && activity?.logActivity) {
       activity.logActivity({
-        action_type: 'misc_check',
+        action_type: 'shopping_complete',
         module: 'misc',
-        item_id: id,
-        description: `${member.display_name} hat „${item.name}" abgehakt`,
+        item_id: null,
+        description: `${member.display_name} hat die Sonstiges-Liste komplett erledigt 🎉`,
       });
     }
   };

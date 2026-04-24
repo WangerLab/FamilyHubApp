@@ -91,14 +91,6 @@ export const GroceryProvider = ({ children }) => {
       .single();
     if (inserted) {
       setItems((prev) => (prev.some((i) => i.id === inserted.id) ? prev : [inserted, ...prev]));
-      if (!opts.silent && activity?.logActivity) {
-        activity.logActivity({
-          action_type: 'grocery_add',
-          module: 'grocery',
-          item_id: inserted.id,
-          description: `${member.display_name} hat „${data.name}" zur Einkaufsliste hinzugefügt`,
-        });
-      }
     }
     return inserted;
   };
@@ -118,17 +110,21 @@ export const GroceryProvider = ({ children }) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
     const checked = !item.checked;
+    // Snapshot BEFORE toggle: how many items are still unchecked?
+    const uncheckedBefore = items.filter((i) => !i.checked).length;
     await updateItem(id, {
       checked,
       checked_at: checked ? new Date().toISOString() : null,
       checked_by: checked ? member.user_id : null,
     });
-    if (checked && activity?.logActivity) {
+    // Only fire "shopping_complete" when THIS toggle brings the list to 100%
+    // i.e. we're checking (not unchecking) AND it was the last unchecked one
+    if (checked && uncheckedBefore === 1 && items.length > 0 && activity?.logActivity) {
       activity.logActivity({
-        action_type: 'grocery_check',
+        action_type: 'shopping_complete',
         module: 'grocery',
-        item_id: id,
-        description: `${member.display_name} hat „${item.name}" abgehakt`,
+        item_id: null,
+        description: `${member.display_name} hat die Nahrungsmittel-Liste komplett erledigt 🎉`,
       });
     }
   };
