@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { House, ShoppingCart, CheckSquare, RefreshCw, MoreHorizontal } from 'lucide-react';
+import { House, ShoppingCart, CheckSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useGrocery } from '../contexts/GroceryContext';
 import { useMisc } from '../contexts/MiscContext';
@@ -9,8 +9,6 @@ const TABS = [
   { id: 'home', label: 'Home', icon: House, path: '/home' },
   { id: 'shopping', label: 'Shopping', icon: ShoppingCart, path: '/shopping' },
   { id: 'tasks', label: 'Tasks', icon: CheckSquare, path: '/tasks' },
-  { id: 'chores', label: 'Chores', icon: RefreshCw, path: '/chores' },
-  { id: 'more', label: 'More', icon: MoreHorizontal, path: '/more' },
 ];
 
 export default function BottomNav() {

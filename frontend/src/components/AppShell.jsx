@@ -13,7 +13,7 @@ import HomeTab from './tabs/HomeTab';
 import ShoppingTab from './tabs/ShoppingTab';
 import TasksTab from './tabs/TasksTab';
 import ChoresTab from './tabs/ChoresTab';
-import MoreTab from './tabs/MoreTab';
+import SettingsPage from './tabs/SettingsPage';
 import ExpensesTab from './tabs/ExpensesTab';
 import StatisticsPage from './home/StatisticsPage';
 import FloatingBrainDumpButton from './FloatingBrainDumpButton';
@@ -142,9 +142,10 @@ export default function AppShell() {
           <Route path="/shopping" element={<ShoppingTab />} />
           <Route path="/tasks" element={<TasksTab />} />
           <Route path="/chores" element={<ChoresTab />} />
-          <Route path="/more" element={<MoreTab />} />
           <Route path="/expenses" element={<ExpensesTab />} />
           <Route path="/statistics" element={<StatisticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/more" element={<Navigate to="/settings" replace />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </main>
