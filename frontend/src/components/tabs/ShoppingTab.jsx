@@ -135,7 +135,7 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = '195px';
+  const catStickyTop = '204px';
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
@@ -161,7 +161,7 @@ export default function ShoppingTab() {
       <div
         data-shopping-header
         className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"
-        style={{ top: '0', minHeight: '195px' }}
+        style={{ top: '0', minHeight: '204px' }}
       >
         {/* Title row */}
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -237,7 +237,7 @@ export default function ShoppingTab() {
           <div className="px-4 pt-2 pb-3">
             <div
               data-testid="shopping-progress-bar"
-              className="relative w-full h-[17px] rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
+              className="relative w-full h-[26px] rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
               role="progressbar"
               aria-valuenow={progressPercent}
               aria-valuemin={0}
@@ -254,7 +254,7 @@ export default function ShoppingTab() {
               {progressLabel && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   <span
-                    className="text-[11px] font-bold text-white leading-none tracking-wide"
+                    className="text-[13px] font-bold text-white leading-none tracking-wide"
                     style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
                   >
                     {progressLabel}
