@@ -25,7 +25,7 @@ function formatDate() {
 }
 
 function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, testid }) {
-  const base = 'h-full rounded-2xl p-3 flex flex-col justify-between border transition-all';
+  const base = 'relative overflow-hidden h-full rounded-2xl p-3 flex flex-col justify-between border transition-all';
   const enabled = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 active:scale-[0.97] shadow-sm hover:shadow-md cursor-pointer';
   const disabledStyle = 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/50 opacity-60 cursor-default';
 
@@ -37,7 +37,17 @@ function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, t
       className={`${base} ${disabled ? disabledStyle : enabled}`}
       aria-label={label}
     >
-      <div className="flex items-start justify-between">
+      {!disabled && (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 rounded-2xl pointer-events-none"
+          style={{
+            backgroundColor: `${color}14`,
+            boxShadow: `inset 0 0 0 1px ${color}33`,
+          }}
+        />
+      )}
+      <div className="relative z-10 flex items-start justify-between">
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center"
           style={{ backgroundColor: `${color}20`, color }}
@@ -53,7 +63,7 @@ function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, t
           </span>
         )}
       </div>
-      <div className="text-left">
+      <div className="relative z-10 text-left">
         <h3
           className="text-[14px] font-bold text-slate-900 dark:text-slate-50 leading-tight"
           style={{ fontFamily: 'Manrope, sans-serif' }}
@@ -133,7 +143,7 @@ export default function DashboardHome() {
         <Tile
           testid="tile-tasks"
           icon={CheckSquare}
-          label="Aufgaben"
+          label="Tasks"
           counter={tasksOpen > 0 ? String(tasksOpen) : null}
           subText={
             tasksOverdue > 0
@@ -168,18 +178,18 @@ export default function DashboardHome() {
 
         <PlaceholderTile icon={Cake} label="Geburtstage" testid="tile-birthdays-placeholder" />
         <Tile
-          testid="tile-settings"
-          icon={SettingsIcon}
-          label="Einstellungen"
-          color="#64748B"
-          onClick={() => navigate('/settings')}
-        />
-        <Tile
           testid="tile-statistics"
           icon={Trophy}
           label="Statistik"
           color="#F59E0B"
           onClick={() => navigate('/statistics')}
+        />
+        <Tile
+          testid="tile-settings"
+          icon={SettingsIcon}
+          label="Einstellungen"
+          color="#64748B"
+          onClick={() => navigate('/settings')}
         />
       </div>
     </div>
