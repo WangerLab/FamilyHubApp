@@ -124,14 +124,14 @@ export default function MiscItemRow({ item, shoppingMode }) {
                   onClick={(e) => e.stopPropagation()}
                   autoFocus
                   onFocus={(e) => e.target.select()}
-                  className="flex-1 min-w-0 text-base leading-snug bg-transparent border-b-2 border-blue-400 focus:outline-none text-slate-900 dark:text-slate-50 px-0.5"
+                  className="flex-1 min-w-0 text-lg leading-snug font-medium bg-transparent border-b-2 border-blue-400 focus:outline-none text-slate-900 dark:text-slate-50 px-0.5"
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
                 />
               ) : (
                 <button
                   data-testid={`misc-name-display-${item.id}`}
                   onClick={(e) => { e.stopPropagation(); startNameEdit(); }}
-                  className={`text-base text-slate-900 dark:text-slate-50 leading-snug text-left active:opacity-70 ${item.checked ? 'line-through' : ''}`}
+                  className={`text-lg font-medium text-slate-900 dark:text-slate-50 leading-snug text-left active:opacity-70 ${item.checked ? 'line-through' : ''}`}
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
                 >
                   {item.name}

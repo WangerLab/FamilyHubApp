@@ -154,14 +154,14 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                     onClick={(e) => e.stopPropagation()}
                     autoFocus
                     onFocus={(e) => e.target.select()}
-                    className="flex-1 min-w-0 text-base leading-snug bg-transparent border-b-2 border-blue-400 focus:outline-none text-slate-900 dark:text-slate-50 px-0.5"
+                    className="flex-1 min-w-0 text-lg leading-snug font-medium bg-transparent border-b-2 border-blue-400 focus:outline-none text-slate-900 dark:text-slate-50 px-0.5"
                     style={{ fontFamily: 'DM Sans, sans-serif' }}
                   />
                 ) : (
                   <button
                     data-testid={`name-display-${item.id}`}
                     onClick={(e) => { e.stopPropagation(); startNameEdit(); }}
-                    className={`text-base text-slate-900 dark:text-slate-50 leading-snug text-left active:opacity-70 ${item.checked ? 'line-through' : ''}`}
+                    className={`text-lg font-medium text-slate-900 dark:text-slate-50 leading-snug text-left active:opacity-70 ${item.checked ? 'line-through' : ''}`}
                     style={{ fontFamily: 'DM Sans, sans-serif' }}
                   >
                     {item.name}
@@ -172,33 +172,9 @@ export default function GroceryItemRow({ item, shoppingMode }) {
                     data-testid={`qty-display-${item.id}`}
                     onClick={(e) => { e.stopPropagation(); togglePanel(); }}
                     disabled={editingName}
-                    className="text-sm text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums shrink-0 disabled:opacity-60"
+                    className="text-base text-slate-500 dark:text-slate-400 active:opacity-70 tabular-nums shrink-0 disabled:opacity-60"
                   >
                     ({item.quantity != null ? item.quantity : ''}{item.quantity != null && item.unit ? ' ' : ''}{item.unit || ''})
-                  </button>
-                )}
-              </div>
-
-              {/* Meta row */}
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                {/* Category badge */}
-                <button
-                  data-testid={`category-badge-${item.id}`}
-                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowCategoryPicker(true); }}
-                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-500 dark:text-slate-400 active:opacity-70 transition-opacity"
-                >
-                  <span>{cat?.emoji || '📦'}</span>
-                  <span className="truncate max-w-[72px]">{item.category}</span>
-                </button>
-
-                {/* + Menge only when no quantity yet */}
-                {!hasQuantity && (
-                  <button
-                    data-testid={`qty-add-${item.id}`}
-                    onClick={(e) => { e.stopPropagation(); togglePanel(); }}
-                    className="text-[11px] text-slate-400 dark:text-slate-600 active:opacity-70 italic"
-                  >
-                    + Menge
                   </button>
                 )}
               </div>
@@ -253,25 +229,49 @@ export default function GroceryItemRow({ item, shoppingMode }) {
               )}
             </div>
 
-            {/* Right column: creator name + note toggle */}
+            {/* Right column: 2 rows × 2 cols — [badge | creator] / [+menge | note] */}
             <div className="flex flex-col items-end gap-1 shrink-0 pt-0.5">
-              <span
-                className="text-[11px] font-medium leading-none"
-                style={{ color: creatorColor }}
-                title="Hinzugefügt von"
-              >
-                {creatorName}
-              </span>
-              <button
-                data-testid={`note-toggle-${item.id}`}
-                onClick={(e) => { e.stopPropagation(); togglePanel(); }}
-                className={`p-0.5 rounded transition-colors active:opacity-70 ${
-                  item.note ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
-                }`}
-                aria-label="Details"
-              >
-                <FileText className="w-3.5 h-3.5" />
-              </button>
+              {/* Row 1: Kategorie-Badge + Creator-Name */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  data-testid={`category-badge-${item.id}`}
+                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowCategoryPicker(true); }}
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-500 dark:text-slate-400 active:opacity-70 transition-opacity"
+                >
+                  <span>{cat?.emoji || '📦'}</span>
+                  <span className="truncate max-w-[88px]">{item.category}</span>
+                </button>
+                <span
+                  className="text-[11px] font-medium leading-none"
+                  style={{ color: creatorColor }}
+                  title="Hinzugefügt von"
+                >
+                  {creatorName}
+                </span>
+              </div>
+
+              {/* Row 2: + Menge (only if no quantity yet) + Notiz-Icon */}
+              <div className="flex items-center gap-2">
+                {!hasQuantity && (
+                  <button
+                    data-testid={`qty-add-${item.id}`}
+                    onClick={(e) => { e.stopPropagation(); togglePanel(); }}
+                    className="text-[11px] text-slate-400 dark:text-slate-600 active:opacity-70 italic"
+                  >
+                    + Menge
+                  </button>
+                )}
+                <button
+                  data-testid={`note-toggle-${item.id}`}
+                  onClick={(e) => { e.stopPropagation(); togglePanel(); }}
+                  className={`p-0.5 rounded transition-colors active:opacity-70 ${
+                    item.note ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
+                  }`}
+                  aria-label="Details"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
