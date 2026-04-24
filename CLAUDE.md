@@ -56,11 +56,16 @@ frontend/
         AddItemInput.jsx
       misc/
         SonstigesList.jsx
+        MiscItemRow.jsx
+        AddMiscItemInput.jsx
+      tasks/ chores/ expenses/   ← eigene Subordner pro Modul
     contexts/             ← GroceryContext, MiscContext, TodosContext, etc.
     constants/            ← categories.js, miscLocations.js
   api/
     brain-dump/
-      parse.js            ← Vercel Serverless Function (Anthropic API)
+      parse.js          ← Claude Sonnet — Fließtext → strukturierte Items
+    categorize/
+      suggest.js        ← Claude Haiku — Single-Item-Classifier, Rate 30/h/User
   vercel.json             ← Nur rewrites, kein buildCommand
   package.json
 ```
@@ -155,16 +160,18 @@ nicht wieder aufgetreten. TODO: Bei Gelegenheit `household_members_insert`-Polic
 
 | Modul | Status |
 |-------|--------|
-| Auth + PWA Shell + Navigation | ✅ Fertig |
-| Einkaufsliste Nahrungsmittel | ✅ Fertig |
-| AI Brain Dump (alle Module) | ✅ Fertig |
-| Einkaufsliste Sonstiges | ✅ Fertig |
-| To-Dos + Wöchentliche Pflichten | ✅ Fertig |
-| Dashboard + Notification Center | ✅ Fertig |
-| Ausgaben-Tracker | ✅ Fertig |
-| Pinboard + Geburtstage | ❌ Noch nicht gebaut |
-| Google Calendar Integration | ❌ Noch nicht gebaut |
-| BrainDump Floating Button (alle Tabs) | ✅ Fertig |
+| Auth + Shell + Navigation | ✅ Fertig |
+| 🛒 Einkaufsliste Nahrungsmittel (13 Kategorien, KI-Hybrid) | ✅ Fertig |
+| 📦 Einkaufsliste Sonstiges (10 Locations, KI-Hybrid) | ✅ Fertig |
+| 📋 To-Dos (Priorität, Deadlines, Nudges) | ✅ Fertig |
+| 🔄 Wöchentliche Pflichten | ✅ Fertig |
+| 💰 Ausgaben-Tracker (Balance, 50/50, Monatsarchiv) | ✅ Fertig |
+| 🏠 Dashboard + 🔔 Notification Center | ✅ Fertig |
+| 🤖 AI Brain Dump (alle items-Module) | ✅ Fertig |
+| 🤖 Category Suggester (Haiku-Fallback) | ✅ Fertig |
+| 📌 Pinboard | ❌ Geplant |
+| 🎂 Geburtstage & Jahrestage | ❌ Geplant |
+| 📅 Google Calendar Integration | ❌ Geplant |
 
 ---
 
@@ -174,12 +181,16 @@ nicht wieder aufgetreten. TODO: Bei Gelegenheit `household_members_insert`-Polic
 |---|---|---|
 | Gerät | Android Pixel 10 XL | iPhone 16 |
 | Browser | Chrome (PWA nativ) | Safari (manuell installieren) |
-| Farbe | #3B82F6 Blau | #F43F5E Rose |
-| Push Notifications | Funktioniert | Nur nach PWA Installation |
+| Farbe | #EC4899 Pink | #2563EB Blau |
+| Farbe wählbar? | Ja — im Profil einstellbar | Ja — im Profil einstellbar |
 
 ---
 
 ## 🔄 Workflow
+
+**Hinweis:** Seit April 2026 komplett über Claude Code im Terminal — Emergent.sh
+ist nicht mehr aktiv. Commit-Prompts werden im Chat von Claude Opus verfasst,
+Ausführung durch Claude Code (Sonnet) lokal.
 
 ```
 Tim (Chat mit Claude) → analysiert Problem, schreibt Command
@@ -202,6 +213,29 @@ Tim testet auf Mobile → gibt Feedback im Chat
 - `chores`, `chore_completions` — Wöchentliche Pflichten
 - `activity_log` — Notification Center
 - `expenses`, `monthly_balance_archive` — Ausgaben-Tracker
+
+---
+
+## 🛒 Einkaufsliste — Kategorien & Locations
+
+### Grocery-Kategorien (13, Aldi-Reihenfolge)
+Definiert in `frontend/src/constants/categories.js`:
+produce (🥬 Obst & Gemüse), bakery (🥖 Bäckerei & Brot), fish (🐟 Fisch & Meeresfrüchte),
+plantprotein (🌱 Pflanzliche Proteine), meat (🥩 Fleisch & Wurst),
+dairy (🥛 Milchprodukte pflanzlich & Milch), cheese (🧀 Käse & Aufschnitt),
+frozen (❄️ Tiefkühl), dry (🌾 Trockenwaren & Backen), canned (🥫 Konserven & Saucen),
+spices (🌶️ Gewürze & Öl), drinks (🥤 Getränke), snacks (🍫 Snacks & Süßes).
+
+### Misc-Locations (10)
+Definiert in `frontend/src/constants/miscLocations.js`:
+apotheke (💊), baumarkt (🔨), hygiene (🧴 — ersetzt früheres "Drogerie"),
+haushalt (🏠), zoohandlung (🐾), kleidung (👕), buero (📚 Bücher & Büro),
+elektro (🔌 Elektro & Technik), geschenke (🎁), sonstiges (📦 Default-Fallback).
+
+### Wichtig
+- Custom-Tags wurden entfernt — Items müssen in die fixen Kategorien
+- Korrektur über klickbares Kategorie/Location-Badge am Item
+- Keywords-Listen sind großzügig (~1000 Grocery, ~500 Misc) — "Mehl" muss in `dry` landen, nicht in `canned`
 
 ---
 
@@ -234,6 +268,45 @@ die via Notification-System sichtbar werden.
 PWA-Funktion ist im April 2026 abgeschaltet (siehe RESOLVED: Items-Hinzufügen schlägt
 still fehl). Vor Re-Enable muss Workbox-basierte Network-First-Strategy implementiert
 werden, nicht self-rolled Cache-Logic.
+
+### Hybrid-Kategorisierung: Keyword-first, KI-fallback
+Beim Anlegen eines Items (Grocery oder Misc) zuerst Keyword-Liste durchsuchen.
+Match → sofort in richtiger Kategorie. Kein Match → Item landet in Default
+(`sonstiges`-Location bzw. `snacks`-Kategorie), asynchroner Call an
+`/api/categorize/suggest` läuft, Item springt in KI-Kategorie wenn Antwort kommt.
+Fehler werden silent geschluckt, kein User-Feedback. Rate-Limit 30/h pro User.
+NICHT blockieren, NICHT auf Antwort warten vor dem Insert.
+
+### NULL ist der richtige Default für quantity/unit
+Grocery-Items haben `quantity=NULL` und `unit=NULL` solange der User nichts
+angegeben hat. Kein Fake-Default "1 Stück" mehr. Das muss an DREI Stellen
+gleichzeitig eingehalten werden:
+1. `AddItemInput` (Plus-Button-Pfad)
+2. `/api/brain-dump/parse.js` (Prompt + normalizeGrocery)
+3. `GroceryContext.addItem` (Insert-Pfad)
+Wenn irgendwo ein Default reinkriecht, entstehen wieder "1 Packung"-Phantome.
+
+### Creator-Signal steht im Text-Tag, nicht in der Checkbox
+Die Checkbox ist IMMER neutral grau (unchecked) oder emerald (checked) —
+unabhängig vom Creator. Die Creator-Farbe steht NUR im kleinen Text-Tag
+oben rechts am Item ("Tim" in Pink, "Iris" in Blau). Erfolgs-Signal
+und Creator-Signal sind bewusst entkoppelt.
+
+### Panel-Pattern für Item-Details
+Menge, Einheit, Notiz eines Items werden in einem einzigen ausklappbaren
+Panel unterhalb des Items editiert — nicht inline. Default zu. Öffnen per
+Tap auf einen der drei Trigger (Menge-in-Klammern am Namen, "+ Menge"-Link,
+Notiz-Icon rechts). Zweiter Tap auf denselben Trigger schließt wieder.
+Enter speichert + schließt. onBlur speichert + schließt. Pattern ist für
+Grocery + Misc identisch und soll für zukünftige Tabs übernommen werden.
+
+### Layout: Mobile full-width, Desktop-Cap 480px ab sm:
+Tailwind-Breakpoint `sm:` (≥640px Viewport) cappt auf 480px. Darunter keine
+Begrenzung. Das löst die schwarzen Balken auf Pixel 10 Pro XL. Gilt überall
+wo vorher `max-w-[412px]` stand — also AppShell (3 Stellen), BottomNav,
+TopBar, NotificationPanel, Toast-Container (Shopping + Nudge), CategoryPicker,
+BrainDumpSheet. Neue Komponenten die am oberen/unteren Rand ankleben müssen
+dieses Pattern übernehmen.
 
 ---
 
