@@ -251,7 +251,7 @@ export default function GroceryItemRow({ item, shoppingMode }) {
               </div>
 
               {/* Row 2: + Menge (only if no quantity yet) + Notiz-Icon */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {!hasQuantity && (
                   <button
                     data-testid={`qty-add-${item.id}`}
