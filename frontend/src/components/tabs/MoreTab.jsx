@@ -5,8 +5,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 
 const PRESET_COLORS = [
-  { label: "Tim Blue", value: "#3B82F6" },
-  { label: "Iris Rose", value: "#F43F5E" },
+  { label: "Tim Pink", value: "#EC4899" },
+  { label: "Iris Blau", value: "#2563EB" },
   { label: "Emerald", value: "#10B981" },
   { label: "Amber", value: "#F59E0B" },
   { label: "Violet", value: "#8B5CF6" },
