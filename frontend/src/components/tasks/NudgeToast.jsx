@@ -9,7 +9,7 @@ export default function NudgeToast() {
   return (
     <div
       data-testid="nudge-toast"
-      className="fixed z-[60] left-3 right-3 max-w-[406px] mx-auto animate-[slideDown_0.25s_ease-out]"
+      className="fixed z-[60] left-3 right-3 sm:max-w-[476px] mx-auto animate-[slideDown_0.25s_ease-out]"
       style={{ top: 'calc(64px + env(safe-area-inset-top) + 12px)' }}
     >
       <div className="flex items-start gap-3 px-4 py-3 rounded-2xl bg-amber-500 shadow-xl shadow-amber-900/30">

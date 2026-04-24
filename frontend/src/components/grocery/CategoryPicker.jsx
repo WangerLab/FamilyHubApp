@@ -13,7 +13,7 @@ export default function CategoryPicker({ currentCategory, onSelect, onClose }) {
 
       {/* Bottom sheet */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 max-w-[412px] mx-auto bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl"
+        className="fixed bottom-0 left-0 right-0 z-50 sm:max-w-[480px] mx-auto bg-white dark:bg-slate-900 rounded-t-2xl shadow-2xl"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {/* Handle bar */}
