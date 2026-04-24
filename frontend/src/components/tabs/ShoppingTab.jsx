@@ -129,7 +129,7 @@ export default function ShoppingTab() {
     setShowResetDialog(false);
   };
 
-  const catStickyTop = '185px';
+  const catStickyTop = '195px';
   const isGrocery = subTab === 'grocery';
   const itemsForSubTab = isGrocery ? grocery.items : misc.items;
   const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
@@ -140,6 +140,14 @@ export default function ShoppingTab() {
   // HSL-Interpolation: Hue 0 (rot) → 140 (grün) entlang des Fortschritts
   const progressHue = Math.round(progress * 140);
   const progressColor = `hsl(${progressHue}, 75%, 45%)`;
+  const progressLabel = (() => {
+    if (progressPercent === 0) return '';
+    if (progressPercent === 100) return 'Alle erledigt ✓';
+    if (progressPercent >= 75) return 'Fast am Ziel ✨';
+    if (progressPercent >= 50) return 'Hälfte geschafft 🎉';
+    if (progressPercent >= 25) return 'Schon ein Viertel 💪';
+    return 'Los geht\'s!';
+  })();
 
   return (
     <div data-testid="shopping-tab" className="-mx-4">
@@ -147,7 +155,7 @@ export default function ShoppingTab() {
       <div
         data-shopping-header
         className="sticky z-40 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800"
-        style={{ top: '0', minHeight: '185px' }}
+        style={{ top: '0', minHeight: '195px' }}
       >
         {/* Title row */}
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -218,17 +226,17 @@ export default function ShoppingTab() {
           <SonstigesList.AddInput onAdd={handleAddMisc} />
         )}
 
-        {/* Progress bar — active sub-tab, smooth hue interpolation red→green */}
+        {/* Progress bar — active sub-tab, hue red→green + motivational labels */}
         {totalForSubTab > 0 && (
           <div className="px-4 pt-2 pb-3">
             <div
               data-testid="shopping-progress-bar"
-              className="relative w-full h-[7px] rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
+              className="relative w-full h-[17px] rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden"
               role="progressbar"
               aria-valuenow={progressPercent}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label={`${progressPercent}% erledigt`}
+              aria-label={`${progressPercent}% erledigt: ${progressLabel || 'noch nicht gestartet'}`}
             >
               <div
                 className="h-full transition-all duration-300 ease-out"
@@ -237,10 +245,13 @@ export default function ShoppingTab() {
                   backgroundColor: progressColor,
                 }}
               />
-              {progressPercent === 100 && (
+              {progressLabel && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-[10px] font-bold text-white leading-none tracking-wide">
-                    Alle erledigt ✓
+                  <span
+                    className="text-[11px] font-bold text-white leading-none tracking-wide"
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.45)' }}
+                  >
+                    {progressLabel}
                   </span>
                 </div>
               )}
