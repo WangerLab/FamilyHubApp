@@ -41,7 +41,7 @@ export default function BrainDumpSheet({ open, onClose, mode }) {
 
       {/* Panel */}
       <div
-        className={`relative max-w-[412px] w-full mx-auto max-h-[85dvh] rounded-t-3xl bg-slate-50 dark:bg-slate-950 overflow-y-auto transition-transform duration-300 ${
+        className={`relative sm:max-w-[480px] w-full mx-auto max-h-[85dvh] rounded-t-3xl bg-slate-50 dark:bg-slate-950 overflow-y-auto transition-transform duration-300 ${
           mounted ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
