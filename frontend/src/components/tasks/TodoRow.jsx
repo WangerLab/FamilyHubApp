@@ -346,7 +346,7 @@ export default function TodoRow({ todo }) {
                   <button
                     data-testid={`todo-nudge-undo-${todo.id}`}
                     onClick={(e) => { e.stopPropagation(); if (!swipeOpen) undoNudge(todo.id); }}
-                    className="text-[10px] text-slate-400 hover:text-red-500 active:scale-90 px-1"
+                    className="text-[14px] leading-none text-slate-400 hover:text-red-500 active:scale-90 w-7 h-7 flex items-center justify-center -my-1"
                     aria-label="Anstoss zurückziehen"
                   >
                     ×
