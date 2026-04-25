@@ -150,11 +150,15 @@ export const TodosProvider = ({ children }) => {
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
     const completed = !todo.completed;
-    await updateTodo(id, {
+    const updates = {
       completed,
       completed_at: completed ? new Date().toISOString() : null,
       completed_by: completed ? member.user_id : null,
-    });
+    };
+
+    setTodos((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+    previousTodoMap.current[id] = { ...todo, ...updates };
+
     if (completed && activity?.logActivity) {
       activity.logActivity({
         action_type: 'todo_complete',
@@ -162,6 +166,17 @@ export const TodosProvider = ({ children }) => {
         item_id: id,
         description: `${member.display_name} hat „${todo.title}" erledigt`,
       });
+    }
+
+    const { error } = await supabase
+      .from('todos')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Toggle failed, rolling back:', error);
+      setTodos((prev) => prev.map((t) => (t.id === id ? todo : t)));
+      previousTodoMap.current[id] = todo;
     }
   };
 

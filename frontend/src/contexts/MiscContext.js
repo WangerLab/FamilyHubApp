@@ -107,14 +107,15 @@ export const MiscProvider = ({ children }) => {
     if (!item) return;
     const checked = !item.checked;
     const uncheckedBefore = items.filter((i) => !i.checked).length;
-    await updateItem(id, {
+    const updates = {
       checked,
       checked_at: checked ? new Date().toISOString() : null,
       checked_by: checked ? member.user_id : null,
-    });
+    };
+
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...updates } : i)));
+
     if (checked && uncheckedBefore === 1 && items.length > 0) {
-      // shoppingMode lives in GroceryContext but is persisted to localStorage —
-      // read it directly here to avoid a cross-context dependency
       const shoppingMode = typeof window !== 'undefined' && localStorage.getItem('shoppingMode') === 'true';
       if (shoppingMode) {
         celebrateShoppingComplete();
@@ -127,6 +128,16 @@ export const MiscProvider = ({ children }) => {
           description: `${member.display_name} hat die Sonstiges-Liste komplett erledigt 🎉`,
         });
       }
+    }
+
+    const { error } = await supabase
+      .from('misc_items')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Toggle failed, rolling back:', error);
+      setItems((prev) => prev.map((i) => (i.id === id ? item : i)));
     }
   };
 
