@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Check, Zap, Bell, MessageSquare, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -19,6 +19,22 @@ export default function TodoRow({ todo }) {
   const [nudgeBusy, setNudgeBusy] = useState(false);
   const [nudgeError, setNudgeError] = useState('');
   const [showPriorityPicker, setShowPriorityPicker] = useState(false);
+  const [swipeOpen, setSwipeOpen] = useState(false);
+  const touchStartX = useRef(null);
+  const touchStartY = useRef(null);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const dx = touchStartX.current - e.changedTouches[0].clientX;
+    const dy = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
+    if (dx > 55 && dx > dy * 1.5) setSwipeOpen(true);
+    else if (dx < -20) setSwipeOpen(false);
+    touchStartX.current = null;
+  };
 
   useEffect(() => {
     if (!showPriorityPicker) return;
@@ -85,165 +101,180 @@ export default function TodoRow({ todo }) {
         animation: 'todoPulse 2.5s ease-in-out infinite',
       } : undefined}
     >
-      {/* Priority stripe — tappable to change */}
-      <button
-        data-testid={`todo-priority-stripe-${todo.id}`}
-        onClick={() => setShowPriorityPicker((v) => !v)}
-        className="absolute left-0 top-0 bottom-0 w-1.5 active:opacity-70"
-        style={{ backgroundColor: prio.color }}
-        aria-label={`Priorität: ${prio.label}, tippen zum Ändern`}
-      />
-
-      {showPriorityPicker && (
-        <div
-          data-testid={`priority-picker-${todo.id}`}
-          className="absolute left-2 top-2 z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700"
-        >
-          {PRIORITY_ORDER.map((p) => {
-            const meta = PRIORITY_META[p];
-            const isCurrent = p === todo.priority;
-            return (
-              <button
-                key={p}
-                data-testid={`priority-pick-${p}-${todo.id}`}
-                onClick={() => {
-                  updateTodo(todo.id, { priority: p });
-                  setShowPriorityPicker(false);
-                }}
-                className={`flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform ${
-                  isCurrent ? 'ring-2' : 'opacity-70'
-                }`}
-                style={{
-                  backgroundColor: `${meta.color}18`,
-                  color: meta.color,
-                  '--tw-ring-color': meta.color,
-                }}
-              >
-                <span>{meta.emoji}</span>
-                {meta.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="pl-5 pr-4 py-4 flex items-start gap-4">
-        <button
-          data-testid={`todo-toggle-${todo.id}`}
-          onClick={() => toggleTodo(todo.id)}
-          aria-label={todo.completed ? 'Als offen markieren' : 'Als erledigt markieren'}
-          className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center mt-1 active:scale-90 transition-transform ${
-            todo.completed
-              ? 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
-              : 'bg-white dark:bg-slate-900'
-          }`}
-          style={!todo.completed ? { borderColor: prio.color } : {}}
-        >
-          {todo.completed && <Check className="w-5 h-5 text-slate-400 dark:text-slate-500" />}
-        </button>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start gap-1.5">
-            <p
-              className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 ${
-                todo.completed ? 'line-through' : ''
-              }`}
-              style={{ fontFamily: 'DM Sans, sans-serif' }}
-            >
-              {todo.title}
-            </p>
-            {quickDone && (
-              <span
-                data-testid={`todo-quickdone-${todo.id}`}
-                className="text-sm shrink-0"
-                title="Schnell erledigt"
-              >
-                ⚡
-              </span>
-            )}
-          </div>
-
-          {/* Meta row */}
-          <div className="flex items-center gap-2 flex-wrap mt-1">
-            {todo.due_date && (
-              <span
-                data-testid={`todo-due-${todo.id}`}
-                className={`inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium ${
-                  overdue
-                    ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                }`}
-              >
-                <Clock className="w-3 h-3" />
-                {formatDueDateDE(todo.due_date)}
-              </span>
-            )}
-            {todo.assigned_to && (
-              <span
-                className="inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium"
-                style={{ backgroundColor: `${assigneeColor}18`, color: assigneeColor }}
-              >
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: assigneeColor }} />
-                {assigneeName || '—'}
-              </span>
-            )}
-            <button
-              data-testid={`todo-comment-toggle-${todo.id}`}
-              onClick={() => setShowComment((v) => !v)}
-              className={`p-0.5 rounded transition-colors active:opacity-70 ${
-                todo.comment || showComment ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
-              }`}
-              aria-label="Kommentar"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-            </button>
-            {canNudge && (
-              <button
-                data-testid={`todo-nudge-${todo.id}`}
-                onClick={handleNudge}
-                disabled={nudgeBusy}
-                className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 active:scale-95 disabled:opacity-50"
-              >
-                <Bell className="w-3 h-3" />
-                Anstupsen
-              </button>
-            )}
-            {!canNudge && todo.assigned_to && todo.assigned_to !== user?.id && nudgeCooldown > 0 && (
-              <span className="text-[10px] text-slate-400 italic">in {nudgeCooldown}h wieder</span>
-            )}
-            {nudgeError && <span className="text-[10px] text-red-500">{nudgeError}</span>}
-            {creatorName && (
-              <span
-                className="ml-auto text-[13px] font-medium leading-none"
-                style={{ color: creatorColor }}
-                title="Erstellt von"
-              >
-                {creatorName}
-              </span>
-            )}
-          </div>
-
-          {showComment && (
-            <textarea
-              data-testid={`todo-comment-${todo.id}`}
-              value={commentValue}
-              onChange={(e) => setCommentValue(e.target.value)}
-              onBlur={handleCommentSave}
-              placeholder="Kommentar hinzufügen…"
-              rows={2}
-              className="w-full mt-2 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-            />
-          )}
-        </div>
-
+      {/* Delete button revealed by swipe */}
+      <div className="absolute inset-y-0 right-0 w-20 flex items-center justify-center bg-red-500">
         <button
           data-testid={`todo-delete-${todo.id}`}
-          onClick={() => softDelete(todo.id)}
+          onClick={() => { setSwipeOpen(false); softDelete(todo.id); }}
+          className="w-full h-full flex flex-col items-center justify-center gap-1 active:opacity-70"
           aria-label="Löschen"
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 active:bg-slate-100 dark:active:bg-slate-800 shrink-0"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-5 h-5 text-white" />
+          <span className="text-[9px] text-white font-medium">Löschen</span>
         </button>
+      </div>
+
+      {/* Sliding content layer */}
+      <div
+        className="relative bg-white dark:bg-slate-900 transition-transform duration-200 ease-out"
+        style={{ transform: swipeOpen ? 'translateX(-80px)' : 'translateX(0)' }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => swipeOpen && setSwipeOpen(false)}
+      >
+        {/* Priority stripe — tappable to change */}
+        <button
+          data-testid={`todo-priority-stripe-${todo.id}`}
+          onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
+          className="absolute left-0 top-0 bottom-0 w-1.5 active:opacity-70"
+          style={{ backgroundColor: prio.color }}
+          aria-label={`Priorität: ${prio.label}, tippen zum Ändern`}
+        />
+
+        {showPriorityPicker && (
+          <div
+            data-testid={`priority-picker-${todo.id}`}
+            className="absolute left-2 top-2 z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700"
+          >
+            {PRIORITY_ORDER.map((p) => {
+              const meta = PRIORITY_META[p];
+              const isCurrent = p === todo.priority;
+              return (
+                <button
+                  key={p}
+                  data-testid={`priority-pick-${p}-${todo.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateTodo(todo.id, { priority: p });
+                    setShowPriorityPicker(false);
+                  }}
+                  className={`flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform ${
+                    isCurrent ? 'ring-2' : 'opacity-70'
+                  }`}
+                  style={{
+                    backgroundColor: `${meta.color}18`,
+                    color: meta.color,
+                    '--tw-ring-color': meta.color,
+                  }}
+                >
+                  <span>{meta.emoji}</span>
+                  {meta.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="pl-5 pr-4 py-4 flex items-start gap-4">
+          <button
+            data-testid={`todo-toggle-${todo.id}`}
+            onClick={(e) => { e.stopPropagation(); if (!swipeOpen) toggleTodo(todo.id); }}
+            aria-label={todo.completed ? 'Als offen markieren' : 'Als erledigt markieren'}
+            className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center mt-1 active:scale-90 transition-transform ${
+              todo.completed
+                ? 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
+                : 'bg-white dark:bg-slate-900'
+            }`}
+            style={!todo.completed ? { borderColor: prio.color } : {}}
+          >
+            {todo.completed && <Check className="w-5 h-5 text-slate-400 dark:text-slate-500" />}
+          </button>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start gap-1.5">
+              <p
+                className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 ${
+                  todo.completed ? 'line-through' : ''
+                }`}
+                style={{ fontFamily: 'DM Sans, sans-serif' }}
+              >
+                {todo.title}
+              </p>
+              {quickDone && (
+                <span
+                  data-testid={`todo-quickdone-${todo.id}`}
+                  className="text-sm shrink-0"
+                  title="Schnell erledigt"
+                >
+                  ⚡
+                </span>
+              )}
+            </div>
+
+            {/* Meta row */}
+            <div className="flex items-center gap-2 flex-wrap mt-1">
+              {todo.due_date && (
+                <span
+                  data-testid={`todo-due-${todo.id}`}
+                  className={`inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium ${
+                    overdue
+                      ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                  }`}
+                >
+                  <Clock className="w-3 h-3" />
+                  {formatDueDateDE(todo.due_date)}
+                </span>
+              )}
+              {todo.assigned_to && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium"
+                  style={{ backgroundColor: `${assigneeColor}18`, color: assigneeColor }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: assigneeColor }} />
+                  {assigneeName || '—'}
+                </span>
+              )}
+              <button
+                data-testid={`todo-comment-toggle-${todo.id}`}
+                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowComment((v) => !v); }}
+                className={`p-0.5 rounded transition-colors active:opacity-70 ${
+                  todo.comment || showComment ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
+                }`}
+                aria-label="Kommentar"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+              </button>
+              {canNudge && (
+                <button
+                  data-testid={`todo-nudge-${todo.id}`}
+                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) handleNudge(); }}
+                  disabled={nudgeBusy}
+                  className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 active:scale-95 disabled:opacity-50"
+                >
+                  <Bell className="w-3 h-3" />
+                  Anstupsen
+                </button>
+              )}
+              {!canNudge && todo.assigned_to && todo.assigned_to !== user?.id && nudgeCooldown > 0 && (
+                <span className="text-[10px] text-slate-400 italic">in {nudgeCooldown}h wieder</span>
+              )}
+              {nudgeError && <span className="text-[10px] text-red-500">{nudgeError}</span>}
+              {creatorName && (
+                <span
+                  className="ml-auto text-[13px] font-medium leading-none"
+                  style={{ color: creatorColor }}
+                  title="Erstellt von"
+                >
+                  {creatorName}
+                </span>
+              )}
+            </div>
+
+            {showComment && (
+              <textarea
+                data-testid={`todo-comment-${todo.id}`}
+                value={commentValue}
+                onChange={(e) => setCommentValue(e.target.value)}
+                onBlur={handleCommentSave}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Kommentar hinzufügen…"
+                rows={2}
+                className="w-full mt-2 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       <style>{`
