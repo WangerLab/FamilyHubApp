@@ -122,17 +122,17 @@ export default function AddTodoInput() {
               key={p.id}
               data-testid={`priority-${p.id}`}
               onClick={() => setPriority(p.id)}
-              className={`h-8 px-3 rounded-full text-xs font-semibold flex items-center gap-1 transition-all ${
-                priority === p.id ? 'ring-2' : 'opacity-60'
+              aria-label={`Priorität ${p.label}`}
+              aria-pressed={priority === p.id}
+              className={`w-10 h-10 rounded-full text-xl flex items-center justify-center transition-all active:scale-90 ${
+                priority === p.id ? 'ring-2 scale-110' : 'opacity-50'
               }`}
               style={{
                 backgroundColor: `${p.color}18`,
-                color: p.color,
                 '--tw-ring-color': p.color,
               }}
             >
-              <span>{p.emoji}</span>
-              {p.label}
+              {p.emoji}
             </button>
           ))}
         </div>

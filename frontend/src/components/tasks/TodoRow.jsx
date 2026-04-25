@@ -5,9 +5,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { formatDueDateDE, isOverdue } from '../../utils/smartDate';
 
 const PRIORITY_META = {
-  high:   { color: '#EF4444', label: 'Hoch',    emoji: '🔴' },
-  medium: { color: '#F59E0B', label: 'Mittel',  emoji: '🟡' },
-  low:    { color: '#22C55E', label: 'Niedrig', emoji: '🟢' },
+  high:   { color: '#EF4444', emoji: '🔴' },
+  medium: { color: '#F59E0B', emoji: '🟡' },
+  low:    { color: '#22C55E', emoji: '🟢' },
 };
 const PRIORITY_ORDER = ['high', 'medium', 'low'];
 
@@ -128,7 +128,7 @@ export default function TodoRow({ todo }) {
           onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
           className="absolute left-0 top-0 bottom-0 w-1.5 active:opacity-70"
           style={{ backgroundColor: prio.color }}
-          aria-label={`Priorität: ${prio.label}, tippen zum Ändern`}
+          aria-label="Priorität ändern"
         />
 
         {showPriorityPicker && (
@@ -148,17 +148,16 @@ export default function TodoRow({ todo }) {
                     updateTodo(todo.id, { priority: p });
                     setShowPriorityPicker(false);
                   }}
-                  className={`flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform ${
-                    isCurrent ? 'ring-2' : 'opacity-70'
+                  aria-label={`Priorität ${p}`}
+                  className={`w-9 h-9 rounded-full text-lg flex items-center justify-center active:scale-90 transition-transform ${
+                    isCurrent ? 'ring-2 scale-110' : 'opacity-60'
                   }`}
                   style={{
                     backgroundColor: `${meta.color}18`,
-                    color: meta.color,
                     '--tw-ring-color': meta.color,
                   }}
                 >
-                  <span>{meta.emoji}</span>
-                  {meta.label}
+                  {meta.emoji}
                 </button>
               );
             })}
