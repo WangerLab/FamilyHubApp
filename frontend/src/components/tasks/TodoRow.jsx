@@ -23,6 +23,7 @@ export default function TodoRow({ todo }) {
   const assigneeColor = memberColorMap[todo.assigned_to] || '#94a3b8';
   const assigneeName = memberNameMap[todo.assigned_to];
   const creatorColor = memberColorMap[todo.created_by] || '#94a3b8';
+  const creatorName = memberNameMap[todo.created_by] || '';
 
   // Quick-done: completed before due_date
   const quickDone =
@@ -160,6 +161,15 @@ export default function TodoRow({ todo }) {
               <span className="text-[10px] text-slate-400 italic">in {nudgeCooldown}h wieder</span>
             )}
             {nudgeError && <span className="text-[10px] text-red-500">{nudgeError}</span>}
+            {creatorName && (
+              <span
+                className="ml-auto text-[13px] font-medium leading-none"
+                style={{ color: creatorColor }}
+                title="Erstellt von"
+              >
+                {creatorName}
+              </span>
+            )}
           </div>
 
           {showComment && (
@@ -183,13 +193,6 @@ export default function TodoRow({ todo }) {
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
-
-        {/* Creator color dot */}
-        <div
-          className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full"
-          style={{ backgroundColor: creatorColor }}
-          title="Erstellt von"
-        />
       </div>
 
       <style>{`
