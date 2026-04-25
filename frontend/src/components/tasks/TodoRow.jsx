@@ -202,6 +202,13 @@ export default function TodoRow({ todo }) {
 
             {/* Meta row */}
             <div className="flex items-center gap-2 flex-wrap mt-1">
+              <span
+                data-testid={`todo-priority-emoji-${todo.id}`}
+                className="text-sm leading-none select-none"
+                title="Priorität"
+              >
+                {prio.emoji}
+              </span>
               {todo.due_date && (
                 <span
                   data-testid={`todo-due-${todo.id}`}
