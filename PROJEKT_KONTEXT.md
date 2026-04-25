@@ -36,8 +36,32 @@
 - SQL-Setup-Files im Repo-Root: `supabase_setup.sql`, `supabase_grocery_setup.sql`,
   `supabase_misc_setup.sql`, `supabase_session5_setup.sql` bis `session7_setup.sql`
 
+## Module-Status (Stand Session 5, April 2026)
+
+| Modul | Status | Routen |
+|---|---|---|
+| 🛒 Einkaufsliste Nahrungsmittel | LIVE | `/shopping` (Sub-Tab) |
+| 📦 Einkaufsliste Sonstiges | LIVE | `/shopping` (Sub-Tab) |
+| 📋 Tasks (Todos) | LIVE | `/tasks` |
+| 🔄 Chores | LIVE | `/chores` |
+| 💰 Finanzen | LIVE | `/expenses` |
+| 🏠 Home-Dashboard | LIVE | `/home` |
+| 🏆 Statistik | LIVE | `/statistics` |
+| ⚙️ Einstellungen | LIVE | `/settings` |
+| 📌 Pinboard | GEPLANT | (Phase 5) |
+| 🎂 Geburtstage | GEPLANT | (Phase 6) |
+| 📅 Woche/Calendar | GEPLANT | (Phase 7) |
+
+Kategorien Nahrungsmittel: 12 (Protein-Merge in Session 4 — pflanzliche
+Proteine + Fleisch & Wurst + Eier zu einer Kategorie zusammengezogen).
+Locations Sonstiges: 10.
+
+BottomNav reduziert auf 3 Tabs (Home, Shopping, Tasks). Andere Module
+nur via Home-Kacheln. Legacy-Redirect: `/more` → `/settings`.
+
 ## Tech Stack
 - Frontend: React 19, Tailwind CSS, shadcn/ui, CRACO
+- Animations: canvas-confetti (~15 KB, 100% Shopping-Confetti)
 - Auth + DB + Realtime: Supabase
 - AI Brain Dump: Anthropic Claude Sonnet (Vercel Function `frontend/api/brain-dump/parse.js`) — Rate-Limit 10/h/User
 - AI Category Suggester: Anthropic Claude Haiku (Vercel Function `frontend/api/categorize/suggest.js`) — Rate-Limit 30/h/User, Fallback wenn Keyword-Match scheitert
@@ -51,8 +75,19 @@
 - Service Worker aktuell DEAKTIVIERT (April 2026) — siehe CLAUDE.md "Architektur-Leitplanken"
 - `quantity=NULL` / `unit=NULL` sind legitime Werte — nicht mit "0" oder "1 Stück" default-füllen
 - Hybrid-Kategorisierung: bei unbekannten Items springt die Kategorie nach ~1 Sek Latenz von Default in die richtige — das ist Feature, kein Bug
+- BrainDump-Save-Filter MUSS modus-spezifisch sein (`title`/`description`/`name` je nach Mode) — siehe CLAUDE.md
+- `vercel.json` lebt in `frontend/vercel.json`, NIEMALS Repo-Root (Vercel-Root-Directory ist `frontend/`)
+- AuthContext darf KEINE Fallback-Inserts auf TOKEN_REFRESH/Visibility-Change machen — nur auf SIGNED_IN (sonst Zombie-Households)
+- Sticky-Header-Doppel-Offset: `<main>`-Padding und Sticky `top` dürfen nicht beide `calc(64px + env(safe-area-inset-top))` nutzen — sonst doppelter Versatz
+- Optimistic Toggle ohne `.select()` ist Absicht — `data` ist `null`, das ist erwartet
 
 ## User-Farben (aktuell)
 - Tim: `#EC4899` (Pink)
 - Iris: `#2563EB` (Blau)
 Beide frei im Profil wählbar. Farben stehen in `household_members.color` in Supabase.
+
+## Test-Accounts (isolierte Test-Households)
+- Kevin: kevinthenoob@test.com / test1234, Household-ID `...000099`, Farbe Emerald `#10B981`
+- Nirad: nirad@test.com / test1234, Household-ID `...000098`, Farbe Lila `#A855F7`
+Beide vollständig isoliert von Tim/Iris-Household. Können bei Bedarf
+mit `DELETE FROM auth.users WHERE email = '...'` (cascadet) entfernt werden.
