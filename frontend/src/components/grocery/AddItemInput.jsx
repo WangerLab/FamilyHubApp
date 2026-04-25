@@ -4,21 +4,54 @@ import { CATEGORIES, detectCategory, DEFAULT_CATEGORY } from '../../constants/ca
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 
+const UNIT_ALIASES = {
+  'g': 'g', 'gramm': 'g',
+  'kg': 'kg', 'kilo': 'kg', 'kilogramm': 'kg',
+  'ml': 'ml', 'milliliter': 'ml',
+  'l': 'L', 'liter': 'L',
+  'stk': 'Stück', 'stück': 'Stück', 'stueck': 'Stück',
+  'packung': 'Packung', 'packungen': 'Packung', 'pck': 'Packung', 'pkg': 'Packung',
+  'dose': 'Dose', 'dosen': 'Dose',
+  'flasche': 'Flasche', 'flaschen': 'Flasche',
+  'bund': 'Bund',
+  'glas': 'Glas', 'gläser': 'Glas', 'glaeser': 'Glas',
+};
+
+function parseQuantityFromName(input) {
+  const original = input.trim();
+  const match = original.match(/^(\d+(?:[.,]\d+)?)\s*([a-zA-ZäöüÄÖÜ]+)\s+(.+)$/);
+  if (!match) return { name: original, quantity: null, unit: null };
+
+  const [, numStr, unitRaw, rest] = match;
+  const canonicalUnit = UNIT_ALIASES[unitRaw.toLowerCase()];
+  if (!canonicalUnit) return { name: original, quantity: null, unit: null };
+
+  const quantity = parseFloat(numStr.replace(',', '.'));
+  if (!quantity || quantity <= 0) return { name: original, quantity: null, unit: null };
+
+  const name = rest.trim();
+  if (!name) return { name: original, quantity: null, unit: null };
+
+  return { name, quantity, unit: canonicalUnit };
+}
+
 export default function AddItemInput({ onAdd }) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const { user } = useAuth();
   const { updateItem } = useGrocery();
 
-  const detectedCat = value.trim() ? detectCategory(value.trim()) : null;
+  const parsedPreview = value.trim() ? parseQuantityFromName(value.trim()) : null;
+  const detectedCat = parsedPreview ? detectCategory(parsedPreview.name) : null;
   const detectedEmoji = detectedCat ? CATEGORIES.find((c) => c.name === detectedCat)?.emoji : null;
 
   const submit = async () => {
-    const name = value.trim();
-    if (!name || busy) return;
+    const raw = value.trim();
+    if (!raw || busy) return;
     setBusy(true);
+    const { name, quantity, unit } = parseQuantityFromName(raw);
     const category = detectCategory(name);
-    const inserted = await onAdd({ name, category });
+    const inserted = await onAdd({ name, category, quantity, unit });
     setValue('');
     setBusy(false);
 
