@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Check, Zap, Bell, MessageSquare, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDueDateDE, isOverdue } from '../../utils/smartDate';
 
 const PRIORITY_META = {
-  high:   { color: '#EF4444', label: 'Hoch' },
-  medium: { color: '#F59E0B', label: 'Mittel' },
-  low:    { color: '#22C55E', label: 'Niedrig' },
+  high:   { color: '#EF4444', label: 'Hoch',    emoji: '🔴' },
+  medium: { color: '#F59E0B', label: 'Mittel',  emoji: '🟡' },
+  low:    { color: '#22C55E', label: 'Niedrig', emoji: '🟢' },
 };
+const PRIORITY_ORDER = ['high', 'medium', 'low'];
 
 export default function TodoRow({ todo }) {
   const { user } = useAuth();
@@ -17,6 +18,21 @@ export default function TodoRow({ todo }) {
   const [commentValue, setCommentValue] = useState(todo.comment || '');
   const [nudgeBusy, setNudgeBusy] = useState(false);
   const [nudgeError, setNudgeError] = useState('');
+  const [showPriorityPicker, setShowPriorityPicker] = useState(false);
+
+  useEffect(() => {
+    if (!showPriorityPicker) return;
+    const handler = (e) => {
+      if (!e.target.closest(`[data-testid="todo-row-${todo.id}"]`)) {
+        setShowPriorityPicker(false);
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('click', handler);
+    };
+  }, [showPriorityPicker, todo.id]);
 
   const prio = PRIORITY_META[todo.priority] || PRIORITY_META.medium;
   const overdue = isOverdue(todo.due_date, todo.completed);
@@ -69,12 +85,47 @@ export default function TodoRow({ todo }) {
         animation: 'todoPulse 2.5s ease-in-out infinite',
       } : undefined}
     >
-      {/* Priority stripe */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1"
+      {/* Priority stripe — tappable to change */}
+      <button
+        data-testid={`todo-priority-stripe-${todo.id}`}
+        onClick={() => setShowPriorityPicker((v) => !v)}
+        className="absolute left-0 top-0 bottom-0 w-1.5 active:opacity-70"
         style={{ backgroundColor: prio.color }}
-        aria-hidden
+        aria-label={`Priorität: ${prio.label}, tippen zum Ändern`}
       />
+
+      {showPriorityPicker && (
+        <div
+          data-testid={`priority-picker-${todo.id}`}
+          className="absolute left-2 top-2 z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700"
+        >
+          {PRIORITY_ORDER.map((p) => {
+            const meta = PRIORITY_META[p];
+            const isCurrent = p === todo.priority;
+            return (
+              <button
+                key={p}
+                data-testid={`priority-pick-${p}-${todo.id}`}
+                onClick={() => {
+                  updateTodo(todo.id, { priority: p });
+                  setShowPriorityPicker(false);
+                }}
+                className={`flex items-center gap-2 h-8 px-2.5 rounded-lg text-xs font-semibold whitespace-nowrap active:scale-95 transition-transform ${
+                  isCurrent ? 'ring-2' : 'opacity-70'
+                }`}
+                style={{
+                  backgroundColor: `${meta.color}18`,
+                  color: meta.color,
+                  '--tw-ring-color': meta.color,
+                }}
+              >
+                <span>{meta.emoji}</span>
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="pl-4 pr-3 py-3 flex items-start gap-3">
         <button
