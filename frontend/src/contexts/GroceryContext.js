@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { celebrateShoppingComplete } from '../lib/confetti';
+import { detectCategory } from '../constants/categories';
 
 const GroceryContext = createContext(null);
 
@@ -13,6 +14,7 @@ export const GroceryProvider = ({ children }) => {
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null); // { id, item, timer }
+  const [pendingCrossMove, setPendingCrossMove] = useState(null); // { item, fromMode }
   const [shoppingMode, setShoppingMode] = useState(
     () => localStorage.getItem('shoppingMode') === 'true'
   );
@@ -158,6 +160,37 @@ export const GroceryProvider = ({ children }) => {
     setPendingDelete(null);
   };
 
+  const showCrossMoveToast = (item, fromMode) => {
+    setPendingCrossMove({ item, fromMode });
+    setTimeout(() => {
+      setPendingCrossMove((curr) => (curr?.item.id === item.id ? null : curr));
+    }, 5000);
+  };
+
+  const undoCrossMove = async () => {
+    if (!pendingCrossMove) return;
+    const { item } = pendingCrossMove;
+    await supabase.from('grocery_items').delete().eq('id', item.id);
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    window.dispatchEvent(new CustomEvent('cross-move-undo', {
+      detail: { name: item.name, toMode: 'misc' },
+    }));
+    setPendingCrossMove(null);
+  };
+
+  useEffect(() => {
+    const handler = async (e) => {
+      if (e.detail?.toMode !== 'grocery') return;
+      await addItem({
+        name: e.detail.name,
+        category: detectCategory(e.detail.name),
+      }, { silent: true });
+    };
+    window.addEventListener('cross-move-undo', handler);
+    return () => window.removeEventListener('cross-move-undo', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member?.household_id]);
+
   const clearList = async () => {
     if (!member?.household_id) return;
     if (pendingDelete) { clearTimeout(pendingDelete.timer); setPendingDelete(null); }
@@ -182,6 +215,7 @@ export const GroceryProvider = ({ children }) => {
         shoppingMode, toggleShoppingMode,
         addItem, updateItem, toggleItem,
         softDelete, undoDelete, pendingDelete,
+        pendingCrossMove, showCrossMoveToast, undoCrossMove,
         clearList,
       }}
     >

@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
-import { DEFAULT_MISC_LOCATION } from '../constants/miscLocations';
+import { DEFAULT_MISC_LOCATION, detectLocation } from '../constants/miscLocations';
 import { celebrateShoppingComplete } from '../lib/confetti';
 
 const MiscContext = createContext(null);
@@ -14,6 +14,7 @@ export const MiscProvider = ({ children }) => {
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [pendingCrossMove, setPendingCrossMove] = useState(null); // { item, fromMode }
 
   const fetchItems = useCallback(async () => {
     if (!member?.household_id) return;
@@ -151,6 +152,38 @@ export const MiscProvider = ({ children }) => {
     setPendingDelete(null);
   };
 
+  const showCrossMoveToast = (item, fromMode) => {
+    setPendingCrossMove({ item, fromMode });
+    setTimeout(() => {
+      setPendingCrossMove((curr) => (curr?.item.id === item.id ? null : curr));
+    }, 5000);
+  };
+
+  const undoCrossMove = async () => {
+    if (!pendingCrossMove) return;
+    const { item } = pendingCrossMove;
+    await supabase.from('misc_items').delete().eq('id', item.id);
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    window.dispatchEvent(new CustomEvent('cross-move-undo', {
+      detail: { name: item.name, toMode: 'grocery' },
+    }));
+    setPendingCrossMove(null);
+  };
+
+  useEffect(() => {
+    const handler = async (e) => {
+      if (e.detail?.toMode !== 'misc') return;
+      await addItem({
+        name: e.detail.name,
+        location_tag: detectLocation(e.detail.name),
+        note: null,
+      });
+    };
+    window.addEventListener('cross-move-undo', handler);
+    return () => window.removeEventListener('cross-move-undo', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member?.household_id]);
+
   const clearList = async () => {
     if (!member?.household_id) return;
     if (pendingDelete) { clearTimeout(pendingDelete.timer); setPendingDelete(null); }
@@ -166,6 +199,7 @@ export const MiscProvider = ({ children }) => {
         items, loading, uncheckedCount, memberColorMap, memberNameMap,
         addItem, updateItem, toggleItem,
         softDelete, undoDelete, pendingDelete,
+        pendingCrossMove, showCrossMoveToast, undoCrossMove,
         clearList,
       }}
     >
