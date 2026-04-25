@@ -127,25 +127,25 @@ export default function TodoRow({ todo }) {
         </div>
       )}
 
-      <div className="pl-4 pr-3 py-3 flex items-start gap-3">
+      <div className="pl-5 pr-4 py-4 flex items-start gap-4">
         <button
           data-testid={`todo-toggle-${todo.id}`}
           onClick={() => toggleTodo(todo.id)}
           aria-label={todo.completed ? 'Als offen markieren' : 'Als erledigt markieren'}
-          className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center mt-0.5 active:scale-90 transition-transform ${
+          className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center mt-1 active:scale-90 transition-transform ${
             todo.completed
               ? 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
               : 'bg-white dark:bg-slate-900'
           }`}
           style={!todo.completed ? { borderColor: prio.color } : {}}
         >
-          {todo.completed && <Check className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />}
+          {todo.completed && <Check className="w-5 h-5 text-slate-400 dark:text-slate-500" />}
         </button>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-1.5">
             <p
-              className={`flex-1 min-w-0 text-[15px] leading-snug text-slate-900 dark:text-slate-50 ${
+              className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 ${
                 todo.completed ? 'line-through' : ''
               }`}
               style={{ fontFamily: 'DM Sans, sans-serif' }}
