@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Zap, Bell, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatDueDateDE, isOverdue } from '../../utils/smartDate';
+import { formatDueDateDE, isOverdue, toDatetimeLocal } from '../../utils/smartDate';
 
 const PRIORITY_META = {
   high:   { color: '#EF4444', emoji: '🔴' },
@@ -18,6 +18,7 @@ export default function TodoRow({ todo }) {
   const [commentValue, setCommentValue] = useState(todo.comment || '');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(todo.title);
+  const [editingDue, setEditingDue] = useState(false);
   const [nudgeBusy, setNudgeBusy] = useState(false);
   const [nudgeError, setNudgeError] = useState('');
   const [showPriorityPicker, setShowPriorityPicker] = useState(false);
@@ -107,6 +108,17 @@ export default function TodoRow({ todo }) {
     setEditingTitle(false);
   };
 
+  const handleDueChange = async (e) => {
+    const val = e.target.value;
+    if (!val) {
+      await updateTodo(todo.id, { due_date: null });
+    } else {
+      const iso = new Date(val).toISOString();
+      await updateTodo(todo.id, { due_date: iso });
+    }
+    setEditingDue(false);
+  };
+
   return (
     <div
       data-testid={`todo-row-${todo.id}`}
@@ -143,7 +155,7 @@ export default function TodoRow({ todo }) {
         <button
           data-testid={`todo-priority-stripe-${todo.id}`}
           onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
-          className="absolute left-0 top-0 bottom-0 w-1.5 active:opacity-70"
+          className="absolute left-0 top-0 bottom-0 w-2 active:opacity-70"
           style={{ backgroundColor: prio.color }}
           aria-label="Priorität ändern"
         />
@@ -276,10 +288,16 @@ export default function TodoRow({ todo }) {
               >
                 {prio.emoji}
               </span>
-              {todo.due_date && (
-                <span
+              {todo.due_date && !editingDue && (
+                <button
+                  type="button"
                   data-testid={`todo-due-${todo.id}`}
-                  className={`inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium ${
+                  onClick={(e) => {
+                    if (swipeOpen) return;
+                    e.stopPropagation();
+                    setEditingDue(true);
+                  }}
+                  className={`inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium active:opacity-70 ${
                     overdue
                       ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
@@ -287,7 +305,19 @@ export default function TodoRow({ todo }) {
                 >
                   <Clock className="w-3 h-3" />
                   {formatDueDateDE(todo.due_date)}
-                </span>
+                </button>
+              )}
+              {editingDue && (
+                <input
+                  type="datetime-local"
+                  data-testid={`todo-due-edit-${todo.id}`}
+                  autoFocus
+                  value={toDatetimeLocal(todo.due_date)}
+                  onChange={handleDueChange}
+                  onBlur={() => setEditingDue(false)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-5 px-1 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-400"
+                />
               )}
               {todo.assigned_to && (
                 <span
