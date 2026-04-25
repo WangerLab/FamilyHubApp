@@ -16,6 +16,7 @@ export default function AddTodoInput() {
 
   const [expanded, setExpanded] = useState(false);
   const [title, setTitle] = useState('');
+  const [comment, setComment] = useState('');
   const [priority, setPriority] = useState('medium');
   const [assignee, setAssignee] = useState(''); // '' = unassigned
   const [dueLocal, setDueLocal] = useState(''); // datetime-local value
@@ -30,6 +31,7 @@ export default function AddTodoInput() {
 
   const reset = () => {
     setTitle('');
+    setComment('');
     setPriority('medium');
     setAssignee('');
     setDueLocal('');
@@ -51,6 +53,7 @@ export default function AddTodoInput() {
       priority,
       due_date: dueIso,
       assigned_to: assignee || null,
+      comment: comment.trim() || null,
     });
     reset();
     setBusy(false);
@@ -97,6 +100,16 @@ export default function AddTodoInput() {
           onKeyDown={onKeyDown}
           placeholder="Was ist zu tun? z.B. Müll rausbringen morgen"
           className="w-full h-11 px-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none text-[15px]"
+          style={{ fontFamily: 'DM Sans, sans-serif' }}
+        />
+
+        <textarea
+          data-testid="add-todo-comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Notiz / Details (optional)"
+          rows={2}
+          className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-50 placeholder:text-slate-400 focus:outline-none text-[13px] leading-snug resize-none"
           style={{ fontFamily: 'DM Sans, sans-serif' }}
         />
 
