@@ -8,6 +8,7 @@ import { useMisc } from '../../contexts/MiscContext';
 import { useTodos } from '../../contexts/TodosContext';
 import { useExpenses } from '../../contexts/ExpensesContext';
 import { useActivity } from '../../contexts/ActivityContext';
+import { crossDetect } from '../../lib/crossDetect';
 
 const MAX_CHARS = 500;
 const UNITS = ['Stück', 'g', 'kg', 'ml', 'L', 'Packung', 'Dose', 'Flasche', 'Bund', 'Glas'];
@@ -27,9 +28,12 @@ function formatCountdown(sec) {
  */
 export default function BrainDump({ mode = 'grocery', embedded = false, onSuccess }) {
   const { user, member } = useAuth();
-  const { addItem: addGroceryItem } = useGrocery();
+  const groceryCtx = useGrocery();
+  const addGroceryItem = groceryCtx?.addItem;
+  const groceryShowCrossMoveToast = groceryCtx?.showCrossMoveToast;
   const miscCtx = useMisc();
   const addMiscItem = miscCtx?.addItem;
+  const miscShowCrossMoveToast = miscCtx?.showCrossMoveToast;
   const todosCtx = useTodos();
   const addTodoItem = todosCtx?.addTodo;
   const todosMembers = todosCtx?.houseMembers || [];
@@ -149,8 +153,23 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
     for (const it of toSave) {
       if (isMisc) {
         if (!addMiscItem) continue;
+        const itemName = it.name.trim();
+        const cross = crossDetect(itemName, 'misc');
+        if (cross.shouldMoveTo === 'grocery' && addGroceryItem) {
+          const insertedGrocery = await addGroceryItem({
+            name: itemName,
+            category: cross.category,
+            quantity: null,
+            unit: null,
+            note: it.note?.trim() || null,
+          }, { silent: true });
+          if (insertedGrocery && groceryShowCrossMoveToast) {
+            groceryShowCrossMoveToast(insertedGrocery, 'misc');
+          }
+          continue;
+        }
         await addMiscItem({
-          name: it.name.trim(),
+          name: itemName,
           location_tag: it.location_tag || 'Sonstiges',
           note: it.note?.trim() || null,
         }, { silent: true });
@@ -173,8 +192,21 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
           category: it.category || null,
         }, { silent: true });
       } else {
+        const itemName = it.name.trim();
+        const cross = crossDetect(itemName, 'grocery');
+        if (cross.shouldMoveTo === 'misc' && addMiscItem) {
+          const insertedMisc = await addMiscItem({
+            name: itemName,
+            location_tag: cross.location_tag,
+            note: it.note?.trim() || null,
+          }, { silent: true });
+          if (insertedMisc && miscShowCrossMoveToast) {
+            miscShowCrossMoveToast(insertedMisc, 'grocery');
+          }
+          continue;
+        }
         await addGroceryItem({
-          name: it.name.trim(),
+          name: itemName,
           category: it.category,
           quantity: it.quantity !== '' && it.quantity != null && Number(it.quantity) > 0
             ? Number(it.quantity)
