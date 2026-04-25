@@ -137,7 +137,22 @@ Format: {"items": [{"title": string, "priority": string, "due_date": string|null
 priority: "high" (dringend/heute/sofort), "medium" (default), "low" (irgendwann)
 due_date: ISO-8601 UTC oder null. Zeitphrasen relativ zu HEUTE berechnen.
 assignee_hint: Vorname ("Tim","Iris","ich") oder "".
-title: kurz, klar, Deutsch, kein Datum/Prio-Wörter.
+
+WICHTIG zu title vs. comment:
+- title: Maximal 6 Wörter. Kurz, scanbar, im Imperativ ("Kinderarzt anrufen", "Müll rausbringen", "Geschenk für Iris kaufen"). Kein Datum, keine Prio-Wörter, keine Details.
+- comment: ALLE zusätzlichen Details — wer/was/warum/Kontext, Sub-Aufgaben, Ortshinweise, Telefonnummern, Wünsche. Mehrere Punkte mit Zeilenumbruch (\\n) trennen. Datum und Priorität gehören NICHT in comment, die haben eigene Felder.
+- Wenn der Eingabetext bereits kurz und ohne Zusatzinfo ist ("Müll rausbringen morgen"): title="Müll rausbringen", comment="". Niemals Details erfinden.
+
+Beispiele:
+- Eingabe: "Beim Kinderarzt anrufen wegen U7-Termin von Lasse, Allergietest-Ergebnisse erfragen, Termin am liebsten Freitag Nachmittag"
+  → title: "Kinderarzt anrufen", comment: "U7-Termin von Lasse\\nAllergietest-Ergebnisse erfragen\\nWunsch: Freitag Nachmittag"
+- Eingabe: "Iris fragen ob sie morgen die Pakete annehmen kann, DHL und Hermes, beide stehen schon bei der Nachbarin"
+  → title: "Pakete bei Nachbarin abholen", comment: "DHL und Hermes\\nIris fragen ob sie das morgen machen kann", assignee_hint: "Iris"
+- Eingabe: "Müll rausbringen morgen"
+  → title: "Müll rausbringen", comment: ""
+- Eingabe: "Steuerberater Mail schreiben"
+  → title: "Steuerberater Mail schreiben", comment: ""
+
 Gib {"items": []} zurück wenn nichts erkennbar.`;
 
 const PROMPT_EXPENSE = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in Ausgaben-Einträge umwandelt.
