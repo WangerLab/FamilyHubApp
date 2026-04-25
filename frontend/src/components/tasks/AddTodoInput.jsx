@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Flame, ChevronDown, User, Calendar as CalIcon } from 'lucide-react';
+import { Plus, Flame, ChevronDown, User, Calendar as CalIcon, Check } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { parseSmartDateDE, toDatetimeLocal } from '../../utils/smartDate';
@@ -105,13 +105,13 @@ export default function AddTodoInput() {
           <button
             data-testid="smart-date-hint"
             onClick={applySmartDate}
-            className="w-full flex items-center gap-2 h-9 px-3 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-medium active:opacity-70"
+            className="w-full flex items-center gap-2 h-9 px-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-medium active:opacity-70"
           >
-            <CalIcon className="w-3.5 h-3.5" />
+            <Check className="w-3.5 h-3.5" />
             <span>
-              Automatisch erkannt: {smartDateHint.date.toLocaleString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              Erkannt: {smartDateHint.date.toLocaleString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
             </span>
-            <span className="ml-auto text-[10px] opacity-70">tippen zum Übernehmen</span>
+            <span className="ml-auto text-[10px] opacity-70">tippen für Picker</span>
           </button>
         )}
 
