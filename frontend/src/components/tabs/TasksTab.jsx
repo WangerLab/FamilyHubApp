@@ -6,7 +6,6 @@ import AddTodoInput from '../tasks/AddTodoInput';
 import TodoRow from '../tasks/TodoRow';
 import WeeklyStats from '../tasks/WeeklyStats';
 import NudgeToast from '../tasks/NudgeToast';
-import BrainDump from '../grocery/BrainDump';
 
 function EmptyState({ color }) {
   return (
@@ -85,8 +84,6 @@ export default function TasksTab() {
       </div>
 
       <AddTodoInput />
-
-      <BrainDump mode="todos" />
 
       {/* Active list */}
       {loading ? (
