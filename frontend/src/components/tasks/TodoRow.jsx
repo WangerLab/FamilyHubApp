@@ -54,6 +54,20 @@ export default function TodoRow({ todo }) {
     };
   }, [showPriorityPicker, todo.id]);
 
+  useEffect(() => {
+    if (!showAssigneePicker) return;
+    const handler = (e) => {
+      if (!e.target.closest(`[data-testid="todo-row-${todo.id}"]`)) {
+        setShowAssigneePicker(false);
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('click', handler);
+    };
+  }, [showAssigneePicker, todo.id]);
+
   const prio = PRIORITY_META[todo.priority] || PRIORITY_META.medium;
   const overdue = isOverdue(todo.due_date, todo.completed);
   const assigneeColor = memberColorMap[todo.assigned_to] || '#94a3b8';
@@ -198,10 +212,10 @@ export default function TodoRow({ todo }) {
         )}
 
         {/* Creator ↓ Assignee block — top right of card */}
-        <div className="absolute top-2 right-2 z-10 flex flex-col items-end leading-tight pointer-events-none">
+        <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-0.5 pointer-events-none">
           {creatorName && (
             <span
-              className="text-[11px] font-medium pointer-events-auto"
+              className="text-[13px] font-medium pointer-events-auto leading-none"
               style={{ color: creatorColor }}
               title="Erstellt von"
             >
@@ -209,13 +223,13 @@ export default function TodoRow({ todo }) {
             </span>
           )}
           <ArrowDown
-            className="w-2.5 h-2.5 text-slate-300 dark:text-slate-600 -my-0.5"
+            className="w-4 h-4 text-slate-400 dark:text-slate-500"
             aria-hidden="true"
           />
           <button
             data-testid={`todo-assignee-${todo.id}`}
             onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
-            className="text-[12px] font-bold pointer-events-auto active:opacity-70"
+            className="text-[14px] font-bold pointer-events-auto active:opacity-70 leading-none"
             style={{ color: assigneeColor }}
             aria-label="Zuständigkeit ändern"
           >
