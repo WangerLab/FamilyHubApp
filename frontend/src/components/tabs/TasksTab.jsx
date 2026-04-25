@@ -4,7 +4,6 @@ import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AddTodoInput from '../tasks/AddTodoInput';
 import TodoRow from '../tasks/TodoRow';
-import WeeklyStats from '../tasks/WeeklyStats';
 import NudgeToast from '../tasks/NudgeToast';
 
 function EmptyState({ color }) {
@@ -23,7 +22,7 @@ function EmptyState({ color }) {
         Keine offenen Tasks
       </h3>
       <p className="text-sm text-slate-400 dark:text-slate-500 max-w-[260px]">
-        Was steht an? Tippe oben auf „Neue Task" und leg los.
+        Was steht an? Tippe oben auf „Neuer Task" und leg los.
       </p>
     </div>
   );
@@ -140,8 +139,6 @@ export default function TasksTab() {
           )}
         </div>
       )}
-
-      <WeeklyStats source="todos" />
     </div>
   );
 }
