@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Zap, Bell, Trash2, Clock } from 'lucide-react';
+import { Check, Zap, Bell, Trash2, Clock, ArrowDown } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDueDateDE, isOverdue, toDatetimeLocal } from '../../utils/smartDate';
@@ -13,7 +13,7 @@ const PRIORITY_ORDER = ['high', 'medium', 'low'];
 
 export default function TodoRow({ todo }) {
   const { user } = useAuth();
-  const { toggleTodo, updateTodo, softDelete, sendNudge, undoNudge, acknowledgeNudge, memberColorMap, memberNameMap } = useTodos();
+  const { toggleTodo, updateTodo, softDelete, sendNudge, undoNudge, acknowledgeNudge, memberColorMap, memberNameMap, houseMembers } = useTodos();
   const [editingComment, setEditingComment] = useState(false);
   const [commentValue, setCommentValue] = useState(todo.comment || '');
   const [editingTitle, setEditingTitle] = useState(false);
@@ -22,6 +22,7 @@ export default function TodoRow({ todo }) {
   const [nudgeBusy, setNudgeBusy] = useState(false);
   const [nudgeError, setNudgeError] = useState('');
   const [showPriorityPicker, setShowPriorityPicker] = useState(false);
+  const [showAssigneePicker, setShowAssigneePicker] = useState(false);
   const [swipeOpen, setSwipeOpen] = useState(false);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
@@ -196,6 +197,75 @@ export default function TodoRow({ todo }) {
           </div>
         )}
 
+        {/* Creator ↓ Assignee block — top right of card */}
+        <div className="absolute top-2 right-2 z-10 flex flex-col items-end leading-tight pointer-events-none">
+          {creatorName && (
+            <span
+              className="text-[11px] font-medium pointer-events-auto"
+              style={{ color: creatorColor }}
+              title="Erstellt von"
+            >
+              {creatorName}
+            </span>
+          )}
+          <ArrowDown
+            className="w-2.5 h-2.5 text-slate-300 dark:text-slate-600 -my-0.5"
+            aria-hidden="true"
+          />
+          <button
+            data-testid={`todo-assignee-${todo.id}`}
+            onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
+            className="text-[12px] font-bold pointer-events-auto active:opacity-70"
+            style={{ color: assigneeColor }}
+            aria-label="Zuständigkeit ändern"
+          >
+            {assigneeName || 'Niemand'}
+          </button>
+        </div>
+
+        {showAssigneePicker && (
+          <div
+            data-testid={`assignee-picker-${todo.id}`}
+            className="absolute right-2 top-12 z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 min-w-[110px]"
+          >
+            {houseMembers.map((m) => {
+              const isCurrent = m.user_id === todo.assigned_to;
+              return (
+                <button
+                  key={m.user_id}
+                  data-testid={`assignee-pick-${m.user_id}-${todo.id}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updateTodo(todo.id, { assigned_to: m.user_id });
+                    setShowAssigneePicker(false);
+                  }}
+                  className={`flex items-center gap-2 px-2 h-7 rounded-md text-[12px] font-medium active:scale-95 ${
+                    isCurrent ? 'bg-slate-100 dark:bg-slate-700' : ''
+                  }`}
+                  style={{ color: m.color || '#94a3b8' }}
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color || '#94a3b8' }} />
+                  {m.display_name}
+                </button>
+              );
+            })}
+            <button
+              data-testid={`assignee-pick-none-${todo.id}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                updateTodo(todo.id, { assigned_to: null });
+                setShowAssigneePicker(false);
+              }}
+              className={`flex items-center gap-2 px-2 h-7 rounded-md text-[12px] text-slate-500 active:scale-95 ${
+                !todo.assigned_to ? 'bg-slate-100 dark:bg-slate-700' : ''
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              Niemand
+            </button>
+          </div>
+        )}
+
         <div className="pl-5 pr-4 py-4 flex items-start gap-4">
           <button
             data-testid={`todo-toggle-${todo.id}`}
@@ -228,7 +298,7 @@ export default function TodoRow({ todo }) {
                       setEditingTitle(false);
                     }
                   }}
-                  className="flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800 px-2 py-1 -mx-2 -my-1 rounded outline-none focus:ring-2 focus:ring-blue-400"
+                  className="flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800 px-2 py-1 pr-16 -mx-2 -my-1 rounded outline-none focus:ring-2 focus:ring-blue-400"
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
                 />
               ) : (
@@ -240,7 +310,7 @@ export default function TodoRow({ todo }) {
                     setTitleDraft(todo.title);
                     setEditingTitle(true);
                   }}
-                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text ${
+                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text pr-16 ${
                     todo.completed ? 'line-through' : ''
                   }`}
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -322,15 +392,6 @@ export default function TodoRow({ todo }) {
                   className="h-5 px-1 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-400"
                 />
               )}
-              {todo.assigned_to && (
-                <span
-                  className="inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium"
-                  style={{ backgroundColor: `${assigneeColor}18`, color: assigneeColor }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: assigneeColor }} />
-                  {assigneeName || '—'}
-                </span>
-              )}
               {!todo.comment && !editingComment && (
                 <button
                   data-testid={`todo-add-comment-${todo.id}`}
@@ -375,15 +436,6 @@ export default function TodoRow({ todo }) {
                 </button>
               )}
               {nudgeError && <span className="text-[10px] text-red-500">{nudgeError}</span>}
-              {creatorName && (
-                <span
-                  className="ml-auto text-[13px] font-medium leading-none"
-                  style={{ color: creatorColor }}
-                  title="Erstellt von"
-                >
-                  {creatorName}
-                </span>
-              )}
             </div>
 
           </div>
