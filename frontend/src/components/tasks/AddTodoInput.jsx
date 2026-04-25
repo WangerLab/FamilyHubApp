@@ -79,7 +79,7 @@ export default function AddTodoInput() {
         >
           <Plus className="w-4 h-4" />
           <span className="text-sm font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-            Neue Aufgabe
+            Neue Task
           </span>
         </button>
       </div>

@@ -20,10 +20,10 @@ function EmptyState({ color }) {
         className="text-lg font-bold text-slate-900 dark:text-slate-50 mb-2"
         style={{ fontFamily: 'Manrope, sans-serif' }}
       >
-        Keine offenen Aufgaben
+        Keine offenen Tasks
       </h3>
       <p className="text-sm text-slate-400 dark:text-slate-500 max-w-[260px]">
-        Was steht an? Tippe oben auf „Neue Aufgabe" und leg los.
+        Was steht an? Tippe oben auf „Neue Task" und leg los.
       </p>
     </div>
   );
@@ -60,7 +60,7 @@ export default function TasksTab() {
             className="text-xl font-bold text-slate-900 dark:text-slate-50"
             style={{ fontFamily: 'Manrope, sans-serif' }}
           >
-            Aufgaben
+            Tasks
           </h2>
           {activeTodos.length > 0 && (
             <span
