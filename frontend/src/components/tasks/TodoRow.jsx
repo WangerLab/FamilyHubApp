@@ -13,7 +13,7 @@ const PRIORITY_ORDER = ['high', 'medium', 'low'];
 
 export default function TodoRow({ todo }) {
   const { user } = useAuth();
-  const { toggleTodo, updateTodo, softDelete, sendNudge, memberColorMap, memberNameMap } = useTodos();
+  const { toggleTodo, updateTodo, softDelete, sendNudge, undoNudge, memberColorMap, memberNameMap } = useTodos();
   const [editingComment, setEditingComment] = useState(false);
   const [commentValue, setCommentValue] = useState(todo.comment || '');
   const [editingTitle, setEditingTitle] = useState(false);
@@ -78,6 +78,8 @@ export default function TodoRow({ todo }) {
     todo.assigned_to &&
     todo.assigned_to !== user?.id &&
     nudgeCooldown === 0;
+
+  const isSenderOfNudge = todo.nudge_sent_by && todo.nudge_sent_by === user?.id && nudgeCooldown > 0;
 
   const handleNudge = async () => {
     setNudgeBusy(true); setNudgeError('');
@@ -337,7 +339,20 @@ export default function TodoRow({ todo }) {
                   + Notiz
                 </button>
               )}
-              {canNudge && (
+              {isSenderOfNudge && (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-[10px] text-slate-400 italic">in {nudgeCooldown}h wieder</span>
+                  <button
+                    data-testid={`todo-nudge-undo-${todo.id}`}
+                    onClick={(e) => { e.stopPropagation(); if (!swipeOpen) undoNudge(todo.id); }}
+                    className="text-[10px] text-slate-400 hover:text-red-500 active:scale-90 px-1"
+                    aria-label="Anstoss zurückziehen"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {canNudge && !isSenderOfNudge && (
                 <button
                   data-testid={`todo-nudge-${todo.id}`}
                   onClick={(e) => { e.stopPropagation(); if (!swipeOpen) handleNudge(); }}
@@ -347,9 +362,6 @@ export default function TodoRow({ todo }) {
                   <Bell className="w-3 h-3" />
                   Anstupsen
                 </button>
-              )}
-              {!canNudge && todo.assigned_to && todo.assigned_to !== user?.id && nudgeCooldown > 0 && (
-                <span className="text-[10px] text-slate-400 italic">in {nudgeCooldown}h wieder</span>
               )}
               {nudgeError && <span className="text-[10px] text-red-500">{nudgeError}</span>}
               {creatorName && (

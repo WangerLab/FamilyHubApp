@@ -30,7 +30,7 @@ function EmptyState({ color }) {
 
 export default function TasksTab() {
   const { member } = useAuth();
-  const { activeTodos, completedTodos, archivedTodos, loading, overdueCount, pendingDelete, undoDelete, houseMembers } = useTodos();
+  const { activeTodos, completedTodos, archivedTodos, loading, overdueCount, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers } = useTodos();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const color = member?.color || '#3B82F6';
@@ -209,14 +209,21 @@ export default function TasksTab() {
       {pendingDelete && (
         <UndoSnackbar name={pendingDelete.todo.title} onUndo={undoDelete} />
       )}
+      {pendingNudgeUndo && (
+        <UndoSnackbar
+          label="Anstoss zurückgezogen"
+          onUndo={restoreNudge}
+          testid="undo-snackbar-nudge"
+        />
+      )}
     </div>
   );
 }
 
-function UndoSnackbar({ name, onUndo }) {
+function UndoSnackbar({ name, label, onUndo, testid = 'undo-snackbar-todo' }) {
   return (
     <div
-      data-testid="undo-snackbar-todo"
+      data-testid={testid}
       className="fixed z-50 left-3 right-3 sm:max-w-[476px] mx-auto"
       style={{ bottom: 'calc(80px + env(safe-area-inset-bottom) + 12px)' }}
     >
@@ -225,7 +232,7 @@ function UndoSnackbar({ name, onUndo }) {
           className="flex-1 text-sm font-medium text-white dark:text-slate-900 truncate"
           style={{ fontFamily: 'DM Sans, sans-serif' }}
         >
-          „{name}" gelöscht
+          {label ?? `„${name}" gelöscht`}
         </p>
         <button
           data-testid="undo-delete-button-todo"

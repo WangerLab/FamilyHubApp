@@ -13,6 +13,7 @@ export const TodosProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [nudgeToast, setNudgeToast] = useState(null); // { id, title, fromName }
   const [pendingDelete, setPendingDelete] = useState(null); // { id, todo, timer }
+  const [pendingNudgeUndo, setPendingNudgeUndo] = useState(null); // { id, prevSentAt, prevSentBy, prevLogEntryId, timer }
   const previousTodoMap = useRef({});
 
   const fetchAll = useCallback(async () => {
@@ -227,6 +228,54 @@ export const TodosProvider = ({ children }) => {
     return { ok: true };
   };
 
+  const undoNudge = async (id) => {
+    const todo = todos.find((t) => t.id === id);
+    if (!todo || !todo.nudge_sent_at) return;
+    if (todo.nudge_sent_by !== user?.id) return;
+
+    if (pendingNudgeUndo) {
+      clearTimeout(pendingNudgeUndo.timer);
+    }
+
+    const prevSentAt = todo.nudge_sent_at;
+    const prevSentBy = todo.nudge_sent_by;
+
+    await updateTodo(id, { nudge_sent_at: null, nudge_sent_by: null });
+
+    let prevLogEntryId = null;
+    try {
+      const { data } = await supabase
+        .from('activity_log')
+        .select('id')
+        .eq('item_id', id)
+        .eq('action_type', 'todo_nudge')
+        .eq('actor_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) prevLogEntryId = data.id;
+    } catch { /* not found, OK */ }
+
+    const timer = setTimeout(async () => {
+      if (prevLogEntryId) {
+        await supabase.from('activity_log').delete().eq('id', prevLogEntryId);
+      }
+      setPendingNudgeUndo(null);
+    }, 5000);
+
+    setPendingNudgeUndo({ id, prevSentAt, prevSentBy, prevLogEntryId, timer });
+  };
+
+  const restoreNudge = async () => {
+    if (!pendingNudgeUndo) return;
+    clearTimeout(pendingNudgeUndo.timer);
+    await updateTodo(pendingNudgeUndo.id, {
+      nudge_sent_at: pendingNudgeUndo.prevSentAt,
+      nudge_sent_by: pendingNudgeUndo.prevSentBy,
+    });
+    setPendingNudgeUndo(null);
+  };
+
   const dismissNudgeToast = () => setNudgeToast(null);
 
   // ---- Derived views ----
@@ -258,6 +307,7 @@ export const TodosProvider = ({ children }) => {
         weeklyStats,
         addTodo, updateTodo, toggleTodo, sendNudge,
         softDelete, undoDelete, pendingDelete,
+        undoNudge, restoreNudge, pendingNudgeUndo,
         nudgeToast, dismissNudgeToast,
       }}
     >
