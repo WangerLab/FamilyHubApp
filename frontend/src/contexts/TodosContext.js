@@ -276,6 +276,25 @@ export const TodosProvider = ({ children }) => {
     setPendingNudgeUndo(null);
   };
 
+  const acknowledgeNudge = async (id) => {
+    const todo = todos.find((t) => t.id === id);
+    if (!todo || !todo.nudge_sent_at) return;
+    if (todo.assigned_to !== user?.id) return;
+
+    const senderId = todo.nudge_sent_by;
+    await updateTodo(id, { nudge_sent_at: null, nudge_sent_by: null });
+
+    if (activity?.logActivity) {
+      const senderName = houseMembers.find((m) => m.user_id === senderId)?.display_name || 'Jemand';
+      activity.logActivity({
+        action_type: 'todo_nudge_ack',
+        module: 'todos',
+        item_id: id,
+        description: `${member.display_name} hat den Anstoss von ${senderName} bestätigt: „${todo.title}"`,
+      });
+    }
+  };
+
   const dismissNudgeToast = () => setNudgeToast(null);
 
   // ---- Derived views ----
@@ -307,7 +326,7 @@ export const TodosProvider = ({ children }) => {
         weeklyStats,
         addTodo, updateTodo, toggleTodo, sendNudge,
         softDelete, undoDelete, pendingDelete,
-        undoNudge, restoreNudge, pendingNudgeUndo,
+        undoNudge, restoreNudge, acknowledgeNudge, pendingNudgeUndo,
         nudgeToast, dismissNudgeToast,
       }}
     >

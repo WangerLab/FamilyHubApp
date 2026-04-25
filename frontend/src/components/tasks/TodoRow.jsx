@@ -13,7 +13,7 @@ const PRIORITY_ORDER = ['high', 'medium', 'low'];
 
 export default function TodoRow({ todo }) {
   const { user } = useAuth();
-  const { toggleTodo, updateTodo, softDelete, sendNudge, undoNudge, memberColorMap, memberNameMap } = useTodos();
+  const { toggleTodo, updateTodo, softDelete, sendNudge, undoNudge, acknowledgeNudge, memberColorMap, memberNameMap } = useTodos();
   const [editingComment, setEditingComment] = useState(false);
   const [commentValue, setCommentValue] = useState(todo.comment || '');
   const [editingTitle, setEditingTitle] = useState(false);
@@ -80,6 +80,7 @@ export default function TodoRow({ todo }) {
     nudgeCooldown === 0;
 
   const isSenderOfNudge = todo.nudge_sent_by && todo.nudge_sent_by === user?.id && nudgeCooldown > 0;
+  const isReceiverOfNudge = todo.nudge_sent_at && todo.assigned_to === user?.id && todo.nudge_sent_by !== user?.id;
 
   const handleNudge = async () => {
     setNudgeBusy(true); setNudgeError('');
@@ -351,6 +352,16 @@ export default function TodoRow({ todo }) {
                     ×
                   </button>
                 </span>
+              )}
+              {isReceiverOfNudge && (
+                <button
+                  data-testid={`todo-nudge-ack-${todo.id}`}
+                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) acknowledgeNudge(todo.id); }}
+                  className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 active:scale-95"
+                >
+                  <Check className="w-3 h-3" />
+                  Alles klar
+                </button>
               )}
               {canNudge && !isSenderOfNudge && (
                 <button
