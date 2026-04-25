@@ -12,6 +12,7 @@ export const TodosProvider = ({ children }) => {
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [nudgeToast, setNudgeToast] = useState(null); // { id, title, fromName }
+  const [pendingDelete, setPendingDelete] = useState(null); // { id, todo, timer }
   const previousTodoMap = useRef({});
 
   const fetchAll = useCallback(async () => {
@@ -164,9 +165,26 @@ export const TodosProvider = ({ children }) => {
     }
   };
 
-  const deleteTodo = async (id) => {
+  const softDelete = (id) => {
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) return;
+    if (pendingDelete) {
+      clearTimeout(pendingDelete.timer);
+      supabase.from('todos').delete().eq('id', pendingDelete.id);
+    }
     setTodos((prev) => prev.filter((t) => t.id !== id));
-    await supabase.from('todos').delete().eq('id', id);
+    const timer = setTimeout(async () => {
+      await supabase.from('todos').delete().eq('id', id);
+      setPendingDelete(null);
+    }, 5000);
+    setPendingDelete({ id, todo, timer });
+  };
+
+  const undoDelete = () => {
+    if (!pendingDelete) return;
+    clearTimeout(pendingDelete.timer);
+    setTodos((prev) => [pendingDelete.todo, ...prev]);
+    setPendingDelete(null);
   };
 
   const sendNudge = async (id) => {
@@ -223,7 +241,8 @@ export const TodosProvider = ({ children }) => {
         activeCount, overdueCount, loading,
         memberColorMap, memberNameMap, houseMembers,
         weeklyStats,
-        addTodo, updateTodo, toggleTodo, deleteTodo, sendNudge,
+        addTodo, updateTodo, toggleTodo, sendNudge,
+        softDelete, undoDelete, pendingDelete,
         nudgeToast, dismissNudgeToast,
       }}
     >

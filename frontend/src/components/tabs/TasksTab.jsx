@@ -30,7 +30,7 @@ function EmptyState({ color }) {
 
 export default function TasksTab() {
   const { member } = useAuth();
-  const { activeTodos, completedTodos, archivedTodos, loading, overdueCount } = useTodos();
+  const { activeTodos, completedTodos, archivedTodos, loading, overdueCount, pendingDelete, undoDelete } = useTodos();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const color = member?.color || '#3B82F6';
@@ -139,6 +139,36 @@ export default function TasksTab() {
           )}
         </div>
       )}
+
+      {pendingDelete && (
+        <UndoSnackbar name={pendingDelete.todo.title} onUndo={undoDelete} />
+      )}
+    </div>
+  );
+}
+
+function UndoSnackbar({ name, onUndo }) {
+  return (
+    <div
+      data-testid="undo-snackbar-todo"
+      className="fixed z-50 left-3 right-3 sm:max-w-[476px] mx-auto"
+      style={{ bottom: 'calc(80px + env(safe-area-inset-bottom) + 12px)' }}
+    >
+      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900 dark:bg-slate-100 shadow-xl shadow-black/20">
+        <p
+          className="flex-1 text-sm font-medium text-white dark:text-slate-900 truncate"
+          style={{ fontFamily: 'DM Sans, sans-serif' }}
+        >
+          „{name}" gelöscht
+        </p>
+        <button
+          data-testid="undo-delete-button-todo"
+          onClick={onUndo}
+          className="text-sm font-bold text-blue-400 dark:text-blue-600 active:opacity-70 shrink-0"
+        >
+          Rückgängig
+        </button>
+      </div>
     </div>
   );
 }

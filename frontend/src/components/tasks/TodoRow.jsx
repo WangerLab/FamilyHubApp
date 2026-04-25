@@ -12,7 +12,7 @@ const PRIORITY_META = {
 
 export default function TodoRow({ todo }) {
   const { user } = useAuth();
-  const { toggleTodo, updateTodo, deleteTodo, sendNudge, memberColorMap, memberNameMap } = useTodos();
+  const { toggleTodo, updateTodo, softDelete, sendNudge, memberColorMap, memberNameMap } = useTodos();
   const [showComment, setShowComment] = useState(!!todo.comment);
   const [commentValue, setCommentValue] = useState(todo.comment || '');
   const [nudgeBusy, setNudgeBusy] = useState(false);
@@ -177,7 +177,7 @@ export default function TodoRow({ todo }) {
 
         <button
           data-testid={`todo-delete-${todo.id}`}
-          onClick={() => deleteTodo(todo.id)}
+          onClick={() => softDelete(todo.id)}
           aria-label="Löschen"
           className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 dark:text-slate-600 active:bg-slate-100 dark:active:bg-slate-800 shrink-0"
         >
