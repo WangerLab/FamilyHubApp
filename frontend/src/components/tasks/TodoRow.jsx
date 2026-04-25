@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Zap, Bell, Trash2, Clock, ArrowDown } from 'lucide-react';
+import { Check, Zap, Bell, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDueDateDE, isOverdue, toDatetimeLocal } from '../../utils/smartDate';
@@ -211,8 +211,8 @@ export default function TodoRow({ todo }) {
           </div>
         )}
 
-        {/* Creator ↓ Assignee block — top right of card */}
-        <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-0.5 pointer-events-none">
+        {/* Creator ↓ Assignee block — top right of card, slightly inset */}
+        <div className="absolute top-3 right-3 z-10 flex flex-col items-center gap-1 pointer-events-none">
           {creatorName && (
             <span
               className="text-[13px] font-medium pointer-events-auto leading-none"
@@ -222,15 +222,39 @@ export default function TodoRow({ todo }) {
               {creatorName}
             </span>
           )}
-          <ArrowDown
-            className="w-4 h-4 text-slate-400 dark:text-slate-500"
+          {/* Custom arrow: thin line + arrowhead, in assignee color */}
+          <svg
+            width="10"
+            height="22"
+            viewBox="0 0 10 22"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
-          />
+            className="pointer-events-none"
+          >
+            <line
+              x1="5"
+              y1="0"
+              x2="5"
+              y2="18"
+              stroke={assigneeColor}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+            <polyline
+              points="1.5,15 5,21 8.5,15"
+              stroke={assigneeColor}
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </svg>
           <button
             data-testid={`todo-assignee-${todo.id}`}
             onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
-            className="text-[14px] font-bold pointer-events-auto active:opacity-70 leading-none"
-            style={{ color: assigneeColor }}
+            className="text-[14px] font-bold pointer-events-auto active:opacity-70 leading-none px-2 py-1 rounded-md border-2 bg-transparent"
+            style={{ color: assigneeColor, borderColor: assigneeColor }}
             aria-label="Zuständigkeit ändern"
           >
             {assigneeName || 'Niemand'}
@@ -312,7 +336,7 @@ export default function TodoRow({ todo }) {
                       setEditingTitle(false);
                     }
                   }}
-                  className="flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800 px-2 py-1 pr-16 -mx-2 -my-1 rounded outline-none focus:ring-2 focus:ring-blue-400"
+                  className="flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800 px-2 py-1 pr-20 -mx-2 -my-1 rounded outline-none focus:ring-2 focus:ring-blue-400"
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
                 />
               ) : (
@@ -324,7 +348,7 @@ export default function TodoRow({ todo }) {
                     setTitleDraft(todo.title);
                     setEditingTitle(true);
                   }}
-                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text pr-16 ${
+                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text pr-20 ${
                     todo.completed ? 'line-through' : ''
                   }`}
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
