@@ -30,14 +30,18 @@ function EmptyState({ color }) {
 
 export default function TasksTab() {
   const { member } = useAuth();
-  const { activeTodos, completedTodos, archivedTodos, loading, overdueCount, pendingDelete, undoDelete } = useTodos();
+  const { activeTodos, completedTodos, archivedTodos, loading, overdueCount, pendingDelete, undoDelete, houseMembers } = useTodos();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const color = member?.color || '#3B82F6';
 
-  // Sort active: overdue first, then by due_date asc (nulls last), then created desc
-  const sortedActive = useMemo(() => {
-    return [...activeTodos].sort((a, b) => {
+  // Group active todos by assignee, with stable order:
+  // 1) current user's tasks first
+  // 2) other household members
+  // 3) unassigned
+  // Within each group: overdue first, then due_date asc (nulls last), then created desc
+  const groupedActive = useMemo(() => {
+    const sortFn = (a, b) => {
       const aOv = a.due_date && new Date(a.due_date) < new Date();
       const bOv = b.due_date && new Date(b.due_date) < new Date();
       if (aOv !== bOv) return aOv ? -1 : 1;
@@ -45,8 +49,47 @@ export default function TasksTab() {
       if (a.due_date) return -1;
       if (b.due_date) return 1;
       return new Date(b.created_at) - new Date(a.created_at);
+    };
+
+    const groups = [];
+
+    if (member?.user_id) {
+      const ownItems = activeTodos.filter((t) => t.assigned_to === member.user_id).sort(sortFn);
+      if (ownItems.length) {
+        groups.push({
+          key: member.user_id,
+          label: `Tasks für ${member.display_name || 'Dich'}`,
+          color: member.color || '#64748B',
+          items: ownItems,
+        });
+      }
+    }
+
+    (houseMembers || []).forEach((hm) => {
+      if (hm.user_id === member?.user_id) return;
+      const items = activeTodos.filter((t) => t.assigned_to === hm.user_id).sort(sortFn);
+      if (items.length) {
+        groups.push({
+          key: hm.user_id,
+          label: `Tasks für ${hm.display_name}`,
+          color: hm.color || '#64748B',
+          items,
+        });
+      }
     });
-  }, [activeTodos]);
+
+    const unassigned = activeTodos.filter((t) => !t.assigned_to).sort(sortFn);
+    if (unassigned.length) {
+      groups.push({
+        key: '__unassigned__',
+        label: 'Nicht zugewiesen',
+        color: '#64748B',
+        items: unassigned,
+      });
+    }
+
+    return groups;
+  }, [activeTodos, houseMembers, member]);
 
   return (
     <div data-testid="tasks-tab" className="space-y-3 pb-4">
@@ -84,17 +127,40 @@ export default function TasksTab() {
 
       <AddTodoInput />
 
-      {/* Active list */}
+      {/* Active list — grouped by assignee */}
       {loading ? (
         <div className="flex items-center justify-center py-10">
           <div className="w-6 h-6 rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-blue-500 animate-spin" />
         </div>
-      ) : sortedActive.length === 0 ? (
+      ) : groupedActive.length === 0 ? (
         <EmptyState color={color} />
       ) : (
-        <div data-testid="todos-active-list" className="space-y-2 px-1">
-          {sortedActive.map((t) => (
-            <TodoRow key={t.id} todo={t} />
+        <div data-testid="todos-active-list" className="space-y-4">
+          {groupedActive.map((group) => (
+            <div key={group.key} data-testid={`assignee-group-${group.key}`}>
+              <div
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl mb-2"
+                style={{ backgroundColor: `${group.color}40` }}
+              >
+                <span
+                  className="text-sm font-bold"
+                  style={{ color: group.color, fontFamily: 'Manrope, sans-serif' }}
+                >
+                  {group.label}
+                </span>
+                <span
+                  className="ml-auto text-xs font-semibold tabular-nums"
+                  style={{ color: group.color, opacity: 0.85 }}
+                >
+                  {group.items.length}
+                </span>
+              </div>
+              <div className="space-y-2 px-1">
+                {group.items.map((t) => (
+                  <TodoRow key={t.id} todo={t} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
