@@ -26,7 +26,7 @@ export default function FloatingBrainDumpButton() {
           bottom: 'calc(80px + env(safe-area-inset-bottom) + 16px)',
           right: '16px',
         }}
-        aria-label="KI Brain Dump öffnen"
+        aria-label="AI Braindump öffnen"
       >
         <Sparkles className="w-6 h-6 text-white" />
       </button>

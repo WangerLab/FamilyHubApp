@@ -62,7 +62,7 @@ export default function BrainDumpSheet({ open, onClose, mode }) {
         {/* Title */}
         <div className="px-4 pb-2">
           <p className="text-base font-bold text-slate-900 dark:text-slate-50" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            KI Brain Dump
+            AI Braindump
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500">{SUBTITLES[mode] ?? 'Text in Einträge umwandeln'}</p>
         </div>

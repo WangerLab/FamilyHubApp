@@ -147,7 +147,12 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
   };
 
   const handleSaveAll = async () => {
-    const toSave = preview.filter((it) => it._selected && it.name.trim());
+    const toSave = preview.filter((it) => {
+      if (!it._selected) return false;
+      if (isTodos) return it.title?.trim();
+      if (isExpense) return it.description?.trim();
+      return it.name?.trim();
+    });
     if (toSave.length === 0) return;
     setLoading(true);
     for (const it of toSave) {
@@ -227,7 +232,7 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
         action_type: isTodos ? 'todo_create' : isExpense ? 'expense_add' : (isMisc ? 'misc_add' : 'grocery_add'),
         module: isTodos ? 'todos' : isExpense ? 'expenses' : (isMisc ? 'misc' : 'grocery'),
         item_id: null,
-        description: `${member.display_name} hat per KI Brain Dump ${noun} hinzugefügt`,
+        description: `${member.display_name} hat per AI Braindump ${noun} hinzugefügt`,
       });
     }
     setLoading(false);
@@ -262,7 +267,7 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
           className="text-sm font-semibold text-slate-700 dark:text-slate-200"
           style={{ fontFamily: 'Manrope, sans-serif' }}
         >
-          KI Brain Dump
+          AI Braindump
         </span>
         <span className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
           {isExpense ? 'Ausgaben erfassen'
@@ -335,7 +340,7 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    KI-Parse
+                    Execute
                   </>
                 )}
               </button>
