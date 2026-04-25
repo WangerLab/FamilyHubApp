@@ -3,6 +3,8 @@ import { Plus } from 'lucide-react';
 import { CATEGORIES, detectCategory, DEFAULT_CATEGORY } from '../../constants/categories';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
+import { useMisc } from '../../contexts/MiscContext';
+import { crossDetect } from '../../lib/crossDetect';
 
 const UNIT_ALIASES = {
   'g': 'g', 'gramm': 'g',
@@ -40,6 +42,7 @@ export default function AddItemInput({ onAdd }) {
   const [busy, setBusy] = useState(false);
   const { user } = useAuth();
   const { updateItem } = useGrocery();
+  const { addItem: addMiscItem, showCrossMoveToast: miscShowCrossMoveToast } = useMisc();
 
   const parsedPreview = value.trim() ? parseQuantityFromName(value.trim()) : null;
   const detectedCat = parsedPreview ? detectCategory(parsedPreview.name) : null;
@@ -50,6 +53,20 @@ export default function AddItemInput({ onAdd }) {
     if (!raw || busy) return;
     setBusy(true);
     const { name, quantity, unit } = parseQuantityFromName(raw);
+    const cross = crossDetect(name, 'grocery');
+    if (cross.shouldMoveTo === 'misc' && addMiscItem) {
+      const insertedMisc = await addMiscItem({
+        name,
+        location_tag: cross.location_tag,
+        note: null,
+      });
+      setValue('');
+      setBusy(false);
+      if (insertedMisc && miscShowCrossMoveToast) {
+        miscShowCrossMoveToast(insertedMisc, 'grocery');
+      }
+      return;
+    }
     const category = detectCategory(name);
     const inserted = await onAdd({ name, category, quantity, unit });
     setValue('');
