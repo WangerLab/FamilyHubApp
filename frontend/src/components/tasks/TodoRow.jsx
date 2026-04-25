@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Zap, Bell, MessageSquare, Trash2, Clock } from 'lucide-react';
+import { Check, Zap, Bell, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDueDateDE, isOverdue } from '../../utils/smartDate';
@@ -14,7 +14,7 @@ const PRIORITY_ORDER = ['high', 'medium', 'low'];
 export default function TodoRow({ todo }) {
   const { user } = useAuth();
   const { toggleTodo, updateTodo, softDelete, sendNudge, memberColorMap, memberNameMap } = useTodos();
-  const [showComment, setShowComment] = useState(!!todo.comment);
+  const [editingComment, setEditingComment] = useState(false);
   const [commentValue, setCommentValue] = useState(todo.comment || '');
   const [nudgeBusy, setNudgeBusy] = useState(false);
   const [nudgeError, setNudgeError] = useState('');
@@ -200,6 +200,29 @@ export default function TodoRow({ todo }) {
               )}
             </div>
 
+            {todo.comment && !editingComment && (
+              <p
+                data-testid={`todo-comment-display-${todo.id}`}
+                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setEditingComment(true); }}
+                className="text-[13px] leading-snug text-slate-500 dark:text-slate-400 mt-0.5 whitespace-pre-wrap"
+              >
+                {todo.comment}
+              </p>
+            )}
+            {editingComment && (
+              <textarea
+                data-testid={`todo-comment-${todo.id}`}
+                value={commentValue}
+                onChange={(e) => setCommentValue(e.target.value)}
+                onBlur={() => { handleCommentSave(); setEditingComment(false); }}
+                onClick={(e) => e.stopPropagation()}
+                autoFocus
+                placeholder="Kommentar hinzufügen…"
+                rows={2}
+                className="w-full mt-1 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              />
+            )}
+
             {/* Meta row */}
             <div className="flex items-center gap-2 flex-wrap mt-1">
               <span
@@ -231,16 +254,15 @@ export default function TodoRow({ todo }) {
                   {assigneeName || '—'}
                 </span>
               )}
-              <button
-                data-testid={`todo-comment-toggle-${todo.id}`}
-                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowComment((v) => !v); }}
-                className={`p-0.5 rounded transition-colors active:opacity-70 ${
-                  todo.comment || showComment ? 'text-blue-500' : 'text-slate-300 dark:text-slate-600'
-                }`}
-                aria-label="Kommentar"
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-              </button>
+              {!todo.comment && !editingComment && (
+                <button
+                  data-testid={`todo-add-comment-${todo.id}`}
+                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setEditingComment(true); }}
+                  className="text-[11px] text-slate-400 dark:text-slate-500 font-medium active:opacity-60"
+                >
+                  + Notiz
+                </button>
+              )}
               {canNudge && (
                 <button
                   data-testid={`todo-nudge-${todo.id}`}
@@ -267,18 +289,6 @@ export default function TodoRow({ todo }) {
               )}
             </div>
 
-            {showComment && (
-              <textarea
-                data-testid={`todo-comment-${todo.id}`}
-                value={commentValue}
-                onChange={(e) => setCommentValue(e.target.value)}
-                onBlur={handleCommentSave}
-                onClick={(e) => e.stopPropagation()}
-                placeholder="Kommentar hinzufügen…"
-                rows={2}
-                className="w-full mt-2 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-              />
-            )}
           </div>
         </div>
       </div>
