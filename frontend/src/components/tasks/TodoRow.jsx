@@ -16,6 +16,8 @@ export default function TodoRow({ todo }) {
   const { toggleTodo, updateTodo, softDelete, sendNudge, memberColorMap, memberNameMap } = useTodos();
   const [editingComment, setEditingComment] = useState(false);
   const [commentValue, setCommentValue] = useState(todo.comment || '');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(todo.title);
   const [nudgeBusy, setNudgeBusy] = useState(false);
   const [nudgeError, setNudgeError] = useState('');
   const [showPriorityPicker, setShowPriorityPicker] = useState(false);
@@ -88,6 +90,21 @@ export default function TodoRow({ todo }) {
     if ((trimmed || null) !== (todo.comment || null)) {
       updateTodo(todo.id, { comment: trimmed || null });
     }
+  };
+
+  const handleTitleSave = async () => {
+    const next = titleDraft.trim();
+    if (!next) {
+      setEditingTitle(false);
+      setTitleDraft(todo.title);
+      return;
+    }
+    if (next === todo.title) {
+      setEditingTitle(false);
+      return;
+    }
+    await updateTodo(todo.id, { title: next });
+    setEditingTitle(false);
   };
 
   return (
@@ -181,14 +198,41 @@ export default function TodoRow({ todo }) {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-start gap-1.5">
-              <p
-                className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 ${
-                  todo.completed ? 'line-through' : ''
-                }`}
-                style={{ fontFamily: 'DM Sans, sans-serif' }}
-              >
-                {todo.title}
-              </p>
+              {editingTitle ? (
+                <input
+                  data-testid={`todo-title-edit-${todo.id}`}
+                  autoFocus
+                  value={titleDraft}
+                  onChange={(e) => setTitleDraft(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); handleTitleSave(); }
+                    if (e.key === 'Escape') {
+                      setTitleDraft(todo.title);
+                      setEditingTitle(false);
+                    }
+                  }}
+                  className="flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800 px-2 py-1 -mx-2 -my-1 rounded outline-none focus:ring-2 focus:ring-blue-400"
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                />
+              ) : (
+                <p
+                  data-testid={`todo-title-${todo.id}`}
+                  onClick={(e) => {
+                    if (swipeOpen) return;
+                    e.stopPropagation();
+                    setTitleDraft(todo.title);
+                    setEditingTitle(true);
+                  }}
+                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text ${
+                    todo.completed ? 'line-through' : ''
+                  }`}
+                  style={{ fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  {todo.title}
+                </p>
+              )}
               {quickDone && (
                 <span
                   data-testid={`todo-quickdone-${todo.id}`}
