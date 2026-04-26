@@ -26,6 +26,7 @@
     --input: 214 32% 91%;
     --ring: 221 83% 53%;
     --radius: 0.75rem;
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .dark {
@@ -48,6 +49,13 @@
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 221 83% 53%;
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+}
+
+@layer components {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
   }
 }
 

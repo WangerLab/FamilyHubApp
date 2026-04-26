@@ -140,7 +140,7 @@ export default function TodoRow({ todo }) {
   return (
     <div
       data-testid={`todo-row-${todo.id}`}
-      className={`relative rounded-xl border bg-white dark:bg-slate-900 transition-all overflow-hidden ${
+      className={`relative rounded-xl border bg-white dark:bg-slate-900 shadow-card transition-all overflow-hidden ${
         overdue ? 'border-red-300 dark:border-red-800' : 'border-slate-200 dark:border-slate-800'
       } ${todo.completed ? 'opacity-70' : ''}`}
       style={overdue ? {
