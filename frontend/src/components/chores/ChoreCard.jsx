@@ -27,7 +27,7 @@ export default function ChoreCard({ chore }) {
   return (
     <div
       data-testid={`chore-card-${chore.id}`}
-      className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3 space-y-2"
+      className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-400 shadow-card p-3 space-y-2"
     >
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">

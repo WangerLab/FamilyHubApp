@@ -20,7 +20,7 @@ export default function ExpenseRow({ expense }) {
   return (
     <div
       data-testid={`expense-row-${expense.id}`}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-400 shadow-card"
     >
       <div
         className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${expense.is_settlement ? '' : ''}`}
