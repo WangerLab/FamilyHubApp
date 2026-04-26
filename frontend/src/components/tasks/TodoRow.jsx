@@ -173,7 +173,7 @@ export default function TodoRow({ todo }) {
         <button
           data-testid={`todo-priority-stripe-${todo.id}`}
           onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
-          className="absolute left-0 top-0 bottom-0 w-2 active:opacity-70"
+          className="absolute left-0 top-0 bottom-0 w-3 active:opacity-70"
           style={{ backgroundColor: prio.color }}
           aria-label="Priorität ändern"
         />
