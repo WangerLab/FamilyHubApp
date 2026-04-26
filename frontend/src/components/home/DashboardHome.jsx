@@ -119,7 +119,7 @@ export default function DashboardHome() {
   return (
     <div
       data-testid="dashboard-home"
-      className="flex flex-col h-[calc(100dvh-140px)] min-h-[520px]"
+      className="flex flex-col h-[calc(100dvh-64px-80px-env(safe-area-inset-top)-env(safe-area-inset-bottom))]"
     >
       <div className="pt-3 pb-4 px-1 shrink-0">
         <h1
