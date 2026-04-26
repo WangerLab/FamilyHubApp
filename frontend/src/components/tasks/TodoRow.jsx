@@ -211,40 +211,40 @@ export default function TodoRow({ todo }) {
           </div>
         )}
 
-        {/* Creator ↓ Assignee block — top right of card, slightly inset */}
+        {/* Creator ↓ Assignee block — top right of card */}
         <div className="absolute top-3 right-3 z-10 flex flex-col items-center gap-1 pointer-events-none">
           {creatorName && (
             <span
-              className="text-[13px] font-medium pointer-events-auto leading-none"
-              style={{ color: creatorColor }}
+              className="text-[13px] font-bold pointer-events-auto leading-none px-2 py-1 rounded-md border-2 bg-transparent cursor-default select-none"
+              style={{ color: creatorColor, borderColor: creatorColor }}
               title="Erstellt von"
             >
               {creatorName}
             </span>
           )}
-          {/* Custom arrow: thin line + arrowhead, in assignee color */}
+          {/* Custom arrow: shorter + thicker, in assignee color */}
           <svg
-            width="10"
-            height="22"
-            viewBox="0 0 10 22"
+            width="12"
+            height="14"
+            viewBox="0 0 12 14"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
             className="pointer-events-none"
           >
             <line
-              x1="5"
+              x1="6"
               y1="0"
-              x2="5"
-              y2="18"
+              x2="6"
+              y2="10"
               stroke={assigneeColor}
-              strokeWidth="1.5"
+              strokeWidth="2.5"
               strokeLinecap="round"
             />
             <polyline
-              points="1.5,15 5,21 8.5,15"
+              points="2,8 6,13 10,8"
               stroke={assigneeColor}
-              strokeWidth="1.5"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
               fill="none"
@@ -253,8 +253,8 @@ export default function TodoRow({ todo }) {
           <button
             data-testid={`todo-assignee-${todo.id}`}
             onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
-            className="text-[14px] font-bold pointer-events-auto active:opacity-70 leading-none px-2 py-1 rounded-md border-2 bg-transparent"
-            style={{ color: assigneeColor, borderColor: assigneeColor }}
+            className="text-[14px] font-bold pointer-events-auto active:opacity-80 leading-none px-2 py-1 rounded-md border-2 text-white"
+            style={{ backgroundColor: assigneeColor, borderColor: assigneeColor }}
             aria-label="Zuständigkeit ändern"
           >
             {assigneeName || 'Niemand'}
