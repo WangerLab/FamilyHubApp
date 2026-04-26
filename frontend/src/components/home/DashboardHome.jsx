@@ -25,6 +25,9 @@ function formatDate() {
 }
 
 function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, testid }) {
+  const tintStrength = typeof window !== 'undefined'
+    ? getComputedStyle(document.documentElement).getPropertyValue('--tile-tint').trim() || '14'
+    : '14';
   const base = 'relative overflow-hidden h-full rounded-2xl p-3 flex flex-col justify-between border transition-all';
   const enabled = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-400 active:scale-[0.97] shadow-card cursor-pointer';
   const disabledStyle = 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/50 opacity-60 cursor-default';
@@ -42,7 +45,7 @@ function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, t
           aria-hidden="true"
           className="absolute inset-0 rounded-2xl pointer-events-none"
           style={{
-            backgroundColor: `${color}14`,
+            backgroundColor: `${color}${tintStrength}`,
             boxShadow: `inset 0 0 0 1px ${color}33`,
           }}
         />
