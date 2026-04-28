@@ -16,6 +16,9 @@ export default function TodoRow({ todo }) {
   const { toggleTodo, updateTodo, softDelete, sendNudge, undoNudge, acknowledgeNudge, memberColorMap, memberNameMap, houseMembers } = useTodos();
   const [editingComment, setEditingComment] = useState(false);
   const [commentValue, setCommentValue] = useState(todo.comment || '');
+  const [commentExpanded, setCommentExpanded] = useState(false);
+  const [commentOverflows, setCommentOverflows] = useState(false);
+  const commentRef = useRef(null);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(todo.title);
   const [editingDue, setEditingDue] = useState(false);
@@ -64,6 +67,16 @@ export default function TodoRow({ todo }) {
     const t = setTimeout(() => document.addEventListener('click', handler), 0);
     return () => { clearTimeout(t); document.removeEventListener('click', handler); };
   }, [showAssigneePicker]);
+
+  useEffect(() => {
+    if (!todo.comment || editingComment) {
+      setCommentOverflows(false);
+      return;
+    }
+    const el = commentRef.current;
+    if (!el) return;
+    setCommentOverflows(el.scrollHeight > el.clientHeight + 1);
+  }, [todo.comment, editingComment, commentExpanded]);
 
   const prio = PRIORITY_META[todo.priority] || PRIORITY_META.medium;
   const overdue = isOverdue(todo.due_date, todo.completed);
@@ -367,7 +380,7 @@ export default function TodoRow({ todo }) {
                     setTitleDraft(todo.title);
                     setEditingTitle(true);
                   }}
-                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text pr-20 ${
+                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text pr-20 line-clamp-2 ${
                     todo.completed ? 'line-through' : ''
                   }`}
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
@@ -387,20 +400,47 @@ export default function TodoRow({ todo }) {
             </div>
 
             {todo.comment && !editingComment && (
-              <p
-                data-testid={`todo-comment-display-${todo.id}`}
-                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setEditingComment(true); }}
-                className="text-[13px] leading-snug text-slate-500 dark:text-slate-400 mt-0.5 whitespace-pre-wrap"
-              >
-                {todo.comment}
-              </p>
+              <div className="mt-0.5">
+                <p
+                  ref={commentRef}
+                  data-testid={`todo-comment-display-${todo.id}`}
+                  onClick={(e) => {
+                    if (swipeOpen) return;
+                    e.stopPropagation();
+                    if (commentOverflows && !commentExpanded) {
+                      setCommentExpanded(true);
+                    } else {
+                      setEditingComment(true);
+                    }
+                  }}
+                  className={`text-[13px] leading-snug text-slate-500 dark:text-slate-400 whitespace-pre-wrap cursor-text ${
+                    commentExpanded ? '' : 'line-clamp-2'
+                  }`}
+                >
+                  {todo.comment}
+                </p>
+                {(commentOverflows || commentExpanded) && (
+                  <button
+                    type="button"
+                    data-testid={`todo-comment-action-${todo.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (commentExpanded) setEditingComment(true);
+                      else setCommentExpanded(true);
+                    }}
+                    className="text-[11px] text-slate-400 dark:text-slate-500 font-medium active:opacity-60 mt-0.5"
+                  >
+                    {commentExpanded ? 'Bearbeiten' : '… mehr'}
+                  </button>
+                )}
+              </div>
             )}
             {editingComment && (
               <textarea
                 data-testid={`todo-comment-${todo.id}`}
                 value={commentValue}
                 onChange={(e) => setCommentValue(e.target.value)}
-                onBlur={() => { handleCommentSave(); setEditingComment(false); }}
+                onBlur={() => { handleCommentSave(); setEditingComment(false); setCommentExpanded(false); }}
                 onClick={(e) => e.stopPropagation()}
                 autoFocus
                 placeholder="Kommentar hinzufügen…"
