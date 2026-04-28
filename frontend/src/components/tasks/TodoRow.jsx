@@ -78,6 +78,17 @@ export default function TodoRow({ todo }) {
     setCommentOverflows(el.scrollHeight > el.clientHeight + 1);
   }, [todo.comment, editingComment, commentExpanded]);
 
+  useEffect(() => {
+    if (!editingDue) return;
+    const handler = (e) => {
+      if (!e.target.closest(`[data-testid="todo-row-${todo.id}"]`)) {
+        setEditingDue(false);
+      }
+    };
+    const t = setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => { clearTimeout(t); document.removeEventListener('click', handler); };
+  }, [editingDue, todo.id]);
+
   const prio = PRIORITY_META[todo.priority] || PRIORITY_META.medium;
   const overdue = isOverdue(todo.due_date, todo.completed);
   const dueToday = !todo.completed && !overdue && isToday(todo.due_date);
@@ -145,6 +156,24 @@ export default function TodoRow({ todo }) {
       const iso = new Date(val).toISOString();
       await updateTodo(todo.id, { due_date: iso });
     }
+    setEditingDue(false);
+  };
+
+  const setQuickDate = async (offsetDays) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offsetDays);
+    d.setHours(18, 0, 0, 0);
+    await updateTodo(todo.id, { due_date: d.toISOString() });
+    setEditingDue(false);
+  };
+
+  const setNextMonday = async () => {
+    const d = new Date();
+    const day = d.getDay();
+    const daysUntilMonday = day === 1 ? 7 : (8 - day) % 7 || 7;
+    d.setDate(d.getDate() + daysUntilMonday);
+    d.setHours(18, 0, 0, 0);
+    await updateTodo(todo.id, { due_date: d.toISOString() });
     setEditingDue(false);
   };
 
