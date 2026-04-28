@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Zap, Bell, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatDueDateDE, isOverdue, toDatetimeLocal } from '../../utils/smartDate';
+import { formatDueDateDE, isOverdue, toDatetimeLocal, isToday, relativeCompletedDE } from '../../utils/smartDate';
 
 const PRIORITY_META = {
   high:   { color: '#EF4444', emoji: '🔴' },
@@ -67,6 +67,7 @@ export default function TodoRow({ todo }) {
 
   const prio = PRIORITY_META[todo.priority] || PRIORITY_META.medium;
   const overdue = isOverdue(todo.due_date, todo.completed);
+  const dueToday = !todo.completed && !overdue && isToday(todo.due_date);
   const assigneeColor = memberColorMap[todo.assigned_to] || '#94a3b8';
   const assigneeName = memberNameMap[todo.assigned_to];
   const creatorColor = memberColorMap[todo.created_by] || '#94a3b8';
@@ -419,7 +420,16 @@ export default function TodoRow({ todo }) {
               >
                 {prio.emoji}
               </button>
-              {todo.due_date && !editingDue && (
+              {todo.completed && todo.completed_at && (
+                <span
+                  data-testid={`todo-completed-stamp-${todo.id}`}
+                  className="inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500"
+                >
+                  <Check className="w-3 h-3" />
+                  {relativeCompletedDE(todo.completed_at)}
+                </span>
+              )}
+              {!todo.completed && todo.due_date && !editingDue && (
                 <button
                   type="button"
                   data-testid={`todo-due-${todo.id}`}
@@ -431,6 +441,8 @@ export default function TodoRow({ todo }) {
                   className={`inline-flex items-center gap-1 px-1.5 h-5 rounded-md text-[11px] font-medium active:opacity-70 ${
                     overdue
                       ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300'
+                      : dueToday
+                      ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                   }`}
                 >
