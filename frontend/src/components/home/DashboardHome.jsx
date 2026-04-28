@@ -71,18 +71,35 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
         {rows && rows.length > 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3">
             {rows.map((row, i) => (
-              <div key={i} className="flex flex-col items-center gap-0.5">
-                {row.icon && (
-                  <row.icon
-                    className="w-4 h-4"
-                    style={{ color: row.iconColor || color }}
-                    strokeWidth={2.5}
-                  />
+              <div key={i} className="flex flex-col items-center gap-1">
+                {row.layout === 'inline' ? (
+                  <div className="flex items-center gap-1.5">
+                    {row.icon && (
+                      <row.icon
+                        className="w-4 h-4"
+                        style={{ color: row.iconColor || color }}
+                        strokeWidth={2.5}
+                      />
+                    )}
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {row.label}
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    {row.icon && (
+                      <row.icon
+                        className="w-4 h-4"
+                        style={{ color: row.iconColor || color }}
+                        strokeWidth={2.5}
+                      />
+                    )}
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {row.label}
+                    </span>
+                  </>
                 )}
-                <span className="text-xs text-slate-600 dark:text-slate-400">
-                  {row.label}
-                </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <span
                     className="text-base font-bold tabular-nums"
                     style={{ color: row.valueColor || 'inherit' }}
@@ -158,17 +175,18 @@ export default function DashboardHome() {
     const userTodos = activeTodos.filter((t) => t.assigned_to === m.user_id);
     const userHighPrio = userTodos.filter((t) => t.priority === 'high').length;
     return {
+      layout: 'inline',
       icon: User,
       iconColor: m.color,
       label: m.display_name,
       value: userTodos.length,
       extra: userHighPrio > 0 ? (
-        <span
-          className="flex items-center gap-1 text-base font-bold tabular-nums"
-          style={{ color: '#EF4444' }}
-        >
-          {userHighPrio}
-          <Flame className="w-4 h-4" strokeWidth={2.5} />
+        <span className="flex items-center gap-1 text-base font-bold text-slate-600 dark:text-slate-400 tabular-nums">
+          ({userHighPrio})
+          <span
+            className="inline-block w-2.5 h-2.5 rounded-full"
+            style={{ backgroundColor: '#EF4444' }}
+          />
         </span>
       ) : null,
     };
@@ -184,12 +202,14 @@ export default function DashboardHome() {
     : 0;
   const choreRows = [
     ...sortedMembers.map((m) => ({
+      layout: 'inline',
       icon: User,
       iconColor: m.color,
       label: m.display_name,
       value: weeklyStats[m.user_id] || 0,
     })),
     ...(openChores > 0 ? [{
+      layout: 'inline',
       icon: ListTodo,
       iconColor: '#8B5CF6',
       label: 'Offen',
