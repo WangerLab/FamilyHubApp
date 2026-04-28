@@ -154,3 +154,43 @@ export function toDatetimeLocal(dateOrIso) {
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+export function isToday(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear()
+    && d.getMonth() === now.getMonth()
+    && d.getDate() === now.getDate();
+}
+
+export function isTomorrow(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return d.getFullYear() === tomorrow.getFullYear()
+    && d.getMonth() === tomorrow.getMonth()
+    && d.getDate() === tomorrow.getDate();
+}
+
+export function relativeCompletedDE(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / (1000 * 60));
+  const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMin < 1) return 'gerade eben';
+  if (diffMin < 60) return `vor ${diffMin} min`;
+  if (diffHrs < 24 && isToday(iso)) return `vor ${diffHrs} h`;
+  if (diffDays === 1) return 'gestern';
+  if (diffDays < 7) return `vor ${diffDays} Tagen`;
+  if (diffDays < 14) return 'vor 1 Woche';
+  if (diffDays < 30) return `vor ${Math.floor(diffDays / 7)} Wochen`;
+  if (diffDays < 60) return 'vor 1 Monat';
+  if (diffDays < 365) return `vor ${Math.floor(diffDays / 30)} Monaten`;
+  return `vor ${Math.floor(diffDays / 365)} Jahren`;
+}
