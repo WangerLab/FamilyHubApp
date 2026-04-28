@@ -99,11 +99,15 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
                     </span>
                   </>
                 )}
-                <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center justify-center gap-2">
                   {row.usePill ? (
                     <span
-                      className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums"
-                      style={{ backgroundColor: `${color}26`, color }}
+                      className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums border-[1.5px]"
+                      style={{
+                        borderColor: row.iconColor || color,
+                        color: row.iconColor || color,
+                        backgroundColor: 'transparent',
+                      }}
                     >
                       {row.value}
                     </span>
@@ -192,8 +196,12 @@ export default function DashboardHome() {
       usePill: true,
       extra: userHighPrio > 0 ? (
         <span
-          className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums text-white"
-          style={{ backgroundColor: '#EF4444' }}
+          className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums border-[1.5px]"
+          style={{
+            borderColor: '#EF4444',
+            backgroundColor: '#EF444415',
+            color: '#EF4444',
+          }}
         >
           {userHighPrio}
         </span>
