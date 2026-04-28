@@ -30,7 +30,7 @@ function EmptyState({ color }) {
 
 export default function TasksTab() {
   const { member } = useAuth();
-  const { activeTodos, completedTodos, archivedTodos, loading, overdueCount, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers } = useTodos();
+  const { activeTodos, completedTodos, archivedTodos, loading, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers } = useTodos();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const color = member?.color || '#3B82F6';
@@ -111,15 +111,6 @@ export default function TasksTab() {
               style={{ backgroundColor: color }}
             >
               {activeTodos.length}
-            </span>
-          )}
-          {overdueCount > 0 && (
-            <span
-              data-testid="overdue-badge"
-              className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center"
-              title="Überfällig"
-            >
-              !{overdueCount}
             </span>
           )}
         </div>

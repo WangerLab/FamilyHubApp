@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, CheckSquare, RefreshCw, Wallet,
   Calendar, Pin, Cake, Settings as SettingsIcon, Trophy,
+  Apple, ShoppingBag, User, Flame, ListTodo,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
@@ -24,11 +25,11 @@ function formatDate() {
   });
 }
 
-function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, testid }) {
+function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, placeholderText }) {
   const tintStrength = typeof window !== 'undefined'
     ? getComputedStyle(document.documentElement).getPropertyValue('--tile-tint').trim() || '14'
     : '14';
-  const base = 'relative overflow-hidden h-full rounded-2xl p-3 flex flex-col justify-between border transition-all';
+  const base = 'relative overflow-hidden h-full rounded-2xl p-3 flex flex-col border transition-all';
   const enabled = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-400 active:scale-[0.97] shadow-card cursor-pointer';
   const disabledStyle = 'bg-slate-50 dark:bg-slate-900/50 border-slate-100 dark:border-slate-800/50 opacity-60 cursor-default';
 
@@ -50,33 +51,54 @@ function Tile({ icon: Icon, label, counter, subText, color, onClick, disabled, t
           }}
         />
       )}
-      <div className="relative z-10 flex items-start justify-between">
+
+      <div className="relative z-10 flex items-center gap-2 mb-2">
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
           style={{ backgroundColor: `${color}20`, color }}
         >
-          <Icon className="w-5 h-5" strokeWidth={2} />
+          <Icon className="w-4 h-4" strokeWidth={2} />
         </div>
-        {counter && (
-          <span
-            className="text-sm font-bold tabular-nums h-6 min-w-[24px] px-2 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: color, color: '#fff' }}
-          >
-            {counter}
-          </span>
-        )}
-      </div>
-      <div className="relative z-10 text-left">
         <h3
-          className="text-[14px] font-bold text-slate-900 dark:text-slate-50 leading-tight"
+          className="text-base font-bold text-slate-900 dark:text-slate-50 leading-tight"
           style={{ fontFamily: 'Manrope, sans-serif' }}
         >
           {label}
         </h3>
-        {subText && (
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight truncate">
-            {subText}
-          </p>
+      </div>
+
+      <div className="relative z-10 flex-1 flex flex-col">
+        {rows && rows.length > 0 ? (
+          <div className="flex flex-col gap-1.5">
+            {rows.map((row, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                {row.icon && (
+                  <row.icon
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                    style={{ color: row.iconColor || color }}
+                    strokeWidth={2.5}
+                  />
+                )}
+                <span className="text-slate-700 dark:text-slate-300 flex-1 truncate">
+                  {row.label}
+                </span>
+                <span
+                  className="font-bold tabular-nums"
+                  style={{ color: row.valueColor || 'inherit' }}
+                >
+                  {row.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : placeholderText ? (
+          <div className="flex-1 flex items-center justify-center">
+            <span className="text-sm text-slate-400 dark:text-slate-500 italic">
+              {placeholderText}
+            </span>
+          </div>
+        ) : (
+          <div className="flex-1" />
         )}
       </div>
     </button>
@@ -88,7 +110,7 @@ function PlaceholderTile({ icon: Icon, label, testid }) {
     <Tile
       icon={Icon}
       label={label}
-      subText="Demnächst"
+      placeholderText="Demnächst"
       color="#94a3b8"
       disabled
       testid={testid}
@@ -96,25 +118,102 @@ function PlaceholderTile({ icon: Icon, label, testid }) {
   );
 }
 
+const euroFmt = new Intl.NumberFormat('de-DE', {
+  style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2,
+});
+
+function relativeDay(dateStr) {
+  if (!dateStr) return '–';
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today - d) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 0) return 'heute';
+  if (diffDays === 1) return 'gestern';
+  return `vor ${diffDays}d`;
+}
+
 export default function DashboardHome() {
   const navigate = useNavigate();
   const { member } = useAuth();
   const grocery = useGrocery();
   const misc = useMisc();
-  const { activeTodos = [], overdueCount = 0 } = useTodos() || {};
+  const { activeTodos = [], houseMembers = [] } = useTodos() || {};
   const chores = useChores();
   const expenses = useExpenses();
 
   const name = member?.display_name || '';
+  const currentUserId = member?.user_id;
 
-  const shoppingUnchecked = (grocery?.uncheckedCount || 0) + (misc?.uncheckedCount || 0);
+  const sortedMembers = [...(houseMembers || [])].sort((a, b) =>
+    a.user_id === currentUserId ? -1 : b.user_id === currentUserId ? 1 : 0
+  );
 
-  const tasksOpen = activeTodos.length;
-  const tasksOverdue = overdueCount;
+  // ---- Tasks ----
+  const highPrioCount = activeTodos.filter((t) => t.priority === 'high').length;
+  const taskRows = [
+    ...sortedMembers.map((m) => ({
+      icon: User,
+      iconColor: m.color,
+      label: m.display_name,
+      value: activeTodos.filter((t) => t.assigned_to === m.user_id).length,
+    })),
+    ...(highPrioCount > 0 ? [{
+      icon: Flame,
+      iconColor: '#EF4444',
+      label: 'Hohe Prio',
+      value: highPrioCount,
+      valueColor: '#EF4444',
+    }] : []),
+  ];
 
-  const choresCount = chores?.chores?.length || 0;
+  // ---- Chores ----
+  const choresList = chores?.chores || [];
+  const weeklyStats = chores?.weeklyStats || {};
+  const periodCompletions = chores?.periodCompletions;
+  const targetCount = chores?.targetCount;
+  const openChores = (periodCompletions && targetCount)
+    ? choresList.filter((c) => periodCompletions(c).length < targetCount(c)).length
+    : 0;
+  const choreRows = [
+    ...sortedMembers.map((m) => ({
+      icon: User,
+      iconColor: m.color,
+      label: m.display_name,
+      value: weeklyStats[m.user_id] || 0,
+    })),
+    ...(openChores > 0 ? [{
+      icon: ListTodo,
+      iconColor: '#8B5CF6',
+      label: 'Offen',
+      value: openChores,
+    }] : []),
+  ];
 
-  const expensesSub = expenses?.balanceLabel || 'Übersicht';
+  // ---- Shopping ----
+  const shoppingRows = [
+    { icon: Apple, label: 'Nahrung', value: grocery?.uncheckedCount || 0 },
+    { icon: ShoppingBag, label: 'Sonstiges', value: misc?.uncheckedCount || 0 },
+  ];
+
+  // ---- Finanzen ----
+  const balance = expenses?.balance;
+  const monthlySum = expenses?.sumAllUsersThisMonth || 0;
+  const lastExpenseDate = expenses?.expenses?.[0]?.expense_date || null;
+
+  let balanceText = '0 €';
+  if (balance && !balance.quitt) {
+    const sign = balance.owed_by === currentUserId ? '-' : '+';
+    balanceText = `${sign}${euroFmt.format(balance.amount)}`;
+  }
+  const monthName = new Date().toLocaleDateString('de-DE', { month: 'long' });
+
+  const financeRows = [
+    { icon: null, label: 'Balance', value: balanceText },
+    { icon: null, label: monthName, value: euroFmt.format(monthlySum) },
+    { icon: null, label: 'Letzter', value: relativeDay(lastExpenseDate) },
+  ];
 
   return (
     <div
@@ -138,8 +237,7 @@ export default function DashboardHome() {
           testid="tile-shopping"
           icon={ShoppingCart}
           label="Shopping"
-          counter={shoppingUnchecked > 0 ? String(shoppingUnchecked) : null}
-          subText={shoppingUnchecked === 0 ? 'Alles da' : `${shoppingUnchecked} offen`}
+          rows={shoppingRows}
           color="#F97316"
           onClick={() => navigate('/shopping')}
         />
@@ -147,14 +245,7 @@ export default function DashboardHome() {
           testid="tile-tasks"
           icon={CheckSquare}
           label="Tasks"
-          counter={tasksOpen > 0 ? String(tasksOpen) : null}
-          subText={
-            tasksOverdue > 0
-              ? `! ${tasksOverdue} überfällig`
-              : tasksOpen === 0
-                ? 'Keine offen'
-                : `${tasksOpen} offen`
-          }
+          rows={taskRows}
           color="#3B82F6"
           onClick={() => navigate('/tasks')}
         />
@@ -162,8 +253,7 @@ export default function DashboardHome() {
           testid="tile-chores"
           icon={RefreshCw}
           label="Chores"
-          counter={choresCount > 0 ? String(choresCount) : null}
-          subText={choresCount === 0 ? 'Nichts angelegt' : `${choresCount} aktiv`}
+          rows={choreRows}
           color="#8B5CF6"
           onClick={() => navigate('/chores')}
         />
@@ -172,7 +262,7 @@ export default function DashboardHome() {
           testid="tile-expenses"
           icon={Wallet}
           label="Finanzen"
-          subText={expensesSub}
+          rows={financeRows}
           color="#10B981"
           onClick={() => navigate('/expenses')}
         />
@@ -184,6 +274,7 @@ export default function DashboardHome() {
           testid="tile-statistics"
           icon={Trophy}
           label="Statistik"
+          placeholderText="Übersicht →"
           color="#F59E0B"
           onClick={() => navigate('/statistics')}
         />
@@ -191,6 +282,7 @@ export default function DashboardHome() {
           testid="tile-settings"
           icon={SettingsIcon}
           label="Einstellungen"
+          placeholderText="Konto →"
           color="#64748B"
           onClick={() => navigate('/settings')}
         />
