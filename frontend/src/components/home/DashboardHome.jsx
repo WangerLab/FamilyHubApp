@@ -69,25 +69,28 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
 
       <div className="relative z-10 flex-1 flex flex-col">
         {rows && rows.length > 0 ? (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex-1 flex flex-col items-center justify-center gap-3">
             {rows.map((row, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm">
+              <div key={i} className="flex flex-col items-center gap-0.5">
                 {row.icon && (
                   <row.icon
-                    className="w-3.5 h-3.5 flex-shrink-0"
+                    className="w-4 h-4"
                     style={{ color: row.iconColor || color }}
                     strokeWidth={2.5}
                   />
                 )}
-                <span className="text-slate-700 dark:text-slate-300 flex-1 truncate">
+                <span className="text-xs text-slate-600 dark:text-slate-400">
                   {row.label}
                 </span>
-                <span
-                  className="font-bold tabular-nums"
-                  style={{ color: row.valueColor || 'inherit' }}
-                >
-                  {row.value}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-base font-bold tabular-nums"
+                    style={{ color: row.valueColor || 'inherit' }}
+                  >
+                    {row.value}
+                  </span>
+                  {row.extra}
+                </div>
               </div>
             ))}
           </div>
@@ -151,22 +154,25 @@ export default function DashboardHome() {
   );
 
   // ---- Tasks ----
-  const highPrioCount = activeTodos.filter((t) => t.priority === 'high').length;
-  const taskRows = [
-    ...sortedMembers.map((m) => ({
+  const taskRows = sortedMembers.map((m) => {
+    const userTodos = activeTodos.filter((t) => t.assigned_to === m.user_id);
+    const userHighPrio = userTodos.filter((t) => t.priority === 'high').length;
+    return {
       icon: User,
       iconColor: m.color,
       label: m.display_name,
-      value: activeTodos.filter((t) => t.assigned_to === m.user_id).length,
-    })),
-    ...(highPrioCount > 0 ? [{
-      icon: Flame,
-      iconColor: '#EF4444',
-      label: 'Hohe Prio',
-      value: highPrioCount,
-      valueColor: '#EF4444',
-    }] : []),
-  ];
+      value: userTodos.length,
+      extra: userHighPrio > 0 ? (
+        <span
+          className="flex items-center gap-1 text-base font-bold tabular-nums"
+          style={{ color: '#EF4444' }}
+        >
+          {userHighPrio}
+          <Flame className="w-4 h-4" strokeWidth={2.5} />
+        </span>
+      ) : null,
+    };
+  });
 
   // ---- Chores ----
   const choresList = chores?.chores || [];
@@ -193,7 +199,7 @@ export default function DashboardHome() {
 
   // ---- Shopping ----
   const shoppingRows = [
-    { icon: Apple, label: 'Nahrung', value: grocery?.uncheckedCount || 0 },
+    { icon: Apple, label: 'Lebensmittel', value: grocery?.uncheckedCount || 0 },
     { icon: ShoppingBag, label: 'Sonstiges', value: misc?.uncheckedCount || 0 },
   ];
 
