@@ -520,16 +520,42 @@ export default function TodoRow({ todo }) {
                 </button>
               )}
               {editingDue && (
-                <input
-                  type="datetime-local"
-                  data-testid={`todo-due-edit-${todo.id}`}
-                  autoFocus
-                  value={toDatetimeLocal(todo.due_date)}
-                  onChange={handleDueChange}
-                  onBlur={() => setEditingDue(false)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="h-5 px-1 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-400"
-                />
+                <div className="w-full flex flex-col gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      data-testid={`todo-due-quick-today-${todo.id}`}
+                      onClick={() => setQuickDate(0)}
+                      className="px-2 h-6 rounded-md text-[11px] font-medium bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 active:opacity-70"
+                    >
+                      Heute
+                    </button>
+                    <button
+                      type="button"
+                      data-testid={`todo-due-quick-tomorrow-${todo.id}`}
+                      onClick={() => setQuickDate(1)}
+                      className="px-2 h-6 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:opacity-70"
+                    >
+                      Morgen
+                    </button>
+                    <button
+                      type="button"
+                      data-testid={`todo-due-quick-week-${todo.id}`}
+                      onClick={setNextMonday}
+                      className="px-2 h-6 rounded-md text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:opacity-70"
+                    >
+                      Nächste Woche
+                    </button>
+                  </div>
+                  <input
+                    type="datetime-local"
+                    data-testid={`todo-due-edit-${todo.id}`}
+                    autoFocus
+                    value={toDatetimeLocal(todo.due_date)}
+                    onChange={handleDueChange}
+                    className="h-7 px-2 rounded-md text-[11px] font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-400 self-start"
+                  />
+                </div>
               )}
               {!todo.comment && !editingComment && (
                 <button
