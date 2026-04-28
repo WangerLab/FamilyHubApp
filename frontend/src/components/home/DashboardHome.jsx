@@ -71,7 +71,7 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
         {rows && rows.length > 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-5">
             {rows.map((row, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
+              <div key={i} className="flex flex-col items-center gap-2.5">
                 {row.layout === 'inline' ? (
                   <div className="flex items-center gap-1.5">
                     {row.icon && (
