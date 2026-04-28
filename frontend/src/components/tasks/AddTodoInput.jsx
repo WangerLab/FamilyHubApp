@@ -158,7 +158,7 @@ export default function AddTodoInput() {
             onChange={(e) => setAssignee(e.target.value)}
             className="h-9 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
           >
-            <option value="">Nicht zugewiesen</option>
+            <option value="">Beide</option>
             {houseMembers.map((m) => (
               <option key={m.user_id} value={m.user_id}>
                 {m.display_name}{m.user_id === user?.id ? ' (ich)' : ''}

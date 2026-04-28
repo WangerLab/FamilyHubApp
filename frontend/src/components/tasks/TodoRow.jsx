@@ -27,7 +27,6 @@ export default function TodoRow({ todo }) {
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const priorityPickerRef = useRef(null);
-  const priorityTriggerRef = useRef(null);
   const assigneePickerRef = useRef(null);
   const assigneeTriggerRef = useRef(null);
 
@@ -48,7 +47,6 @@ export default function TodoRow({ todo }) {
     if (!showPriorityPicker) return;
     const handler = (e) => {
       if (priorityPickerRef.current?.contains(e.target)) return;
-      if (priorityTriggerRef.current?.contains(e.target)) return;
       if (e.target.closest(`[data-testid="todo-priority-emoji-${todo.id}"]`)) return;
       setShowPriorityPicker(false);
     };
@@ -169,13 +167,11 @@ export default function TodoRow({ todo }) {
         onClick={() => swipeOpen && setSwipeOpen(false)}
       >
         {/* Priority stripe — tappable to change */}
-        <button
-          ref={priorityTriggerRef}
+        <div
           data-testid={`todo-priority-stripe-${todo.id}`}
-          onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
-          className="absolute left-0 top-0 bottom-0 w-3 active:opacity-70"
+          className="absolute left-0 top-0 bottom-0 w-3 pointer-events-none"
           style={{ backgroundColor: prio.color }}
-          aria-label="Priorität ändern"
+          aria-hidden="true"
         />
 
         {showPriorityPicker && (
@@ -259,7 +255,7 @@ export default function TodoRow({ todo }) {
             style={{ backgroundColor: assigneeColor, borderColor: assigneeColor }}
             aria-label="Zuständigkeit ändern"
           >
-            {assigneeName || 'Niemand'}
+            {assigneeName || 'Beide'}
           </button>
         </div>
 
@@ -291,7 +287,7 @@ export default function TodoRow({ todo }) {
               );
             })}
             <button
-              data-testid={`assignee-pick-none-${todo.id}`}
+              data-testid={`assignee-pick-both-${todo.id}`}
               onClick={(e) => {
                 e.stopPropagation();
                 updateTodo(todo.id, { assigned_to: null });
@@ -302,7 +298,7 @@ export default function TodoRow({ todo }) {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-slate-400" />
-              Niemand
+              Beide
             </button>
           </div>
         )}

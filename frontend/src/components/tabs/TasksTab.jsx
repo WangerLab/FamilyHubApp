@@ -81,8 +81,8 @@ export default function TasksTab() {
     const unassigned = activeTodos.filter((t) => !t.assigned_to).sort(sortFn);
     if (unassigned.length) {
       groups.push({
-        key: '__unassigned__',
-        label: 'Nicht zugewiesen',
+        key: '__both__',
+        label: 'Tasks für Beide',
         color: '#64748B',
         items: unassigned,
       });
