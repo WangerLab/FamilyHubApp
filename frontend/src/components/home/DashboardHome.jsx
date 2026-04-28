@@ -69,7 +69,7 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
 
       <div className="relative z-10 flex-1 flex flex-col">
         {rows && rows.length > 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3">
+          <div className="flex-1 flex flex-col items-center justify-center gap-5">
             {rows.map((row, i) => (
               <div key={i} className="flex flex-col items-center gap-1">
                 {row.layout === 'inline' ? (
@@ -81,7 +81,7 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
                         strokeWidth={2.5}
                       />
                     )}
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
                       {row.label}
                     </span>
                   </div>
@@ -94,7 +94,7 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
                         strokeWidth={2.5}
                       />
                     )}
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
                       {row.label}
                     </span>
                   </>
@@ -102,7 +102,7 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
                 <div className="flex items-center justify-center gap-2">
                   {row.usePill ? (
                     <span
-                      className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums border-[1.5px]"
+                      className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base tabular-nums border-[1.5px] ${row.boldValue !== false ? 'font-bold' : ''}`}
                       style={{
                         borderColor: row.iconColor || color,
                         color: row.iconColor || color,
@@ -113,7 +113,7 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
                     </span>
                   ) : (
                     <span
-                      className="text-base font-bold tabular-nums"
+                      className={`text-base tabular-nums ${row.boldValue !== false ? 'font-bold' : ''}`}
                       style={{ color: row.valueColor || 'inherit' }}
                     >
                       {row.value}
@@ -238,8 +238,8 @@ export default function DashboardHome() {
 
   // ---- Shopping ----
   const shoppingRows = [
-    { icon: Apple, label: 'Lebensmittel', value: grocery?.uncheckedCount || 0, usePill: true },
-    { icon: ShoppingBag, label: 'Sonstiges', value: misc?.uncheckedCount || 0, usePill: true },
+    { icon: Apple, iconColor: '#10B981', label: 'Lebensmittel', value: grocery?.uncheckedCount || 0, usePill: true },
+    { icon: ShoppingBag, iconColor: '#F59E0B', label: 'Sonstiges', value: misc?.uncheckedCount || 0, usePill: true },
   ];
 
   // ---- Finanzen ----
@@ -255,9 +255,9 @@ export default function DashboardHome() {
   const monthName = new Date().toLocaleDateString('de-DE', { month: 'long' });
 
   const financeRows = [
-    { icon: null, label: 'Balance', value: balanceText },
-    { icon: null, label: monthName, value: euroFmt.format(monthlySum) },
-    { icon: null, label: 'Letzter', value: relativeDay(lastExpenseDate) },
+    { icon: null, label: 'Balance', value: balanceText, boldValue: false },
+    { icon: null, label: monthName, value: euroFmt.format(monthlySum), boldValue: false },
+    { icon: null, label: 'Letzter', value: relativeDay(lastExpenseDate), boldValue: false },
   ];
 
   return (
