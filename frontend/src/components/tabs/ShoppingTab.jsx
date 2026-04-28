@@ -192,10 +192,10 @@ export default function ShoppingTab() {
               data-testid="reset-list-button"
               onClick={() => setShowResetDialog(true)}
               disabled={itemsForSubTab.length === 0}
-              aria-label="Liste leeren"
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 dark:text-slate-500 disabled:opacity-30 active:bg-slate-100 dark:active:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-sm font-medium border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 active:scale-95 transition-all duration-150 disabled:opacity-30"
             >
               <RotateCcw className="w-4 h-4" />
+              Neue Liste
             </button>
           </div>
         </div>

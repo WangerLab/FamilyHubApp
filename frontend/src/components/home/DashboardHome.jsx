@@ -99,13 +99,22 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
                     </span>
                   </>
                 )}
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className="text-base font-bold tabular-nums"
-                    style={{ color: row.valueColor || 'inherit' }}
-                  >
-                    {row.value}
-                  </span>
+                <div className="flex flex-col items-center gap-1">
+                  {row.usePill ? (
+                    <span
+                      className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums"
+                      style={{ backgroundColor: `${color}26`, color }}
+                    >
+                      {row.value}
+                    </span>
+                  ) : (
+                    <span
+                      className="text-base font-bold tabular-nums"
+                      style={{ color: row.valueColor || 'inherit' }}
+                    >
+                      {row.value}
+                    </span>
+                  )}
                   {row.extra}
                 </div>
               </div>
@@ -180,13 +189,13 @@ export default function DashboardHome() {
       iconColor: m.color,
       label: m.display_name,
       value: userTodos.length,
+      usePill: true,
       extra: userHighPrio > 0 ? (
-        <span className="flex items-center gap-1 text-base font-bold text-slate-600 dark:text-slate-400 tabular-nums">
-          ({userHighPrio})
-          <span
-            className="inline-block w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: '#EF4444' }}
-          />
+        <span
+          className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums text-white"
+          style={{ backgroundColor: '#EF4444' }}
+        >
+          {userHighPrio}
         </span>
       ) : null,
     };
@@ -207,6 +216,7 @@ export default function DashboardHome() {
       iconColor: m.color,
       label: m.display_name,
       value: weeklyStats[m.user_id] || 0,
+      usePill: true,
     })),
     ...(openChores > 0 ? [{
       layout: 'inline',
@@ -214,13 +224,14 @@ export default function DashboardHome() {
       iconColor: '#8B5CF6',
       label: 'Offen',
       value: openChores,
+      usePill: true,
     }] : []),
   ];
 
   // ---- Shopping ----
   const shoppingRows = [
-    { icon: Apple, label: 'Lebensmittel', value: grocery?.uncheckedCount || 0 },
-    { icon: ShoppingBag, label: 'Sonstiges', value: misc?.uncheckedCount || 0 },
+    { icon: Apple, label: 'Lebensmittel', value: grocery?.uncheckedCount || 0, usePill: true },
+    { icon: ShoppingBag, label: 'Sonstiges', value: misc?.uncheckedCount || 0, usePill: true },
   ];
 
   // ---- Finanzen ----
