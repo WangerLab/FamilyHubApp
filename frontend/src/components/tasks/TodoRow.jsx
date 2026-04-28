@@ -267,7 +267,7 @@ export default function TodoRow({ todo }) {
           <div
             ref={assigneePickerRef}
             data-testid={`assignee-picker-${todo.id}`}
-            className="absolute right-2 top-[88px] z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 min-w-[110px]"
+            className="absolute right-[88px] top-2 z-30 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 min-w-[110px]"
           >
             {houseMembers.map((m) => {
               const isCurrent = m.user_id === todo.assigned_to;
