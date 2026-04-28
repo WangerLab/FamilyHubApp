@@ -291,7 +291,7 @@ export default function DashboardHome() {
           icon={CheckSquare}
           label="Tasks"
           rows={taskRows}
-          color="#3B82F6"
+          color="#6366F1"
           onClick={() => navigate('/tasks')}
         />
         <Tile

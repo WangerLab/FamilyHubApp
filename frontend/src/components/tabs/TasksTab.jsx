@@ -104,15 +104,6 @@ export default function TasksTab() {
           >
             Tasks
           </h2>
-          {activeTodos.length > 0 && (
-            <span
-              data-testid="active-count-badge"
-              className="min-w-[20px] h-5 px-1.5 rounded-full text-white text-[11px] font-bold flex items-center justify-center"
-              style={{ backgroundColor: color }}
-            >
-              {activeTodos.length}
-            </span>
-          )}
         </div>
       </div>
 
@@ -140,8 +131,8 @@ export default function TasksTab() {
                   {group.label}
                 </span>
                 <span
-                  className="ml-auto text-xs font-semibold tabular-nums"
-                  style={{ color: group.color, opacity: 0.85 }}
+                  className="ml-auto min-w-[22px] h-[22px] px-1.5 rounded-full text-white text-[12px] font-bold flex items-center justify-center tabular-nums"
+                  style={{ backgroundColor: group.color }}
                 >
                   {group.items.length}
                 </span>

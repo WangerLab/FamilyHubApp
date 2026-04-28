@@ -26,6 +26,10 @@ export default function TodoRow({ todo }) {
   const [swipeOpen, setSwipeOpen] = useState(false);
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
+  const priorityPickerRef = useRef(null);
+  const priorityTriggerRef = useRef(null);
+  const assigneePickerRef = useRef(null);
+  const assigneeTriggerRef = useRef(null);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
@@ -43,30 +47,25 @@ export default function TodoRow({ todo }) {
   useEffect(() => {
     if (!showPriorityPicker) return;
     const handler = (e) => {
-      if (!e.target.closest(`[data-testid="todo-row-${todo.id}"]`)) {
-        setShowPriorityPicker(false);
-      }
+      if (priorityPickerRef.current?.contains(e.target)) return;
+      if (priorityTriggerRef.current?.contains(e.target)) return;
+      if (e.target.closest(`[data-testid="todo-priority-emoji-${todo.id}"]`)) return;
+      setShowPriorityPicker(false);
     };
     const t = setTimeout(() => document.addEventListener('click', handler), 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('click', handler);
-    };
+    return () => { clearTimeout(t); document.removeEventListener('click', handler); };
   }, [showPriorityPicker, todo.id]);
 
   useEffect(() => {
     if (!showAssigneePicker) return;
     const handler = (e) => {
-      if (!e.target.closest(`[data-testid="todo-row-${todo.id}"]`)) {
-        setShowAssigneePicker(false);
-      }
+      if (assigneePickerRef.current?.contains(e.target)) return;
+      if (assigneeTriggerRef.current?.contains(e.target)) return;
+      setShowAssigneePicker(false);
     };
     const t = setTimeout(() => document.addEventListener('click', handler), 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('click', handler);
-    };
-  }, [showAssigneePicker, todo.id]);
+    return () => { clearTimeout(t); document.removeEventListener('click', handler); };
+  }, [showAssigneePicker]);
 
   const prio = PRIORITY_META[todo.priority] || PRIORITY_META.medium;
   const overdue = isOverdue(todo.due_date, todo.completed);
@@ -171,6 +170,7 @@ export default function TodoRow({ todo }) {
       >
         {/* Priority stripe — tappable to change */}
         <button
+          ref={priorityTriggerRef}
           data-testid={`todo-priority-stripe-${todo.id}`}
           onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
           className="absolute left-0 top-0 bottom-0 w-3 active:opacity-70"
@@ -180,6 +180,7 @@ export default function TodoRow({ todo }) {
 
         {showPriorityPicker && (
           <div
+            ref={priorityPickerRef}
             data-testid={`priority-picker-${todo.id}`}
             className="absolute left-2 top-2 z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700"
           >
@@ -251,6 +252,7 @@ export default function TodoRow({ todo }) {
             />
           </svg>
           <button
+            ref={assigneeTriggerRef}
             data-testid={`todo-assignee-${todo.id}`}
             onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
             className="text-[14px] font-bold pointer-events-auto active:opacity-80 leading-none px-2 py-1 rounded-md border-2 text-white"
@@ -263,8 +265,9 @@ export default function TodoRow({ todo }) {
 
         {showAssigneePicker && (
           <div
+            ref={assigneePickerRef}
             data-testid={`assignee-picker-${todo.id}`}
-            className="absolute right-2 top-12 z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 min-w-[110px]"
+            className="absolute right-2 top-[88px] z-20 flex flex-col gap-1 p-1.5 rounded-xl bg-white dark:bg-slate-800 shadow-xl border border-slate-200 dark:border-slate-700 min-w-[110px]"
           >
             {houseMembers.map((m) => {
               const isCurrent = m.user_id === todo.assigned_to;
@@ -392,13 +395,15 @@ export default function TodoRow({ todo }) {
 
             {/* Meta row */}
             <div className="flex items-center gap-2 flex-wrap mt-1">
-              <span
+              <button
+                type="button"
                 data-testid={`todo-priority-emoji-${todo.id}`}
-                className="text-sm leading-none select-none"
-                title="Priorität"
+                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
+                className="text-sm leading-none select-none active:opacity-70 cursor-pointer"
+                aria-label="Priorität ändern"
               >
                 {prio.emoji}
-              </span>
+              </button>
               {todo.due_date && !editingDue && (
                 <button
                   type="button"
