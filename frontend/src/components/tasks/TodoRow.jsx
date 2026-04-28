@@ -247,16 +247,25 @@ export default function TodoRow({ todo }) {
               fill="none"
             />
           </svg>
-          <button
-            ref={assigneeTriggerRef}
-            data-testid={`todo-assignee-${todo.id}`}
-            onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
-            className="text-[14px] font-bold pointer-events-auto active:opacity-80 leading-none px-2 py-1 rounded-md border-2 text-white"
-            style={{ backgroundColor: assigneeColor, borderColor: assigneeColor }}
-            aria-label="Zuständigkeit ändern"
-          >
-            {assigneeName || 'Beide'}
-          </button>
+          {(() => {
+            const isBoth = !todo.assigned_to;
+            const memberColors = (houseMembers || []).slice(0, 2).map((m) => m.color || '#94a3b8');
+            const gradientStyle = isBoth && memberColors.length >= 2
+              ? { background: `linear-gradient(90deg, ${memberColors[0]}, ${memberColors[1]})`, borderColor: 'transparent' }
+              : { backgroundColor: assigneeColor, borderColor: assigneeColor };
+            return (
+              <button
+                ref={assigneeTriggerRef}
+                data-testid={`todo-assignee-${todo.id}`}
+                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
+                className="text-[14px] font-bold pointer-events-auto active:opacity-80 leading-none px-2 py-1 rounded-md border-2 text-white"
+                style={gradientStyle}
+                aria-label="Zuständigkeit ändern"
+              >
+                {isBoth ? 'Beide' : assigneeName}
+              </button>
+            );
+          })()}
         </div>
 
         {showAssigneePicker && (
@@ -293,12 +302,22 @@ export default function TodoRow({ todo }) {
                 updateTodo(todo.id, { assigned_to: null });
                 setShowAssigneePicker(false);
               }}
-              className={`flex items-center gap-2 px-2 h-7 rounded-md text-[12px] text-slate-500 active:scale-95 ${
+              className={`flex items-center gap-2 px-2 h-7 rounded-md text-[12px] font-medium active:scale-95 ${
                 !todo.assigned_to ? 'bg-slate-100 dark:bg-slate-700' : ''
               }`}
+              style={{
+                background: !todo.assigned_to
+                  ? undefined
+                  : `linear-gradient(90deg, ${(houseMembers?.[0]?.color || '#EC4899')}15, ${(houseMembers?.[1]?.color || '#2563EB')}15)`,
+              }}
             >
-              <span className="w-2 h-2 rounded-full bg-slate-400" />
-              Beide
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{
+                  background: `linear-gradient(90deg, ${houseMembers?.[0]?.color || '#EC4899'}, ${houseMembers?.[1]?.color || '#2563EB'})`,
+                }}
+              />
+              <span className="text-slate-700 dark:text-slate-200">Beide</span>
             </button>
           </div>
         )}

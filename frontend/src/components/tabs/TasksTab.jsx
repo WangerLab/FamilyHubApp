@@ -80,10 +80,13 @@ export default function TasksTab() {
 
     const unassigned = activeTodos.filter((t) => !t.assigned_to).sort(sortFn);
     if (unassigned.length) {
+      const c1 = houseMembers?.[0]?.color || '#EC4899';
+      const c2 = houseMembers?.[1]?.color || '#2563EB';
       groups.push({
         key: '__both__',
         label: 'Tasks für Beide',
         color: '#64748B',
+        gradientColors: [c1, c2],
         items: unassigned,
       });
     }
@@ -122,7 +125,11 @@ export default function TasksTab() {
             <div key={group.key} data-testid={`assignee-group-${group.key}`}>
               <div
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl mb-2"
-                style={{ backgroundColor: `${group.color}40` }}
+                style={
+                  group.gradientColors
+                    ? { background: `linear-gradient(90deg, ${group.gradientColors[0]}40, ${group.gradientColors[1]}40)` }
+                    : { backgroundColor: `${group.color}40` }
+                }
               >
                 <span
                   className="text-sm font-bold"
@@ -132,7 +139,11 @@ export default function TasksTab() {
                 </span>
                 <span
                   className="ml-auto min-w-[22px] h-[22px] px-1.5 rounded-full text-white text-[12px] font-bold flex items-center justify-center tabular-nums"
-                  style={{ backgroundColor: group.color }}
+                  style={
+                    group.gradientColors
+                      ? { background: `linear-gradient(90deg, ${group.gradientColors[0]}, ${group.gradientColors[1]})` }
+                      : { backgroundColor: group.color }
+                  }
                 >
                   {group.items.length}
                 </span>
