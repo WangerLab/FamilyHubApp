@@ -9,6 +9,7 @@ export const TodosProvider = ({ children }) => {
   const { user, member } = useAuth();
   const activity = useActivity();
   const [todos, setTodos] = useState([]);
+  const [removedTodos, setRemovedTodos] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [nudgeToast, setNudgeToast] = useState(null); // { id, title, fromName }
@@ -28,6 +29,17 @@ export const TodosProvider = ({ children }) => {
     // seed previous map so initial realtime snapshots don't retrigger
     previousTodoMap.current = Object.fromEntries((data || []).map((t) => [t.id, t]));
     setLoading(false);
+  }, [member?.household_id]);
+
+  const fetchRemoved = useCallback(async () => {
+    if (!member?.household_id) return;
+    const { data } = await supabase
+      .from('todos')
+      .select('*')
+      .eq('household_id', member.household_id)
+      .not('removed_at', 'is', null)
+      .order('removed_at', { ascending: false });
+    setRemovedTodos(data || []);
   }, [member?.household_id]);
 
   // Load household member colors
@@ -54,6 +66,7 @@ export const TodosProvider = ({ children }) => {
     if (!member?.household_id) { setLoading(false); return; }
     setLoading(true);
     fetchAll();
+    fetchRemoved();
 
     const channel = supabase
       .channel(`todos:${member.household_id}`)
@@ -203,6 +216,19 @@ export const TodosProvider = ({ children }) => {
     setPendingDelete({ id, todo, timer });
   };
 
+  const restoreTodo = async (id) => {
+    const { error } = await supabase
+      .from('todos')
+      .update({ removed_at: null, removed_by: null })
+      .eq('id', id);
+    if (error) {
+      console.warn('[todos] restore failed:', error.message);
+      return;
+    }
+    await fetchRemoved();
+    await fetchAll();
+  };
+
   const archiveAllCompleted = async () => {
     const { error } = await supabase.rpc('archive_completed_todos');
     if (error) {
@@ -343,6 +369,7 @@ export const TodosProvider = ({ children }) => {
         weeklyStats,
         addTodo, updateTodo, toggleTodo, sendNudge,
         softDelete, undoDelete, pendingDelete, archiveAllCompleted,
+        removedTodos, restoreTodo,
         undoNudge, restoreNudge, acknowledgeNudge, pendingNudgeUndo,
         nudgeToast, dismissNudgeToast,
       }}
