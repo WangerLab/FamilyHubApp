@@ -203,6 +203,16 @@ export const TodosProvider = ({ children }) => {
     setPendingDelete({ id, todo, timer });
   };
 
+  const archiveAllCompleted = async () => {
+    const { error } = await supabase.rpc('archive_completed_todos');
+    if (error) {
+      console.warn('[todos] archive_completed_todos failed:', error.message);
+      return { ok: false };
+    }
+    await fetchAll();
+    return { ok: true };
+  };
+
   const undoDelete = () => {
     if (!pendingDelete) return;
     clearTimeout(pendingDelete.timer);
@@ -332,7 +342,7 @@ export const TodosProvider = ({ children }) => {
         memberColorMap, memberNameMap, houseMembers,
         weeklyStats,
         addTodo, updateTodo, toggleTodo, sendNudge,
-        softDelete, undoDelete, pendingDelete,
+        softDelete, undoDelete, pendingDelete, archiveAllCompleted,
         undoNudge, restoreNudge, acknowledgeNudge, pendingNudgeUndo,
         nudgeToast, dismissNudgeToast,
       }}

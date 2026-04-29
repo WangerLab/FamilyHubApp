@@ -34,7 +34,7 @@ function EmptyState({ color, mode }) {
 
 export default function TasksTab() {
   const { member } = useAuth();
-  const { activeTodos, completedTodos, archivedTodos, loading, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers } = useTodos();
+  const { activeTodos, completedTodos, archivedTodos, loading, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers, archiveAllCompleted } = useTodos();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [filter, setFilter] = useState('all'); // 'all' | 'today'
@@ -189,15 +189,24 @@ export default function TasksTab() {
       {/* Completed collapsible */}
       {completedTodos.length > 0 && (
         <div className="pt-3">
-          <button
-            data-testid="toggle-completed"
-            onClick={() => setShowCompleted((v) => !v)}
-            className="w-full flex items-center gap-2 h-9 px-2 text-sm font-semibold text-slate-500 dark:text-slate-400 active:opacity-70"
-          >
-            {showCompleted ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-            <span style={{ fontFamily: 'Manrope, sans-serif' }}>Erledigt</span>
-            <span className="text-xs font-medium text-slate-400">({completedTodos.length})</span>
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              data-testid="toggle-completed"
+              onClick={() => setShowCompleted((v) => !v)}
+              className="flex-1 flex items-center gap-2 h-9 px-2 text-sm font-semibold text-slate-500 dark:text-slate-400 active:opacity-70"
+            >
+              {showCompleted ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <span style={{ fontFamily: 'Manrope, sans-serif' }}>Erledigt</span>
+              <span className="text-xs font-medium text-slate-400">({completedTodos.length})</span>
+            </button>
+            <button
+              data-testid="archive-completed-btn"
+              onClick={archiveAllCompleted}
+              className="text-xs h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 active:opacity-70"
+            >
+              Archivieren
+            </button>
+          </div>
           {showCompleted && (
             <div className="space-y-2 px-1 mt-1">
               {completedTodos.map((t) => <TodoRow key={t.id} todo={t} />)}
