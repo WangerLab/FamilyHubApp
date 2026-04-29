@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { CheckSquare, ChevronDown, ChevronRight, Archive } from 'lucide-react';
+import { CheckSquare, ChevronDown, ChevronRight, Archive, Trash2 } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AddTodoInput from '../tasks/AddTodoInput';
@@ -34,9 +34,10 @@ function EmptyState({ color, mode }) {
 
 export default function TasksTab() {
   const { member } = useAuth();
-  const { activeTodos, completedTodos, archivedTodos, loading, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers, archiveAllCompleted } = useTodos();
+  const { activeTodos, completedTodos, archivedTodos, loading, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers, archiveAllCompleted, removedTodos, restoreTodo } = useTodos();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   const [filter, setFilter] = useState('all'); // 'all' | 'today'
   const color = member?.color || '#3B82F6';
 
@@ -231,6 +232,40 @@ export default function TasksTab() {
           {showArchive && (
             <div className="space-y-2 px-1 mt-1 opacity-80">
               {archivedTodos.map((t) => <TodoRow key={t.id} todo={t} />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Trash collapsible */}
+      {removedTodos.length > 0 && (
+        <div className="pt-2">
+          <button
+            data-testid="toggle-trash"
+            onClick={() => setShowTrash((v) => !v)}
+            className="w-full flex items-center gap-2 h-9 px-2 text-sm font-semibold text-slate-500 dark:text-slate-400 active:opacity-70"
+          >
+            {showTrash ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+            <Trash2 className="w-3.5 h-3.5" />
+            <span style={{ fontFamily: 'Manrope, sans-serif' }}>Papierkorb</span>
+            <span className="text-xs font-medium text-slate-400">({removedTodos.length})</span>
+          </button>
+          {showTrash && (
+            <div className="space-y-1 px-1 mt-1">
+              {removedTodos.map((t) => (
+                <div key={t.id} className="flex items-center gap-2 py-2 px-2 text-sm">
+                  <span className="flex-1 text-slate-500 dark:text-slate-500 line-through truncate">
+                    {t.title}
+                  </span>
+                  <button
+                    onClick={() => restoreTodo(t.id)}
+                    className="text-xs h-8 px-2 rounded-md text-indigo-600 dark:text-indigo-400 active:opacity-70"
+                    data-testid={`restore-${t.id}`}
+                  >
+                    Wiederherstellen
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
