@@ -8,7 +8,7 @@ import { detectCategory } from '../constants/categories';
 const GroceryContext = createContext(null);
 
 export const GroceryProvider = ({ children }) => {
-  const { member } = useAuth();
+  const { user, member } = useAuth();
   const activity = useActivity();
   const [items, setItems] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
@@ -25,6 +25,7 @@ export const GroceryProvider = ({ children }) => {
       .from('grocery_items')
       .select('*')
       .eq('household_id', member.household_id)
+      .is('removed_at', null)
       .order('created_at', { ascending: false });
     setItems(data || []);
     setLoading(false);
@@ -153,11 +154,17 @@ export const GroceryProvider = ({ children }) => {
     // Commit any previous pending delete immediately
     if (pendingDelete) {
       clearTimeout(pendingDelete.timer);
-      supabase.from('grocery_items').delete().eq('id', pendingDelete.id);
+      supabase
+        .from('grocery_items')
+        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+        .eq('id', pendingDelete.id);
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
     const timer = setTimeout(async () => {
-      await supabase.from('grocery_items').delete().eq('id', id);
+      await supabase
+        .from('grocery_items')
+        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+        .eq('id', id);
       setPendingDelete(null);
     }, 5000);
     setPendingDelete({ id, item, timer });
