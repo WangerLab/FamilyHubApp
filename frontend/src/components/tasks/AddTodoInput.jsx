@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Flame, ChevronDown, User, Calendar as CalIcon, Check } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { parseSmartDateDE, toDatetimeLocal } from '../../utils/smartDate';
+import { parseSmartDateDE, toDatetimeLocal, quickDateAt, nextMondayAt } from '../../utils/smartDate';
 
 const PRIORITY_OPTIONS = [
   { id: 'high',   label: 'Hoch',    color: '#EF4444', emoji: '🔴' },
@@ -37,6 +37,9 @@ export default function AddTodoInput() {
     setDueLocal('');
     setSmartDateHint(null);
   };
+
+  const setQuickDue = (offsetDays) => setDueLocal(toDatetimeLocal(quickDateAt(offsetDays)));
+  const setNextMondayDue = () => setDueLocal(toDatetimeLocal(nextMondayAt()));
 
   const submit = async () => {
     const cleanTitle = (smartDateHint ? smartDateHint.cleaned : title).trim();
@@ -150,7 +153,7 @@ export default function AddTodoInput() {
           ))}
         </div>
 
-        {/* Assignee + due date */}
+        {/* Assignee + quick due buttons */}
         <div className="flex items-center gap-1.5 flex-wrap">
           <select
             data-testid="add-todo-assignee"
@@ -165,15 +168,40 @@ export default function AddTodoInput() {
               </option>
             ))}
           </select>
-
-          <input
-            data-testid="add-todo-due"
-            type="datetime-local"
-            value={dueLocal}
-            onChange={(e) => setDueLocal(e.target.value)}
-            className="flex-1 min-w-[170px] h-9 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
-          />
+          <button
+            type="button"
+            data-testid="add-todo-due-today"
+            onClick={() => setQuickDue(0)}
+            className="px-2 h-9 rounded-lg text-xs font-medium bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 active:opacity-70"
+          >
+            Heute
+          </button>
+          <button
+            type="button"
+            data-testid="add-todo-due-tomorrow"
+            onClick={() => setQuickDue(1)}
+            className="px-2 h-9 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:opacity-70"
+          >
+            Morgen
+          </button>
+          <button
+            type="button"
+            data-testid="add-todo-due-next-week"
+            onClick={setNextMondayDue}
+            className="px-2 h-9 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:opacity-70"
+          >
+            Nächste Woche
+          </button>
         </div>
+
+        {/* Datetime input */}
+        <input
+          data-testid="add-todo-due"
+          type="datetime-local"
+          value={dueLocal}
+          onChange={(e) => setDueLocal(e.target.value)}
+          className="w-full h-9 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 focus:outline-none"
+        />
 
         <div className="flex gap-2">
           <button
