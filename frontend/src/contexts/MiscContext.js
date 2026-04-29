@@ -205,8 +205,12 @@ export const MiscProvider = ({ children }) => {
   const clearList = async () => {
     if (!member?.household_id) return;
     if (pendingDelete) { clearTimeout(pendingDelete.timer); setPendingDelete(null); }
-    setItems([]);
-    await supabase.from('misc_items').delete().eq('household_id', member.household_id);
+    const { error } = await supabase.rpc('archive_checked_misc');
+    if (error) {
+      console.warn('[misc] archive_checked_misc failed:', error.message);
+      return;
+    }
+    await fetchItems();
   };
 
   const uncheckedCount = items.filter((i) => !i.checked).length;
