@@ -22,6 +22,7 @@ export const TodosProvider = ({ children }) => {
       .from('todos')
       .select('*')
       .eq('household_id', member.household_id)
+      .is('removed_at', null)
       .order('created_at', { ascending: false });
     setTodos(data || []);
     // seed previous map so initial realtime snapshots don't retrigger
@@ -186,11 +187,17 @@ export const TodosProvider = ({ children }) => {
     if (!todo) return;
     if (pendingDelete) {
       clearTimeout(pendingDelete.timer);
-      supabase.from('todos').delete().eq('id', pendingDelete.id);
+      supabase
+        .from('todos')
+        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+        .eq('id', pendingDelete.id);
     }
     setTodos((prev) => prev.filter((t) => t.id !== id));
     const timer = setTimeout(async () => {
-      await supabase.from('todos').delete().eq('id', id);
+      await supabase
+        .from('todos')
+        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+        .eq('id', id);
       setPendingDelete(null);
     }, 5000);
     setPendingDelete({ id, todo, timer });
