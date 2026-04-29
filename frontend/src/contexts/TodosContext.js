@@ -107,7 +107,7 @@ export const TodosProvider = ({ children }) => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [member?.household_id, user?.id, houseMembers, fetchAll]);
+  }, [member?.household_id, user?.id, houseMembers, fetchAll, fetchRemoved]);
 
   const memberColorMap = {};
   const memberNameMap = {};
