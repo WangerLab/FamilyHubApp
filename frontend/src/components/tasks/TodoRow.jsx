@@ -351,12 +351,12 @@ export default function TodoRow({ todo }) {
           </div>
         )}
 
-        <div className="pl-5 pr-4 py-4 flex items-start gap-4">
+        <div className="pl-5 pr-4 py-4 flex items-center gap-4">
           <button
             data-testid={`todo-toggle-${todo.id}`}
             onClick={(e) => { e.stopPropagation(); if (!swipeOpen) toggleTodo(todo.id); }}
             aria-label={todo.completed ? 'Als offen markieren' : 'Als erledigt markieren'}
-            className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center mt-1 active:scale-90 transition-transform ${
+            className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center active:scale-90 transition-transform ${
               todo.completed
                 ? 'bg-slate-200 dark:bg-slate-700 border-slate-200 dark:border-slate-700'
                 : 'bg-white dark:bg-slate-900'
