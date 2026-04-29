@@ -42,7 +42,7 @@ function ResetDialog({ onConfirm, onCancel, subLabel }) {
           {subLabel} leeren?
         </h3>
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">
-          Alle Artikel werden gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+          Erledigte Artikel werden ins Archiv verschoben. Nicht-Erledigte bleiben in der Liste.
         </p>
         <div className="flex gap-3">
           <button
@@ -54,9 +54,9 @@ function ResetDialog({ onConfirm, onCancel, subLabel }) {
           <button
             data-testid="reset-confirm-button"
             onClick={onConfirm}
-            className="flex-1 h-12 rounded-xl bg-red-500 text-white font-medium text-sm active:scale-[0.97] transition-transform"
+            className="flex-1 h-12 rounded-xl bg-indigo-500 text-white font-medium text-sm active:scale-[0.97] transition-transform"
           >
-            Leeren
+            Archivieren
           </button>
         </div>
       </div>

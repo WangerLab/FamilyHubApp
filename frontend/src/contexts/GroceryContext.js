@@ -211,8 +211,12 @@ export const GroceryProvider = ({ children }) => {
   const clearList = async () => {
     if (!member?.household_id) return;
     if (pendingDelete) { clearTimeout(pendingDelete.timer); setPendingDelete(null); }
-    setItems([]);
-    await supabase.from('grocery_items').delete().eq('household_id', member.household_id);
+    const { error } = await supabase.rpc('archive_checked_grocery');
+    if (error) {
+      console.warn('[grocery] archive_checked_grocery failed:', error.message);
+      return;
+    }
+    await fetchItems();
   };
 
   const toggleShoppingMode = () => {
