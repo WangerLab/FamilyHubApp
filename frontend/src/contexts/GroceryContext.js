@@ -58,7 +58,11 @@ export const GroceryProvider = ({ children }) => {
               prev.some((i) => i.id === payload.new.id) ? prev : [payload.new, ...prev]
             );
           } else if (payload.eventType === 'UPDATE') {
-            setItems((prev) => prev.map((i) => (i.id === payload.new.id ? payload.new : i)));
+            if (payload.new.removed_at || payload.new.archived) {
+              setItems((prev) => prev.filter((i) => i.id !== payload.new.id));
+            } else {
+              setItems((prev) => prev.map((i) => (i.id === payload.new.id ? payload.new : i)));
+            }
           } else if (payload.eventType === 'DELETE') {
             setItems((prev) => prev.filter((i) => i.id !== payload.old.id));
           }
