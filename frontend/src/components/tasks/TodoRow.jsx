@@ -288,9 +288,8 @@ export default function TodoRow({ todo }) {
           </svg>
           {(() => {
             const isBoth = !todo.assigned_to;
-            const memberColors = (houseMembers || []).slice(0, 2).map((m) => m.color || '#94a3b8');
-            const gradientStyle = isBoth && memberColors.length >= 2
-              ? { background: `linear-gradient(90deg, ${memberColors[0]}, ${memberColors[1]})`, borderColor: 'transparent' }
+            const triggerStyle = isBoth
+              ? { backgroundColor: '#64748B', borderColor: '#64748B' }
               : { backgroundColor: assigneeColor, borderColor: assigneeColor };
             return (
               <button
@@ -298,7 +297,7 @@ export default function TodoRow({ todo }) {
                 data-testid={`todo-assignee-${todo.id}`}
                 onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
                 className="text-[14px] font-bold pointer-events-auto active:opacity-80 leading-none px-2 py-1 rounded-md border-2 text-white"
-                style={gradientStyle}
+                style={triggerStyle}
                 aria-label="Zuständigkeit ändern"
               >
                 {isBoth ? 'Beide' : assigneeName}
@@ -344,19 +343,10 @@ export default function TodoRow({ todo }) {
               className={`flex items-center gap-2 px-2 h-7 rounded-md text-[12px] font-medium active:scale-95 ${
                 !todo.assigned_to ? 'bg-slate-100 dark:bg-slate-700' : ''
               }`}
-              style={{
-                background: !todo.assigned_to
-                  ? undefined
-                  : `linear-gradient(90deg, ${(houseMembers?.[0]?.color || '#EC4899')}15, ${(houseMembers?.[1]?.color || '#2563EB')}15)`,
-              }}
+              style={{ color: '#64748B' }}
             >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{
-                  background: `linear-gradient(90deg, ${houseMembers?.[0]?.color || '#EC4899'}, ${houseMembers?.[1]?.color || '#2563EB'})`,
-                }}
-              />
-              <span className="text-slate-700 dark:text-slate-200">Beide</span>
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              Beide
             </button>
           </div>
         )}
@@ -416,7 +406,7 @@ export default function TodoRow({ todo }) {
             </div>
 
             {todo.comment && !editingComment && (
-              <div className="mt-0.5">
+              <div className="mt-0.5 pr-20">
                 <p
                   ref={commentRef}
                   data-testid={`todo-comment-display-${todo.id}`}
@@ -452,17 +442,19 @@ export default function TodoRow({ todo }) {
               </div>
             )}
             {editingComment && (
-              <textarea
-                data-testid={`todo-comment-${todo.id}`}
-                value={commentValue}
-                onChange={(e) => setCommentValue(e.target.value)}
-                onBlur={() => { handleCommentSave(); setEditingComment(false); setCommentExpanded(false); }}
-                onClick={(e) => e.stopPropagation()}
-                autoFocus
-                placeholder="Kommentar hinzufügen…"
-                rows={2}
-                className="w-full mt-1 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
-              />
+              <div className="pr-20">
+                <textarea
+                  data-testid={`todo-comment-${todo.id}`}
+                  value={commentValue}
+                  onChange={(e) => setCommentValue(e.target.value)}
+                  onBlur={() => { handleCommentSave(); setEditingComment(false); setCommentExpanded(false); }}
+                  onClick={(e) => e.stopPropagation()}
+                  autoFocus
+                  placeholder="Kommentar hinzufügen…"
+                  rows={2}
+                  className="w-full mt-1 text-sm text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                />
+              </div>
             )}
 
             {/* Meta row */}
