@@ -8,7 +8,7 @@ import { celebrateShoppingComplete } from '../lib/confetti';
 const MiscContext = createContext(null);
 
 export const MiscProvider = ({ children }) => {
-  const { member } = useAuth();
+  const { user, member } = useAuth();
   const activity = useActivity();
   const [items, setItems] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
@@ -22,6 +22,7 @@ export const MiscProvider = ({ children }) => {
       .from('misc_items')
       .select('*')
       .eq('household_id', member.household_id)
+      .is('removed_at', null)
       .order('created_at', { ascending: false });
     setItems(data || []);
     setLoading(false);
@@ -146,11 +147,17 @@ export const MiscProvider = ({ children }) => {
     if (!item) return;
     if (pendingDelete) {
       clearTimeout(pendingDelete.timer);
-      supabase.from('misc_items').delete().eq('id', pendingDelete.id);
+      supabase
+        .from('misc_items')
+        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+        .eq('id', pendingDelete.id);
     }
     setItems((prev) => prev.filter((i) => i.id !== id));
     const timer = setTimeout(async () => {
-      await supabase.from('misc_items').delete().eq('id', id);
+      await supabase
+        .from('misc_items')
+        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+        .eq('id', id);
       setPendingDelete(null);
     }, 5000);
     setPendingDelete({ id, item, timer });
