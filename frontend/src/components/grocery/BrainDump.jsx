@@ -9,6 +9,7 @@ import { useTodos } from '../../contexts/TodosContext';
 import { useExpenses } from '../../contexts/ExpensesContext';
 import { useActivity } from '../../contexts/ActivityContext';
 import { crossDetect } from '../../lib/crossDetect';
+import { quickDateAt, nextMondayAt, toDatetimeLocal } from '../../utils/smartDate';
 
 const MAX_CHARS = 500;
 const UNITS = ['Stück', 'g', 'kg', 'ml', 'L', 'Packung', 'Dose', 'Flasche', 'Bund', 'Glas'];
@@ -565,14 +566,42 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
                   <option key={m.user_id} value={m.user_id}>{m.display_name}</option>
                 ))}
               </select>
-              {item.due_date && (
-                <span
-                  data-testid="brain-dump-preview-due"
-                  className="h-8 inline-flex items-center px-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-[11px] text-blue-600 dark:text-blue-300 font-medium"
-                >
-                  📅 {new Date(item.due_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                </span>
-              )}
+            </div>
+          )}
+
+          {isTodos && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                data-testid="brain-dump-preview-due-today"
+                onClick={() => onChange({ due_date: quickDateAt(0).toISOString() })}
+                className="px-2 h-8 rounded-lg text-xs font-medium bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 active:opacity-70"
+              >
+                Heute
+              </button>
+              <button
+                type="button"
+                data-testid="brain-dump-preview-due-tomorrow"
+                onClick={() => onChange({ due_date: quickDateAt(1).toISOString() })}
+                className="px-2 h-8 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:opacity-70"
+              >
+                Morgen
+              </button>
+              <button
+                type="button"
+                data-testid="brain-dump-preview-due-next-week"
+                onClick={() => onChange({ due_date: nextMondayAt().toISOString() })}
+                className="px-2 h-8 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 active:opacity-70"
+              >
+                Nächste Woche
+              </button>
+              <input
+                data-testid="brain-dump-preview-due-input"
+                type="datetime-local"
+                value={item.due_date ? toDatetimeLocal(new Date(item.due_date)) : ''}
+                onChange={(e) => onChange({ due_date: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                className="flex-1 min-w-[150px] h-8 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-200 focus:outline-none"
+              />
             </div>
           )}
 
