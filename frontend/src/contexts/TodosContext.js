@@ -97,7 +97,11 @@ export const TodosProvider = ({ children }) => {
               setTimeout(() => setNudgeToast((t) => (t?.id === payload.new.id ? null : t)), 6000);
             }
             previousTodoMap.current[payload.new.id] = payload.new;
-            setTodos((prev) => prev.map((t) => (t.id === payload.new.id ? payload.new : t)));
+            if (payload.new.removed_at) {
+              setTodos((prev) => prev.filter((t) => t.id !== payload.new.id));
+            } else {
+              setTodos((prev) => prev.map((t) => (t.id === payload.new.id ? payload.new : t)));
+            }
           } else if (payload.eventType === 'DELETE') {
             delete previousTodoMap.current[payload.old.id];
             setTodos((prev) => prev.filter((t) => t.id !== payload.old.id));
@@ -341,9 +345,9 @@ export const TodosProvider = ({ children }) => {
   const dismissNudgeToast = () => setNudgeToast(null);
 
   // ---- Derived views ----
-  const activeTodos = todos.filter((t) => !t.archived && !t.completed);
-  const completedTodos = todos.filter((t) => !t.archived && t.completed);
-  const archivedTodos = todos.filter((t) => t.archived);
+  const activeTodos = todos.filter((t) => !t.archived && !t.completed && !t.removed_at);
+  const completedTodos = todos.filter((t) => !t.archived && t.completed && !t.removed_at);
+  const archivedTodos = todos.filter((t) => t.archived && !t.removed_at);
 
   const activeCount = activeTodos.length;
   const overdueCount = activeTodos.filter((t) => t.due_date && new Date(t.due_date) < new Date()).length;
