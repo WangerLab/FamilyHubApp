@@ -417,15 +417,6 @@ export default function TodoRow({ todo }) {
                   {todo.title}
                 </p>
               )}
-              {quickDone && (
-                <span
-                  data-testid={`todo-quickdone-${todo.id}`}
-                  className="text-sm shrink-0"
-                  title="Schnell erledigt"
-                >
-                  ⚡
-                </span>
-              )}
             </div>
 
             {todo.comment && !editingComment && (
@@ -489,6 +480,16 @@ export default function TodoRow({ todo }) {
               >
                 {prio.emoji}
               </button>
+              {quickDone && (
+                <span
+                  data-testid={`todo-quickdone-${todo.id}`}
+                  className="text-sm leading-none select-none"
+                  title="Schnell erledigt"
+                  aria-label="Schnell erledigt"
+                >
+                  ⚡
+                </span>
+              )}
               {todo.completed && todo.completed_at && (
                 <span
                   data-testid={`todo-completed-stamp-${todo.id}`}
