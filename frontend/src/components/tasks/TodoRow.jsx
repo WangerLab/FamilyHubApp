@@ -11,7 +11,7 @@ const PRIORITY_META = {
 };
 const PRIORITY_ORDER = ['high', 'medium', 'low'];
 
-export default function TodoRow({ todo }) {
+export default function TodoRow({ todo, archived = false }) {
   const { user } = useAuth();
   const { toggleTodo, updateTodo, softDelete, sendNudge, undoNudge, acknowledgeNudge, memberColorMap, memberNameMap, houseMembers } = useTodos();
   const [editingComment, setEditingComment] = useState(false);
@@ -35,10 +35,12 @@ export default function TodoRow({ todo }) {
   const assigneeTriggerRef = useRef(null);
 
   const handleTouchStart = (e) => {
+    if (archived) return;
     touchStartX.current = e.touches[0].clientX;
     touchStartY.current = e.touches[0].clientY;
   };
   const handleTouchEnd = (e) => {
+    if (archived) return;
     if (touchStartX.current === null) return;
     const dx = touchStartX.current - e.changedTouches[0].clientX;
     const dy = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
@@ -207,7 +209,7 @@ export default function TodoRow({ todo }) {
           type="button"
           ref={priorityTriggerRef}
           data-testid={`todo-priority-stripe-${todo.id}`}
-          onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
+          onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) setShowPriorityPicker((v) => !v); }}
           className="absolute left-0 top-0 bottom-0 w-4 active:opacity-80 cursor-pointer"
           style={{ backgroundColor: prio.color }}
           aria-label="Priorität ändern"
@@ -295,7 +297,7 @@ export default function TodoRow({ todo }) {
               <button
                 ref={assigneeTriggerRef}
                 data-testid={`todo-assignee-${todo.id}`}
-                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowAssigneePicker((v) => !v); }}
+                onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) setShowAssigneePicker((v) => !v); }}
                 className="text-[14px] font-bold pointer-events-auto active:opacity-80 leading-none px-2 py-1 rounded-md border-2 text-white"
                 style={triggerStyle}
                 aria-label="Zuständigkeit ändern"
@@ -354,7 +356,7 @@ export default function TodoRow({ todo }) {
         <div className="pl-5 pr-4 py-4 flex items-center gap-4">
           <button
             data-testid={`todo-toggle-${todo.id}`}
-            onClick={(e) => { e.stopPropagation(); if (!swipeOpen) toggleTodo(todo.id); }}
+            onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) toggleTodo(todo.id); }}
             aria-label={todo.completed ? 'Als offen markieren' : 'Als erledigt markieren'}
             className={`shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center active:scale-90 transition-transform ${
               todo.completed
@@ -390,7 +392,7 @@ export default function TodoRow({ todo }) {
                 <p
                   data-testid={`todo-title-${todo.id}`}
                   onClick={(e) => {
-                    if (swipeOpen) return;
+                    if (swipeOpen || archived) return;
                     e.stopPropagation();
                     setTitleDraft(todo.title);
                     setEditingTitle(true);
@@ -411,7 +413,7 @@ export default function TodoRow({ todo }) {
                   ref={commentRef}
                   data-testid={`todo-comment-display-${todo.id}`}
                   onClick={(e) => {
-                    if (swipeOpen) return;
+                    if (swipeOpen || archived) return;
                     e.stopPropagation();
                     if (commentOverflows && !commentExpanded) {
                       setCommentExpanded(true);
@@ -483,7 +485,7 @@ export default function TodoRow({ todo }) {
                   type="button"
                   data-testid={`todo-due-${todo.id}`}
                   onClick={(e) => {
-                    if (swipeOpen) return;
+                    if (swipeOpen || archived) return;
                     e.stopPropagation();
                     setEditingDue(true);
                   }}
@@ -540,7 +542,7 @@ export default function TodoRow({ todo }) {
               {!todo.comment && !editingComment && (
                 <button
                   data-testid={`todo-add-comment-${todo.id}`}
-                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setEditingComment(true); }}
+                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) setEditingComment(true); }}
                   className="text-[11px] text-slate-400 dark:text-slate-500 font-medium active:opacity-60"
                 >
                   + Notiz
@@ -551,7 +553,7 @@ export default function TodoRow({ todo }) {
                   <span className="text-[10px] text-slate-400 italic">in {nudgeCooldown}h wieder</span>
                   <button
                     data-testid={`todo-nudge-undo-${todo.id}`}
-                    onClick={(e) => { e.stopPropagation(); if (!swipeOpen) undoNudge(todo.id); }}
+                    onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) undoNudge(todo.id); }}
                     className="text-[14px] leading-none text-slate-400 hover:text-red-500 active:scale-90 w-7 h-7 flex items-center justify-center -my-1"
                     aria-label="Anstoss zurückziehen"
                   >
@@ -562,7 +564,7 @@ export default function TodoRow({ todo }) {
               {isReceiverOfNudge && (
                 <button
                   data-testid={`todo-nudge-ack-${todo.id}`}
-                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) acknowledgeNudge(todo.id); }}
+                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) acknowledgeNudge(todo.id); }}
                   className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 active:scale-95"
                 >
                   <Check className="w-3 h-3" />
@@ -572,7 +574,7 @@ export default function TodoRow({ todo }) {
               {canNudge && !isSenderOfNudge && (
                 <button
                   data-testid={`todo-nudge-${todo.id}`}
-                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen) handleNudge(); }}
+                  onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) handleNudge(); }}
                   disabled={nudgeBusy}
                   className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[10px] font-semibold bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 active:scale-95 disabled:opacity-50"
                 >
