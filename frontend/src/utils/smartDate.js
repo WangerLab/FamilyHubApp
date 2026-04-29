@@ -194,3 +194,21 @@ export function relativeCompletedDE(iso) {
   if (diffDays < 365) return `vor ${Math.floor(diffDays / 30)} Monaten`;
   return `vor ${Math.floor(diffDays / 365)} Jahren`;
 }
+
+// Quick-date helpers — return Date objects with 18:00 default time.
+// Used by TodoRow, AddTodoInput, BrainDump preview.
+export function quickDateAt(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  d.setHours(18, 0, 0, 0);
+  return d;
+}
+
+export function nextMondayAt() {
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun, 1=Mon, …, 6=Sat
+  const daysUntilMonday = day === 1 ? 7 : (8 - day) % 7 || 7;
+  d.setDate(d.getDate() + daysUntilMonday);
+  d.setHours(18, 0, 0, 0);
+  return d;
+}

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, Zap, Bell, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { formatDueDateDE, isOverdue, toDatetimeLocal, isToday, relativeCompletedDE } from '../../utils/smartDate';
+import { formatDueDateDE, isOverdue, toDatetimeLocal, isToday, relativeCompletedDE, quickDateAt, nextMondayAt } from '../../utils/smartDate';
 
 const PRIORITY_META = {
   high:   { color: '#EF4444', emoji: '🔴' },
@@ -161,20 +161,12 @@ export default function TodoRow({ todo }) {
   };
 
   const setQuickDate = async (offsetDays) => {
-    const d = new Date();
-    d.setDate(d.getDate() + offsetDays);
-    d.setHours(18, 0, 0, 0);
-    await updateTodo(todo.id, { due_date: d.toISOString() });
+    await updateTodo(todo.id, { due_date: quickDateAt(offsetDays).toISOString() });
     setEditingDue(false);
   };
 
   const setNextMonday = async () => {
-    const d = new Date();
-    const day = d.getDay();
-    const daysUntilMonday = day === 1 ? 7 : (8 - day) % 7 || 7;
-    d.setDate(d.getDate() + daysUntilMonday);
-    d.setHours(18, 0, 0, 0);
-    await updateTodo(todo.id, { due_date: d.toISOString() });
+    await updateTodo(todo.id, { due_date: nextMondayAt().toISOString() });
     setEditingDue(false);
   };
 
