@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, CheckSquare, RefreshCw, Wallet,
   Calendar, Pin, Cake, Settings as SettingsIcon, Trophy,
-  Apple, ShoppingBag, User, Flame, ListTodo,
+  Apple, ShoppingBag, User, ListTodo,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';

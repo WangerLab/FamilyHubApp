@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Zap, Bell, Trash2, Clock } from 'lucide-react';
+import { Check, Bell, Trash2, Clock } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { formatDueDateDE, isOverdue, toDatetimeLocal, isToday, relativeCompletedDE, quickDateAt, nextMondayAt } from '../../utils/smartDate';

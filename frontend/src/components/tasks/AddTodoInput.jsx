@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Plus, Flame, ChevronDown, User, Calendar as CalIcon, Check } from 'lucide-react';
+import { Plus, Check } from 'lucide-react';
 import { useTodos } from '../../contexts/TodosContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { parseSmartDateDE, toDatetimeLocal, quickDateAt, nextMondayAt } from '../../utils/smartDate';
