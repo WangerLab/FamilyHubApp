@@ -54,6 +54,7 @@ export const GroceryProvider = ({ children }) => {
         { event: '*', schema: 'public', table: 'grocery_items', filter: `household_id=eq.${member.household_id}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
+            if (payload.new.removed_at || payload.new.archived) return;
             setItems((prev) =>
               prev.some((i) => i.id === payload.new.id) ? prev : [payload.new, ...prev]
             );

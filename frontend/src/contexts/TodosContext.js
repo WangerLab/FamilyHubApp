@@ -75,6 +75,7 @@ export const TodosProvider = ({ children }) => {
         { event: '*', schema: 'public', table: 'todos', filter: `household_id=eq.${member.household_id}` },
         (payload) => {
           if (payload.eventType === 'INSERT') {
+            if (payload.new.removed_at) return;
             setTodos((prev) => (prev.some((t) => t.id === payload.new.id) ? prev : [payload.new, ...prev]));
             previousTodoMap.current[payload.new.id] = payload.new;
           } else if (payload.eventType === 'UPDATE') {
