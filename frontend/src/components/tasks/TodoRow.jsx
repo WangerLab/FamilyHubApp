@@ -30,6 +30,7 @@ export default function TodoRow({ todo }) {
   const touchStartX = useRef(null);
   const touchStartY = useRef(null);
   const priorityPickerRef = useRef(null);
+  const priorityTriggerRef = useRef(null);
   const assigneePickerRef = useRef(null);
   const assigneeTriggerRef = useRef(null);
 
@@ -50,12 +51,12 @@ export default function TodoRow({ todo }) {
     if (!showPriorityPicker) return;
     const handler = (e) => {
       if (priorityPickerRef.current?.contains(e.target)) return;
-      if (e.target.closest(`[data-testid="todo-priority-emoji-${todo.id}"]`)) return;
+      if (priorityTriggerRef.current?.contains(e.target)) return;
       setShowPriorityPicker(false);
     };
     const t = setTimeout(() => document.addEventListener('click', handler), 0);
     return () => { clearTimeout(t); document.removeEventListener('click', handler); };
-  }, [showPriorityPicker, todo.id]);
+  }, [showPriorityPicker]);
 
   useEffect(() => {
     if (!showAssigneePicker) return;
@@ -210,11 +211,14 @@ export default function TodoRow({ todo }) {
         onClick={() => swipeOpen && setSwipeOpen(false)}
       >
         {/* Priority stripe — tappable to change */}
-        <div
+        <button
+          type="button"
+          ref={priorityTriggerRef}
           data-testid={`todo-priority-stripe-${todo.id}`}
-          className="absolute left-0 top-0 bottom-0 w-3 pointer-events-none"
+          onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
+          className="absolute left-0 top-0 bottom-0 w-4 active:opacity-80 cursor-pointer"
           style={{ backgroundColor: prio.color }}
-          aria-hidden="true"
+          aria-label="Priorität ändern"
         />
 
         {showPriorityPicker && (
@@ -471,15 +475,6 @@ export default function TodoRow({ todo }) {
 
             {/* Meta row */}
             <div className="flex items-center gap-2 flex-wrap mt-1">
-              <button
-                type="button"
-                data-testid={`todo-priority-emoji-${todo.id}`}
-                onClick={(e) => { e.stopPropagation(); if (!swipeOpen) setShowPriorityPicker((v) => !v); }}
-                className="text-sm leading-none select-none active:opacity-70 cursor-pointer"
-                aria-label="Priorität ändern"
-              >
-                {prio.emoji}
-              </button>
               {quickDone && (
                 <span
                   data-testid={`todo-quickdone-${todo.id}`}
