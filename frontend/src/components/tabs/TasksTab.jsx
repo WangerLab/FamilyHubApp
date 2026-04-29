@@ -34,7 +34,7 @@ function EmptyState({ color, mode }) {
 
 export default function TasksTab() {
   const { member } = useAuth();
-  const { activeTodos, completedTodos, archivedTodos, loading, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers, archiveAllCompleted } = useTodos();
+  const { activeTodos, completedTodos, archivedTodos, loading, pendingDelete, undoDelete, pendingNudgeUndo, restoreNudge, houseMembers, archiveAllCompleted, unarchiveTodo } = useTodos();
   const [showCompleted, setShowCompleted] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [filter, setFilter] = useState('all'); // 'all' | 'today'
@@ -230,7 +230,20 @@ export default function TasksTab() {
           </button>
           {showArchive && (
             <div className="space-y-2 px-1 mt-1 opacity-80">
-              {archivedTodos.map((t) => <TodoRow key={t.id} todo={t} />)}
+              {archivedTodos.map((t) => (
+                <div key={t.id} className="flex items-stretch gap-2">
+                  <div className="flex-1 min-w-0">
+                    <TodoRow todo={t} archived />
+                  </div>
+                  <button
+                    onClick={() => unarchiveTodo(t.id)}
+                    className="shrink-0 self-center text-xs h-9 px-3 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 active:opacity-70"
+                    data-testid={`unarchive-${t.id}`}
+                  >
+                    Wiederherstellen
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

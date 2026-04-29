@@ -234,6 +234,18 @@ export const TodosProvider = ({ children }) => {
     await fetchAll();
   };
 
+  const unarchiveTodo = async (id) => {
+    const { error } = await supabase
+      .from('todos')
+      .update({ archived: false, archived_at: null })
+      .eq('id', id);
+    if (error) {
+      console.warn('[todos] unarchive failed:', error.message);
+      return;
+    }
+    await fetchAll();
+  };
+
   const archiveAllCompleted = async () => {
     const { error } = await supabase.rpc('archive_completed_todos');
     if (error) {
@@ -373,7 +385,7 @@ export const TodosProvider = ({ children }) => {
         memberColorMap, memberNameMap, houseMembers,
         weeklyStats,
         addTodo, updateTodo, toggleTodo, sendNudge,
-        softDelete, undoDelete, pendingDelete, archiveAllCompleted,
+        softDelete, undoDelete, pendingDelete, archiveAllCompleted, unarchiveTodo,
         removedTodos, restoreTodo,
         undoNudge, restoreNudge, acknowledgeNudge, pendingNudgeUndo,
         nudgeToast, dismissNudgeToast,
