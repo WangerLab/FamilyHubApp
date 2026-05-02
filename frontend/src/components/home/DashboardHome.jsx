@@ -71,6 +71,44 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
         {rows && rows.length > 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-5">
             {rows.map((row, i) => (
+              row.layout === 'row' ? (
+                <div key={i} className="flex items-center justify-between gap-2 w-full">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    {row.icon && (
+                      <row.icon
+                        className="w-4 h-4 shrink-0"
+                        style={{ color: row.iconColor || color }}
+                        strokeWidth={2.5}
+                      />
+                    )}
+                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate">
+                      {row.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {row.usePill ? (
+                      <span
+                        className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base tabular-nums border-[1.5px] ${row.boldValue !== false ? 'font-bold' : ''}`}
+                        style={{
+                          borderColor: row.iconColor || color,
+                          color: row.iconColor || color,
+                          backgroundColor: 'transparent',
+                        }}
+                      >
+                        {row.value}
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-base tabular-nums ${row.boldValue !== false ? 'font-bold' : ''}`}
+                        style={{ color: row.valueColor || 'inherit' }}
+                      >
+                        {row.value}
+                      </span>
+                    )}
+                    {row.extra}
+                  </div>
+                </div>
+              ) : (
               <div key={i} className="flex flex-col items-center gap-2.5">
                 {row.layout === 'inline' ? (
                   <div className="flex items-center gap-1.5">
@@ -122,6 +160,7 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
                   {row.extra}
                 </div>
               </div>
+              )
             ))}
           </div>
         ) : placeholderText ? (
@@ -219,7 +258,7 @@ export default function DashboardHome() {
     : 0;
   const choreRows = [
     ...sortedMembers.map((m) => ({
-      layout: 'inline',
+      layout: 'row',
       icon: User,
       iconColor: m.color,
       label: m.display_name,
@@ -227,7 +266,7 @@ export default function DashboardHome() {
       usePill: true,
     })),
     ...(openChores > 0 ? [{
-      layout: 'inline',
+      layout: 'row',
       icon: ListTodo,
       iconColor: '#8B5CF6',
       label: 'Offen',
@@ -238,8 +277,8 @@ export default function DashboardHome() {
 
   // ---- Shopping ----
   const shoppingRows = [
-    { icon: Apple, iconColor: '#10B981', label: 'Lebensmittel', value: grocery?.uncheckedCount || 0, usePill: true },
-    { icon: ShoppingBag, iconColor: '#F59E0B', label: 'Sonstiges', value: misc?.uncheckedCount || 0, usePill: true },
+    { layout: 'row', icon: Apple, iconColor: '#10B981', label: 'Lebensmittel', value: grocery?.uncheckedCount || 0, usePill: true },
+    { layout: 'row', icon: ShoppingBag, iconColor: '#F59E0B', label: 'Sonstiges', value: misc?.uncheckedCount || 0, usePill: true },
   ];
 
   // ---- Finanzen ----
