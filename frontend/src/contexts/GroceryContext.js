@@ -26,6 +26,7 @@ export const GroceryProvider = ({ children }) => {
       .select('*')
       .eq('household_id', member.household_id)
       .is('removed_at', null)
+      .eq('archived', false)
       .order('created_at', { ascending: false });
     setItems(data || []);
     setLoading(false);
