@@ -385,7 +385,7 @@ export default function TodoRow({ todo, archived = false }) {
                       setEditingTitle(false);
                     }
                   }}
-                  className="flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800 px-2 py-1 pr-20 -mx-2 -my-1 rounded outline-none focus:ring-2 focus:ring-blue-400"
+                  className="flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 bg-slate-50 dark:bg-slate-800 px-2 py-1 pr-24 -mx-2 -my-1 rounded outline-none focus:ring-2 focus:ring-blue-400"
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
                 />
               ) : (
@@ -397,7 +397,7 @@ export default function TodoRow({ todo, archived = false }) {
                     setTitleDraft(todo.title);
                     setEditingTitle(true);
                   }}
-                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text pr-20 line-clamp-2 ${
+                  className={`flex-1 min-w-0 text-[17px] leading-normal text-slate-900 dark:text-slate-50 cursor-text pr-24 line-clamp-2 ${
                     todo.completed ? 'line-through' : ''
                   }`}
                   style={{ fontFamily: 'DM Sans, sans-serif' }}
