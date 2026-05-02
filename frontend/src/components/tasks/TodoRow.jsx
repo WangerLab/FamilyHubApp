@@ -198,7 +198,7 @@ export default function TodoRow({ todo, archived = false }) {
 
       {/* Sliding content layer */}
       <div
-        className="relative min-h-[112px] bg-white dark:bg-slate-900 transition-transform duration-200 ease-out"
+        className="relative bg-white dark:bg-slate-900 transition-transform duration-200 ease-out"
         style={{ transform: swipeOpen ? 'translateX(-80px)' : 'translateX(0)' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
@@ -353,7 +353,7 @@ export default function TodoRow({ todo, archived = false }) {
           </div>
         )}
 
-        <div className="pl-5 pr-4 py-4 flex items-center gap-4">
+        <div className="pl-5 pr-4 py-4 flex items-center gap-4 min-h-[112px]">
           <button
             data-testid={`todo-toggle-${todo.id}`}
             onClick={(e) => { e.stopPropagation(); if (!swipeOpen && !archived) toggleTodo(todo.id); }}
