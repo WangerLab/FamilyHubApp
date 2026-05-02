@@ -277,7 +277,7 @@ export default function DashboardHome() {
 
   // ---- Shopping ----
   const shoppingRows = [
-    { layout: 'row', icon: Apple, iconColor: '#10B981', label: 'Lebensmittel', value: grocery?.uncheckedCount || 0, usePill: true },
+    { layout: 'row', icon: Apple, iconColor: '#10B981', label: 'Essen', value: grocery?.uncheckedCount || 0, usePill: true },
     { layout: 'row', icon: ShoppingBag, iconColor: '#F59E0B', label: 'Sonstiges', value: misc?.uncheckedCount || 0, usePill: true },
   ];
 
