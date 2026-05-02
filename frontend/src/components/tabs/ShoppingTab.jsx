@@ -212,7 +212,7 @@ export default function ShoppingTab() {
               onClick={() => setSubTab('grocery')}
               badge={grocery.uncheckedCount}
               color={userColor}
-              label="Nahrungsmittel"
+              label="Essen"
             />
             <SubTabButton
               testid="subtab-sonstiges"
@@ -341,7 +341,7 @@ export default function ShoppingTab() {
         <ResetDialog
           onConfirm={handleReset}
           onCancel={() => setShowResetDialog(false)}
-          subLabel={isGrocery ? 'Nahrungsmittel' : 'Sonstiges'}
+          subLabel={isGrocery ? 'Essen' : 'Sonstiges'}
         />
       )}
 
@@ -366,7 +366,7 @@ export default function ShoppingTab() {
       {grocery.pendingCrossMove && (
         <CrossMoveSnackbar
           name={grocery.pendingCrossMove.item.name}
-          toLabel="Nahrungsmittel"
+          toLabel="Essen"
           onUndo={grocery.undoCrossMove}
         />
       )}
