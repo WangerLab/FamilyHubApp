@@ -8,6 +8,10 @@ const ALLOWED_CATEGORIES = [
   "Konserven & Saucen","Gewürze & Öl","Getränke","Snacks & Süßes",
 ];
 const ALLOWED_UNITS = ["Stück","g","kg","ml","L","Packung","Dose","Flasche","Bund","Glas"];
+const ALLOWED_ASIA_CATEGORIES = [
+  "Saucen & Pasten","Gewürze","Reis & Mehle","Nudeln & Teigwaren",
+  "Konserven & Trocken","Frisch & TK","Snacks & Süß","Sonstiges Asia",
+];
 const ALLOWED_MISC_LOCATIONS = [
   "Apotheke","Baumarkt","Hygieneartikel","Haushalt","Zoohandlung",
   "Kleidung","Bücher & Büro","Elektro & Technik","Geschenke","Sonstiges",
@@ -56,6 +60,22 @@ function normalizeGrocery(item) {
 
   let category = String(item.category || "").trim();
   if (!ALLOWED_CATEGORIES.includes(category)) category = "Konserven & Saucen";
+
+  return { name, quantity, unit, category, note: String(item.note || "").trim() };
+}
+
+function normalizeAsia(item) {
+  const name = String(item.name || "").trim();
+  if (!name) return null;
+
+  let quantity = parseFloat(item.quantity);
+  if (!quantity || quantity <= 0) quantity = null;
+
+  let unit = item.unit ? String(item.unit).trim() : null;
+  if (unit && !ALLOWED_UNITS.includes(unit)) unit = null;
+
+  let category = String(item.category || "").trim();
+  if (!ALLOWED_ASIA_CATEGORIES.includes(category)) category = "Sonstiges Asia";
 
   return { name, quantity, unit, category, note: String(item.note || "").trim() };
 }
@@ -123,6 +143,30 @@ WICHTIG zu Menge und Einheit:
 name: Singular, Deutsch, Großbuchstabe. note: Marke/Variante oder "".
 Gib {"items": []} zurück wenn nichts erkennbar.`;
 
+const PROMPT_ASIA = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in Asia-Einkaufslisten-Einträge umwandelt.
+Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
+Format: {"items": [{"name": string, "quantity": number|null, "unit": string|null, "category": string, "note": string}, ...]}
+Kategorien (wörtlich, alle 8): ["Saucen & Pasten","Gewürze","Reis & Mehle","Nudeln & Teigwaren","Konserven & Trocken","Frisch & TK","Snacks & Süß","Sonstiges Asia"]
+Einheiten (wenn genannt): ["Stück","g","kg","ml","L","Packung","Dose","Flasche","Bund","Glas"]
+
+Beispiele zu category-Zuordnung:
+- Saucen & Pasten: Sojasauce, Mirin, Fischsauce, Hoisin, Gochujang, Miso, Sriracha, Currypaste, Tamarindenpaste, Erdnusssauce.
+- Gewürze: Sternanis, Galgant, Zitronengras, Kaffirblätter, Kreuzkümmel, Kurkuma, Fünf-Gewürze, Szechuanpfeffer, Furikake, Togarashi.
+- Reis & Mehle: Jasminreis, Sushireis, Klebreis, Reismehl, Klebreismehl, Tapiokastärke, Maniokmehl.
+- Nudeln & Teigwaren: Udon, Soba, Ramen, Glasnudeln, Reisnudeln, Mie, Wantan-Blätter, Reispapier, Shirataki.
+- Konserven & Trocken: Kokosmilch, Bambussprossen, Wasserkastanien, getrocknete Pilze (Shiitake, Mu-Err, Enoki, Shimeji, Maitake), Nori, Wakame, Kombu, Dashi, Bonitoflocken.
+- Frisch & TK: Tofu, Tempeh, Edamame, Sojasprossen, Dumplings (TK), Gyoza (TK), Pak Choi, Bok Choy, Daikon, Lotuswurzel, Mochi-Eis, Thai-Basilikum.
+- Snacks & Süß: Pocky, Mochi (frisch), Daifuku, Reiscracker, Sembei, Krupuk, getrocknete Mango, Lychee, Ramune, Calpis, Anko, Azuki.
+- Sonstiges Asia: Items die zu Asia gehören aber in keinen der obigen Buckets passen, ODER nicht-asiatische Items die der User trotzdem in die Asia-Liste gepackt hat (z.B. "Brokkoli" oder "Hammer" — landen hier statt verloren zu gehen).
+
+WICHTIG zu Menge und Einheit:
+- quantity: NUR setzen wenn im Text explizit eine Zahl steht ("500g Reismehl" → 500). Sonst null.
+- unit: NUR setzen wenn im Text explizit eine Einheit steht ("500g Reismehl" → "g"). Sonst null.
+- NIEMALS raten. Keine Menge im Text = null.
+
+name: Singular, Deutsch, Großbuchstabe (z.B. "Sojasauce", "Tamarindenpaste"). note: Marke/Variante/Größe oder "".
+Gib {"items": []} zurück wenn nichts erkennbar.`;
+
 const PROMPT_MISC = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in Non-Food-Einkaufs-Einträge umwandelt.
 Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Markdown-Codeblöcke.
 Format: {"items": [{"name": string, "location_tag": string, "note": string}, ...]}
@@ -182,6 +226,7 @@ export default async function handler(req, res) {
 
   const today = new Date().toISOString().split("T")[0];
   let systemPrompt =
+    mode === "asia" ? PROMPT_ASIA :
     mode === "misc" ? PROMPT_MISC :
     mode === "todos" ? `HEUTE ist ${today} (UTC).\n\n` + PROMPT_TODOS :
     mode === "expense" ? `HEUTE ist ${today} (UTC).\n\n` + PROMPT_EXPENSE :
@@ -236,6 +281,7 @@ export default async function handler(req, res) {
 
   const rawItems = Array.isArray(parsed?.items) ? parsed.items : [];
   const normalizer =
+    mode === "asia" ? normalizeAsia :
     mode === "misc" ? normalizeMisc :
     mode === "todos" ? normalizeTodo :
     mode === "expense" ? normalizeExpense :
