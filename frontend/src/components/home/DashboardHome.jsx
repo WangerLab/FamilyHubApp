@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, CheckSquare, RefreshCw, Wallet,
   Calendar, Pin, Cake, Settings as SettingsIcon, Trophy,
-  Apple, ShoppingBag, User, ListTodo,
+  Apple, ShoppingBag, Soup, User, ListTodo,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
+import { useAsia } from '../../contexts/AsiaContext';
 import { useTodos } from '../../contexts/TodosContext';
 import { useChores } from '../../contexts/ChoresContext';
 import { useExpenses } from '../../contexts/ExpensesContext';
@@ -211,6 +212,7 @@ export default function DashboardHome() {
   const { member } = useAuth();
   const grocery = useGrocery();
   const misc = useMisc();
+  const asia = useAsia();
   const { activeTodos = [], houseMembers = [] } = useTodos() || {};
   const chores = useChores();
   const expenses = useExpenses();
@@ -279,6 +281,7 @@ export default function DashboardHome() {
   const shoppingRows = [
     { layout: 'row', icon: Apple, iconColor: '#10B981', label: 'Essen', value: grocery?.uncheckedCount || 0, usePill: true },
     { layout: 'row', icon: ShoppingBag, iconColor: '#F59E0B', label: 'Sonstiges', value: misc?.uncheckedCount || 0, usePill: true },
+    { layout: 'row', icon: Soup, iconColor: '#14B8A6', label: 'Asia', value: asia?.uncheckedCount || 0, usePill: true },
   ];
 
   // ---- Finanzen ----
