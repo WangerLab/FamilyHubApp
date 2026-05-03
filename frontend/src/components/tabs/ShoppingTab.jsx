@@ -83,6 +83,7 @@ export default function ShoppingTab() {
 
   useEffect(() => {
     localStorage.setItem(SUBTAB_STORAGE_KEY, subTab);
+    window.dispatchEvent(new Event('shopping-subtab-change'));
   }, [subTab]);
 
   // ---- Grocery derived ----
