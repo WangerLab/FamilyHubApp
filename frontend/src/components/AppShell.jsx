@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Share } from 'lucide-react';
 import { GroceryProvider } from '../contexts/GroceryContext';
 import { MiscProvider } from '../contexts/MiscContext';
+import { AsiaProvider } from '../contexts/AsiaContext';
 import { TodosProvider } from '../contexts/TodosContext';
 import { ChoresProvider } from '../contexts/ChoresContext';
 import { ActivityProvider } from '../contexts/ActivityContext';
@@ -62,6 +63,7 @@ export default function AppShell() {
     <ActivityProvider>
     <GroceryProvider>
     <MiscProvider>
+    <AsiaProvider>
     <TodosProvider>
     <ChoresProvider>
     <ExpensesProvider>
@@ -159,6 +161,7 @@ export default function AppShell() {
     </ExpensesProvider>
     </ChoresProvider>
     </TodosProvider>
+    </AsiaProvider>
     </MiscProvider>
     </GroceryProvider>
     </ActivityProvider>
