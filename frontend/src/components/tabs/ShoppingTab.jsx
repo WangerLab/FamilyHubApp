@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ShoppingCart, RotateCcw, ShoppingBag } from 'lucide-react';
 import { CATEGORIES } from '../../constants/categories';
+import { ASIA_CATEGORIES } from '../../constants/asiaCategories';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
 import { useAsia } from '../../contexts/AsiaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AddItemInput from '../grocery/AddItemInput';
+import AsiaAddItemInput from '../asia/AsiaAddItemInput';
 import GroceryItemRow from '../grocery/GroceryItemRow';
 import SonstigesList from '../misc/SonstigesList';
 
@@ -106,6 +108,26 @@ export default function ShoppingTab() {
     return { groupedGrocery: groups, doneGroceryItems: done };
   }, [grocery.items, grocery.shoppingMode]);
 
+  // Same shape as groupedGrocery, but for Asia items + ASIA_CATEGORIES.
+  const { groupedAsia, doneAsiaItems } = useMemo(() => {
+    const groups = {};
+    const done = [];
+    ASIA_CATEGORIES.forEach((cat) => {
+      const catItems = asia.items.filter((i) => i.category === cat.name);
+      if (!catItems.length) return;
+      if (asia.shoppingMode) {
+        const unchecked = catItems.filter((i) => !i.checked).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        const checked = catItems.filter((i) => i.checked);
+        if (unchecked.length) groups[cat.name] = unchecked;
+        done.push(...checked);
+      } else {
+        groups[cat.name] = [...catItems].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      }
+    });
+    done.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return { groupedAsia: groups, doneAsiaItems: done };
+  }, [asia.items, asia.shoppingMode]);
+
   const scrollGroupBelowHeader = (selector) => {
     requestAnimationFrame(() => requestAnimationFrame(() => {
       const groupEl = document.querySelector(selector);
@@ -129,6 +151,12 @@ export default function ShoppingTab() {
     await misc.addItem(data);
     const tag = data.location_tag || 'Sonstiges';
     scrollGroupBelowHeader(`[data-tag="${CSS.escape(tag)}"]`);
+  };
+
+  const handleAddAsia = async (data) => {
+    await asia.addItem(data);
+    const catId = ASIA_CATEGORIES.find((c) => c.name === data.category)?.id;
+    if (catId) scrollGroupBelowHeader(`[data-asia-category-id="${catId}"]`);
   };
 
   const handleReset = async () => {
@@ -241,6 +269,8 @@ export default function ShoppingTab() {
         {/* Add input (mode-specific) */}
         {isGrocery ? (
           <AddItemInput onAdd={handleAddGrocery} />
+        ) : isAsia ? (
+          <AsiaAddItemInput onAdd={handleAddAsia} />
         ) : (
           <SonstigesList.AddInput onAdd={handleAddMisc} />
         )}
@@ -347,7 +377,69 @@ export default function ShoppingTab() {
           </div>
         )
       ) : isAsia ? (
-        <EmptyState color="#14B8A6" />
+        asia.loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-8 h-8 rounded-full border-2 border-slate-200 dark:border-slate-700 border-t-teal-500 animate-spin" />
+          </div>
+        ) : asia.items.length === 0 ? (
+          <EmptyState color="#14B8A6" />
+        ) : (
+          <div>
+            {ASIA_CATEGORIES.map((cat) => {
+              const catItems = groupedAsia[cat.name];
+              if (!catItems?.length) return null;
+              const uncheckedInCat = catItems.filter((i) => !i.checked).length;
+              return (
+                <div key={cat.id} data-asia-category-id={cat.id} style={{ scrollMarginTop: catStickyTop }}>
+                  <div
+                    className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-800 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+                    style={{ top: catStickyTop }}
+                  >
+                    <span className="text-base">{cat.emoji}</span>
+                    <span
+                      className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                      style={{ fontFamily: 'Manrope, sans-serif' }}
+                    >
+                      {cat.name}
+                    </span>
+                    <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                      {uncheckedInCat}/{catItems.length}
+                    </span>
+                  </div>
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {catItems.map((item) => (
+                      <GroceryItemRow key={item.id} item={item} shoppingMode={asia.shoppingMode} useContextHook={useAsia} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {asia.shoppingMode && doneAsiaItems.length > 0 && (
+              <div key="__done__" data-asia-category-id="__done__" style={{ scrollMarginTop: catStickyTop }}>
+                <div
+                  className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-800 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+                  style={{ top: catStickyTop }}
+                >
+                  <span className="text-base">✅</span>
+                  <span
+                    className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    Erledigt
+                  </span>
+                  <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                    ✓ {doneAsiaItems.length}
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {doneAsiaItems.map((item) => (
+                    <GroceryItemRow key={item.id} item={item} shoppingMode={asia.shoppingMode} useContextHook={useAsia} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
       ) : (
         <SonstigesList stickyTop={catStickyTop} shoppingMode={misc.shoppingMode} />
       )}
