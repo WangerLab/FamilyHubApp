@@ -3,6 +3,7 @@ import { ShoppingCart, RotateCcw, ShoppingBag } from 'lucide-react';
 import { CATEGORIES } from '../../constants/categories';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
+import { useAsia } from '../../contexts/AsiaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import AddItemInput from '../grocery/AddItemInput';
 import GroceryItemRow from '../grocery/GroceryItemRow';
@@ -70,6 +71,7 @@ export default function ShoppingTab() {
   const { member } = useAuth();
   const grocery = useGrocery();
   const misc = useMisc();
+  const asia = useAsia();
 
   const [subTab, setSubTab] = useState(
     () => localStorage.getItem(SUBTAB_STORAGE_KEY) || 'grocery'
@@ -131,14 +133,17 @@ export default function ShoppingTab() {
 
   const handleReset = async () => {
     if (subTab === 'grocery') await grocery.clearList();
-    else await misc.clearList();
+    else if (subTab === 'sonstiges') await misc.clearList();
+    else await asia.clearList();
     setShowResetDialog(false);
   };
 
   const catStickyTop = '204px';
   const isGrocery = subTab === 'grocery';
-  const itemsForSubTab = isGrocery ? grocery.items : misc.items;
-  const uncheckedForSubTab = isGrocery ? grocery.uncheckedCount : misc.uncheckedCount;
+  const isAsia = subTab === 'asia';
+  const activeContext = isGrocery ? grocery : isAsia ? asia : misc;
+  const itemsForSubTab = activeContext.items;
+  const uncheckedForSubTab = activeContext.uncheckedCount;
   const totalForSubTab = itemsForSubTab.length;
   const checkedForSubTab = totalForSubTab - uncheckedForSubTab;
   const progress = totalForSubTab > 0 ? checkedForSubTab / totalForSubTab : 0;
@@ -176,17 +181,17 @@ export default function ShoppingTab() {
           <div className="flex items-center gap-1.5">
             <button
               data-testid="shopping-mode-toggle"
-              onClick={grocery.toggleShoppingMode}
+              onClick={activeContext.toggleShoppingMode}
               className={`flex items-center gap-1.5 px-3 h-9 rounded-xl text-sm font-medium active:scale-95 transition-all duration-150 ${
-                grocery.shoppingMode
+                activeContext.shoppingMode
                   ? 'text-white'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
               }`}
-              style={grocery.shoppingMode ? { backgroundColor: userColor } : {}}
-              aria-pressed={grocery.shoppingMode}
+              style={activeContext.shoppingMode ? { backgroundColor: userColor } : {}}
+              aria-pressed={activeContext.shoppingMode}
             >
               <ShoppingCart className="w-4 h-4" />
-              {grocery.shoppingMode ? 'Fertig' : 'Einkaufen'}
+              {activeContext.shoppingMode ? 'Fertig' : 'Einkaufen'}
             </button>
             <button
               data-testid="reset-list-button"
@@ -216,11 +221,19 @@ export default function ShoppingTab() {
             />
             <SubTabButton
               testid="subtab-sonstiges"
-              active={!isGrocery}
+              active={subTab === 'sonstiges'}
               onClick={() => setSubTab('sonstiges')}
               badge={misc.uncheckedCount}
               color={userColor}
               label="Sonstiges"
+            />
+            <SubTabButton
+              testid="subtab-asia"
+              active={isAsia}
+              onClick={() => setSubTab('asia')}
+              badge={asia.uncheckedCount}
+              color="#14B8A6"
+              label="Asia"
             />
           </div>
         </div>
@@ -333,15 +346,17 @@ export default function ShoppingTab() {
             )}
           </div>
         )
+      ) : isAsia ? (
+        <EmptyState color="#14B8A6" />
       ) : (
-        <SonstigesList stickyTop={catStickyTop} shoppingMode={grocery.shoppingMode} />
+        <SonstigesList stickyTop={catStickyTop} shoppingMode={misc.shoppingMode} />
       )}
 
       {showResetDialog && (
         <ResetDialog
           onConfirm={handleReset}
           onCancel={() => setShowResetDialog(false)}
-          subLabel={isGrocery ? 'Essen' : 'Sonstiges'}
+          subLabel={isGrocery ? 'Essen' : isAsia ? 'Asia' : 'Sonstiges'}
         />
       )}
 
@@ -359,6 +374,13 @@ export default function ShoppingTab() {
           testid="undo-snackbar-misc"
           name={misc.pendingDelete.item.name}
           onUndo={misc.undoDelete}
+        />
+      )}
+      {asia.pendingDelete && (
+        <UndoSnackbar
+          testid="undo-snackbar-asia"
+          name={asia.pendingDelete.item.name}
+          onUndo={asia.undoDelete}
         />
       )}
 
