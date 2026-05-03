@@ -4,8 +4,9 @@ import { CATEGORIES } from '../../constants/categories';
 import { useGrocery } from '../../contexts/GroceryContext';
 import CategoryPicker from './CategoryPicker';
 
-export default function GroceryItemRow({ item, shoppingMode }) {
-  const { updateItem, toggleItem, softDelete, memberColorMap, memberNameMap } = useGrocery();
+export default function GroceryItemRow({ item, shoppingMode, useContextHook }) {
+  const useHook = useContextHook || useGrocery;
+  const { updateItem, toggleItem, softDelete, memberColorMap, memberNameMap } = useHook();
 
   // Swipe state
   const touchStartX = useRef(null);
