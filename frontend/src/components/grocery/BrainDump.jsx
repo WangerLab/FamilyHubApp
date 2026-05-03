@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ChevronDown, Loader2, Check, Trash2 } from 'lucide-react';
 import { CATEGORIES } from '../../constants/categories';
+import { ASIA_CATEGORIES } from '../../constants/asiaCategories';
 import { MISC_LOCATIONS, getLocationMeta } from '../../constants/miscLocations';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
+import { useAsia } from '../../contexts/AsiaContext';
 import { useTodos } from '../../contexts/TodosContext';
 import { useExpenses } from '../../contexts/ExpensesContext';
 import { useActivity } from '../../contexts/ActivityContext';
@@ -35,6 +37,8 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
   const miscCtx = useMisc();
   const addMiscItem = miscCtx?.addItem;
   const miscShowCrossMoveToast = miscCtx?.showCrossMoveToast;
+  const asiaCtx = useAsia();
+  const addAsiaItem = asiaCtx?.addItem;
   const todosCtx = useTodos();
   const addTodoItem = todosCtx?.addTodo;
   const todosMembers = todosCtx?.houseMembers || [];
@@ -54,6 +58,7 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
   const isMisc = mode === 'misc';
   const isTodos = mode === 'todos';
   const isExpense = mode === 'expense';
+  const isAsia = mode === 'asia';
   useEffect(() => {
     setPreview(null);
     setError('');
@@ -197,6 +202,17 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
           expense_date: it.expense_date || null,
           category: it.category || null,
         }, { silent: true });
+      } else if (isAsia) {
+        if (!addAsiaItem) continue;
+        await addAsiaItem({
+          name: it.name.trim(),
+          category: it.category || 'Sonstiges Asia',
+          quantity: it.quantity !== '' && it.quantity != null && Number(it.quantity) > 0
+            ? Number(it.quantity)
+            : null,
+          unit: it.unit || null,
+          note: it.note?.trim() || null,
+        }, { silent: true });
       } else {
         const itemName = it.name.trim();
         const cross = crossDetect(itemName, 'grocery');
@@ -228,10 +244,11 @@ export default function BrainDump({ mode = 'grocery', embedded = false, onSucces
         isTodos   ? `${toSave.length} Aufgabe${toSave.length === 1 ? '' : 'n'}` :
         isExpense ? `${toSave.length} Ausgabe${toSave.length === 1 ? '' : 'n'}` :
         isMisc    ? `${toSave.length} Sonstiges-Item${toSave.length === 1 ? '' : 's'}` :
+        isAsia    ? `${toSave.length} Asia-Item${toSave.length === 1 ? '' : 's'}` :
                     `${toSave.length} Nahrungsmittel`;
       activity.logActivity({
-        action_type: isTodos ? 'todo_create' : isExpense ? 'expense_add' : (isMisc ? 'misc_add' : 'grocery_add'),
-        module: isTodos ? 'todos' : isExpense ? 'expenses' : (isMisc ? 'misc' : 'grocery'),
+        action_type: isTodos ? 'todo_create' : isExpense ? 'expense_add' : (isMisc ? 'misc_add' : (isAsia ? 'asia_add' : 'grocery_add')),
+        module: isTodos ? 'todos' : isExpense ? 'expenses' : (isMisc ? 'misc' : (isAsia ? 'asia' : 'grocery')),
         item_id: null,
         description: `${member.display_name} hat per AI Braindump ${noun} hinzugefügt`,
       });
@@ -414,7 +431,12 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
   const isMisc = mode === 'misc';
   const isTodos = mode === 'todos';
   const isExpense = mode === 'expense';
-  const cat = (!isMisc && !isTodos && !isExpense) ? CATEGORIES.find((c) => c.name === item.category) : null;
+  const isAsia = mode === 'asia';
+  const cat = isAsia
+    ? ASIA_CATEGORIES.find((c) => c.name === item.category)
+    : (!isMisc && !isTodos && !isExpense)
+      ? CATEGORIES.find((c) => c.name === item.category)
+      : null;
   const locMeta = isMisc ? getLocationMeta(item.location_tag || 'Sonstiges') : null;
   const todosCtx = useTodos();
   const houseMembers = todosCtx?.houseMembers || [];
@@ -495,7 +517,7 @@ function PreviewRow({ mode, item, onChange, onRemove, userColor }) {
                 onChange={(e) => onChange({ category: e.target.value })}
                 className="h-8 rounded-lg bg-slate-100 dark:bg-slate-800 px-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none flex-1 min-w-[120px]"
               >
-                {CATEGORIES.map((c) => (
+                {(isAsia ? ASIA_CATEGORIES : CATEGORIES).map((c) => (
                   <option key={c.id} value={c.name}>{c.emoji} {c.name}</option>
                 ))}
               </select>
