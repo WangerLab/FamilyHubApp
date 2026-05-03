@@ -1,6 +1,8 @@
 // Fixed categories for the Asia shopping list with keyword-based detection.
 // Auto-categorization works analog to grocery: detectAsiaCategory(name)
-// returns the matching category id, or 'other' as default.
+// returns the matching category name (display string), or DEFAULT_ASIA_CATEGORY.
+
+export const DEFAULT_ASIA_CATEGORY = 'Sonstiges Asia';
 
 export const ASIA_CATEGORIES = [
   {
@@ -131,18 +133,19 @@ export const ASIA_CATEGORIES = [
   },
 ];
 
-// Detect category from item name. Returns category id or 'other' as default.
-// Matches case-insensitively, checks if any keyword appears as substring in name.
+// Detect category from item name. Returns category name (display string)
+// or DEFAULT_ASIA_CATEGORY as fallback. Matches case-insensitively,
+// checks if any keyword appears as substring in name.
 export function detectAsiaCategory(name) {
-  if (!name || typeof name !== 'string') return 'other';
+  if (!name || typeof name !== 'string') return DEFAULT_ASIA_CATEGORY;
   const lower = name.toLowerCase().trim();
   for (const cat of ASIA_CATEGORIES) {
     if (cat.id === 'other') continue;
     for (const kw of cat.keywords) {
       if (lower.includes(kw.toLowerCase())) {
-        return cat.id;
+        return cat.name;
       }
     }
   }
-  return 'other';
+  return DEFAULT_ASIA_CATEGORY;
 }
