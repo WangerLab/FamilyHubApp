@@ -2,6 +2,8 @@
 // Keywords are generous to catch as many free-text mentions as possible.
 // Matches are case-insensitive substring matches on the item name.
 
+import { detectByKeywords } from '../lib/categoryDetect';
+
 export const CATEGORIES = [
   {
     id: 'produce',
@@ -258,11 +260,18 @@ export const CATEGORIES = [
 
 export const DEFAULT_CATEGORY = 'Konserven & Saucen';
 
+/**
+ * Returns the matched category name as a string (backwards-compatible).
+ * Use detectCategoryWithConfidence if you need the confidence level too.
+ */
 export function detectCategory(name) {
-  if (!name) return DEFAULT_CATEGORY;
-  const lower = name.toLowerCase().trim();
-  for (const cat of CATEGORIES) {
-    if (cat.keywords.some((kw) => lower.includes(kw))) return cat.name;
-  }
-  return DEFAULT_CATEGORY;
+  return detectByKeywords(name, CATEGORIES, DEFAULT_CATEGORY).category;
+}
+
+/**
+ * Returns { category, confidence } — use this when callers need to decide
+ * whether to trust the keyword match (exact) or trigger AI fallback (partial/none).
+ */
+export function detectCategoryWithConfidence(name) {
+  return detectByKeywords(name, CATEGORIES, DEFAULT_CATEGORY);
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { CATEGORIES, detectCategory, DEFAULT_CATEGORY } from '../../constants/categories';
+import { CATEGORIES, detectCategory, detectCategoryWithConfidence, DEFAULT_CATEGORY } from '../../constants/categories';
+import { MATCH_EXACT } from '../../lib/categoryDetect';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
@@ -67,12 +68,14 @@ export default function AddItemInput({ onAdd }) {
       }
       return;
     }
-    const category = detectCategory(name);
+    const { category, confidence } = detectCategoryWithConfidence(name);
     const inserted = await onAdd({ name, category, quantity, unit });
     setValue('');
     setBusy(false);
 
-    if (inserted && category === DEFAULT_CATEGORY && user?.id) {
+    // KI-Fallback bei nicht-exakten Matches (partial OR none).
+    // Bei exact-Match (ganzes Wort matcht ein Keyword) vertrauen wir der Detection.
+    if (inserted && confidence !== MATCH_EXACT && user?.id) {
       try {
         const r = await fetch('/api/categorize/suggest', {
           method: 'POST',
