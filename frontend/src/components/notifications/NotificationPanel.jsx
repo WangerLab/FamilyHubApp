@@ -31,7 +31,7 @@ function timeAgo(iso) {
 
 export default function NotificationPanel({ open, onClose }) {
   const { user } = useAuth();
-  const { entries, unreadCount, markAllRead, memberMap } = useActivity() || {};
+  const { entries, unreadCount, markAllRead, hideAll, undoHide, pendingHide, memberMap } = useActivity() || {};
 
   // Close on ESC
   useEffect(() => {
@@ -83,6 +83,15 @@ export default function NotificationPanel({ open, onClose }) {
                 className="h-8 px-3 rounded-lg bg-blue-500 text-white text-xs font-semibold active:scale-95"
               >
                 Alle gelesen
+              </button>
+            )}
+            {entries && entries.length > 0 && (
+              <button
+                data-testid="hide-all-button"
+                onClick={hideAll}
+                className="h-8 px-3 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold active:scale-95"
+              >
+                Alle ausblenden
               </button>
             )}
             <button
@@ -155,6 +164,24 @@ export default function NotificationPanel({ open, onClose }) {
             </ul>
           )}
         </div>
+
+        {pendingHide && (
+          <div
+            data-testid="hide-undo-snackbar"
+            className="absolute left-4 right-4 bottom-4 bg-slate-900 dark:bg-slate-100 text-slate-50 dark:text-slate-900 rounded-xl px-4 py-3 flex items-center justify-between shadow-lg"
+          >
+            <span className="text-sm font-medium">
+              {pendingHide.count} {pendingHide.count === 1 ? 'Eintrag' : 'Einträge'} ausgeblendet
+            </span>
+            <button
+              data-testid="hide-undo-button"
+              onClick={undoHide}
+              className="text-sm font-bold text-blue-300 dark:text-blue-600 active:scale-95"
+            >
+              Rückgängig
+            </button>
+          </div>
+        )}
 
         <style>{`
           @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
