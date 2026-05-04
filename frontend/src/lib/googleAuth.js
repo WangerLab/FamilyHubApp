@@ -4,6 +4,8 @@
 
 const NONCE_KEY = 'google-oauth-nonce';
 const SCOPES = [
+  'openid',
+  'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/calendar.readonly',
   'https://www.googleapis.com/auth/calendar.events.readonly',
 ].join(' ');
