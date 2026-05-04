@@ -3,8 +3,12 @@ import { Plus } from 'lucide-react';
 import {
   ASIA_CATEGORIES,
   detectAsiaCategory,
+  detectAsiaCategoryWithConfidence,
   DEFAULT_ASIA_CATEGORY,
 } from '../../constants/asiaCategories';
+import { MATCH_EXACT } from '../../lib/categoryDetect';
+import { useAuth } from '../../contexts/AuthContext';
+import { useAsia } from '../../contexts/AsiaContext';
 
 // Quantity parser: identical to grocery AddItemInput. Keeps "500 g Sojasauce"
 // → { name: 'Sojasauce', quantity: 500, unit: 'g' }.
@@ -42,6 +46,8 @@ function parseQuantityFromName(input) {
 export default function AsiaAddItemInput({ onAdd }) {
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
+  const { user } = useAuth();
+  const { updateItem } = useAsia();
 
   const parsedPreview = value.trim() ? parseQuantityFromName(value.trim()) : null;
   const detectedCat = parsedPreview ? detectAsiaCategory(parsedPreview.name) : null;
@@ -55,10 +61,30 @@ export default function AsiaAddItemInput({ onAdd }) {
     if (!raw || busy) return;
     setBusy(true);
     const { name, quantity, unit } = parseQuantityFromName(raw);
-    const category = detectAsiaCategory(name);
-    await onAdd({ name, category, quantity, unit });
+    const { category, confidence } = detectAsiaCategoryWithConfidence(name);
+    const inserted = await onAdd({ name, category, quantity, unit });
     setValue('');
     setBusy(false);
+
+    // KI-Fallback bei nicht-exakten Matches (partial OR none).
+    // Bei exact-Match (ganzes Wort matcht ein Keyword) vertrauen wir der Detection.
+    if (inserted && confidence !== MATCH_EXACT && user?.id) {
+      try {
+        const r = await fetch('/api/categorize/suggest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: user.id, name, mode: 'asia' }),
+        });
+        if (r.ok) {
+          const { category: aiCategory } = await r.json();
+          if (aiCategory && aiCategory !== DEFAULT_ASIA_CATEGORY) {
+            await updateItem(inserted.id, { category: aiCategory });
+          }
+        }
+      } catch {
+        // Silent: Item bleibt in Default oder Keyword-Match-Kategorie
+      }
+    }
   };
 
   const handleKeyDown = (e) => {

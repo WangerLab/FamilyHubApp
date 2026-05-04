@@ -14,6 +14,11 @@ const ALLOWED_MISC_LOCATIONS = [
   "Kleidung","Bücher & Büro","Elektro & Technik","Geschenke","Sonstiges",
 ];
 
+const ALLOWED_ASIA_CATEGORIES = [
+  "Saucen & Pasten","Gewürze","Reis & Mehle","Nudeln & Teigwaren",
+  "Konserven & Trocken","Frisch & TK","Snacks & Süß","Sonstiges Asia",
+];
+
 // In-memory rate limit (resets on cold start — good enough for 2 users)
 const rateLimitStore = new Map();
 function checkRateLimit(userId) {
@@ -55,6 +60,13 @@ Erlaubte Kategorien (wörtlich): ["Apotheke","Baumarkt","Hygieneartikel","Hausha
 Kurz-Definitionen: Apotheke=Medikamente/Vitamine/Pflaster. Baumarkt=Werkzeug/Schrauben/Farbe/Garten. Hygieneartikel=Körperpflege/Make-up/Damenhygiene. Haushalt=Putzmittel/Waschmittel/Alufolie/Kerzen. Zoohandlung=Tierbedarf. Kleidung=Textilien/Schuhe. Bücher & Büro=Stifte/Hefte/Papier/Bücher. Elektro & Technik=Kabel/Batterien/Ladegeräte/Glühbirnen. Geschenke=Grußkarten/Geschenkpapier/konkrete Geschenke. Sonstiges=alles andere.
 Wenn unklar → "Sonstiges".`;
 
+const PROMPT_ASIA = `Du ordnest einen einzelnen deutschen Asia-Lebensmittel-Artikel einer von 8 Asia-Kategorien zu.
+Gib AUSSCHLIESSLICH gültiges JSON zurück, ohne Markdown oder Kommentare.
+Format: {"category": string}
+Erlaubte Kategorien (wörtlich): ["Saucen & Pasten","Gewürze","Reis & Mehle","Nudeln & Teigwaren","Konserven & Trocken","Frisch & TK","Snacks & Süß","Sonstiges Asia"]
+Kurz-Definitionen: Saucen & Pasten=Sojasauce/Mirin/Hoisin/Gochujang/Tamarindenpaste. Gewürze=Sternanis/Galgant/Zitronengras/Szechuanpfeffer/Furikake. Reis & Mehle=Jasminreis/Klebreis/Reismehl/Tapiokastärke. Nudeln & Teigwaren=Udon/Soba/Ramen/Reisnudeln/Wantan-Blätter. Konserven & Trocken=Kokosmilch/Bambussprossen/getrocknete Pilze/Nori/Dashi. Frisch & TK=Tofu/Edamame/Dumplings TK/Pak Choi/Mochi-Eis. Snacks & Süß=Pocky/Mochi/Reiscracker/Krupuk/Anko. Sonstiges Asia=alles andere (auch nicht-asiatische Items).
+Wenn unklar oder nicht eindeutig zuordenbar → "Sonstiges Asia".`;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
 
@@ -62,7 +74,7 @@ export default async function handler(req, res) {
   if (!user_id) return res.status(400).json({ detail: "user_id fehlt." });
   if (!name?.trim()) return res.status(400).json({ detail: "name darf nicht leer sein." });
   if (name.length > 100) return res.status(400).json({ detail: "name zu lang (max. 100 Zeichen)." });
-  if (mode !== "grocery" && mode !== "misc") return res.status(400).json({ detail: "mode muss 'grocery' oder 'misc' sein." });
+  if (!["grocery", "misc", "asia"].includes(mode)) return res.status(400).json({ detail: "mode muss 'grocery', 'misc' oder 'asia' sein." });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ detail: "ANTHROPIC_API_KEY nicht konfiguriert." });
@@ -74,7 +86,10 @@ export default async function handler(req, res) {
       .json({ detail: `Rate limit erreicht. Bitte in ${retryAfter} Sekunden erneut versuchen.` });
   }
 
-  const systemPrompt = mode === "misc" ? PROMPT_MISC : PROMPT_GROCERY;
+  const systemPrompt =
+    mode === "misc" ? PROMPT_MISC :
+    mode === "asia" ? PROMPT_ASIA :
+    PROMPT_GROCERY;
 
   let rawResponse = null;
   try {
@@ -117,6 +132,10 @@ export default async function handler(req, res) {
     let tag = String(parsed?.location_tag || "").trim();
     if (!ALLOWED_MISC_LOCATIONS.includes(tag)) tag = "Sonstiges";
     return res.status(200).json({ location_tag: tag });
+  } else if (mode === "asia") {
+    let category = String(parsed?.category || "").trim();
+    if (!ALLOWED_ASIA_CATEGORIES.includes(category)) category = "Sonstiges Asia";
+    return res.status(200).json({ category });
   } else {
     let category = String(parsed?.category || "").trim();
     if (!ALLOWED_GROCERY_CATEGORIES.includes(category)) category = "Konserven & Saucen";
