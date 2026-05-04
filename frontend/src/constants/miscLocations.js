@@ -2,6 +2,8 @@
 // Keywords enable auto-detection on item add — no manual dropdown needed.
 // Matches are case-insensitive substring matches on the item name.
 
+import { detectByKeywords } from '../lib/categoryDetect';
+
 export const MISC_LOCATIONS = [
   {
     id: 'apotheke',
@@ -248,13 +250,22 @@ export const MISC_LOCATIONS = [
 
 export const DEFAULT_MISC_LOCATION = 'Sonstiges';
 
+/**
+ * Returns the matched location name as a string (backwards-compatible).
+ * Use detectLocationWithConfidence if you need the confidence level too.
+ */
 export function detectLocation(name) {
-  if (!name) return DEFAULT_MISC_LOCATION;
-  const lower = name.toLowerCase().trim();
-  for (const loc of MISC_LOCATIONS) {
-    if (loc.keywords.some((kw) => lower.includes(kw))) return loc.name;
-  }
-  return DEFAULT_MISC_LOCATION;
+  return detectByKeywords(name, MISC_LOCATIONS, DEFAULT_MISC_LOCATION).category;
+}
+
+/**
+ * Returns { category, confidence } — use this when callers need to decide
+ * whether to trust the keyword match (exact) or trigger AI fallback (partial/none).
+ * Note: returned property is `category` even though we call them locations here —
+ * that's the generic helper output shape.
+ */
+export function detectLocationWithConfidence(name) {
+  return detectByKeywords(name, MISC_LOCATIONS, DEFAULT_MISC_LOCATION);
 }
 
 export function getLocationMeta(tagName) {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { MISC_LOCATIONS, detectLocation, DEFAULT_MISC_LOCATION } from '../../constants/miscLocations';
+import { MISC_LOCATIONS, detectLocation, detectLocationWithConfidence, DEFAULT_MISC_LOCATION } from '../../constants/miscLocations';
+import { MATCH_EXACT } from '../../lib/categoryDetect';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMisc } from '../../contexts/MiscContext';
 import { useGrocery } from '../../contexts/GroceryContext';
@@ -37,12 +38,14 @@ export default function AddMiscItemInput({ onAdd }) {
       }
       return;
     }
-    const location_tag = detectLocation(name);
+    const { category: location_tag, confidence } = detectLocationWithConfidence(name);
     const inserted = await onAdd({ name, location_tag });
     setValue('');
     setBusy(false);
 
-    if (inserted && location_tag === DEFAULT_MISC_LOCATION && user?.id) {
+    // KI-Fallback bei nicht-exakten Matches (partial OR none).
+    // Bei exact-Match (ganzes Wort matcht ein Keyword) vertrauen wir der Detection.
+    if (inserted && confidence !== MATCH_EXACT && user?.id) {
       try {
         const r = await fetch('/api/categorize/suggest', {
           method: 'POST',
