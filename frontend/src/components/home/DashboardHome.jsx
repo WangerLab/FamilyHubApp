@@ -356,7 +356,7 @@ export default function DashboardHome() {
         <PlaceholderTile icon={Calendar} label="Woche" testid="tile-week-placeholder" />
         <PlaceholderTile icon={Pin} label="Pinboard" testid="tile-pinboard-placeholder" />
 
-        <PlaceholderTile icon={Cake} label="Geburtstage" testid="tile-birthdays-placeholder" />
+        <PlaceholderTile icon={Cake} label="Birthdays" testid="tile-birthdays-placeholder" />
         <Tile
           testid="tile-statistics"
           icon={Trophy}
@@ -368,7 +368,7 @@ export default function DashboardHome() {
         <Tile
           testid="tile-settings"
           icon={SettingsIcon}
-          label="Einstellungen"
+          label="Settings"
           placeholderText="Konto →"
           color="#64748B"
           onClick={() => navigate('/settings')}
