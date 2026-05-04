@@ -8,6 +8,9 @@ import { TodosProvider } from '../contexts/TodosContext';
 import { ChoresProvider } from '../contexts/ChoresContext';
 import { ActivityProvider } from '../contexts/ActivityContext';
 import { ExpensesProvider } from '../contexts/ExpensesContext';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../supabaseClient';
+import { triggerCalendarSync } from '../lib/googleAuth';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import HomeTab from './tabs/HomeTab';
@@ -20,9 +23,40 @@ import StatisticsPage from './home/StatisticsPage';
 import FloatingBrainDumpButton from './FloatingBrainDumpButton';
 
 export default function AppShell() {
+  const { user } = useAuth();
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [showAndroidBanner, setShowAndroidBanner] = useState(false);
   const [showIOSBanner, setShowIOSBanner] = useState(false);
+
+  // Auto-sync calendar once per user.id mount, throttled at 5 minutes via localStorage.
+  // Mark-before-call prevents a slow sync from being re-triggered by a quick remount.
+  // Failures don't reset the throttle (no tight retry loops); manual button still works.
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+    const STORAGE_KEY = 'calendar-last-sync-at';
+
+    const lastSyncStr = localStorage.getItem(STORAGE_KEY);
+    const lastSync = lastSyncStr ? parseInt(lastSyncStr, 10) : 0;
+    const now = Date.now();
+
+    if (now - lastSync < THROTTLE_MS) return; // Throttled
+
+    // Mark BEFORE the call so a slow sync doesn't get re-triggered by
+    // a quick remount of AppShell.
+    localStorage.setItem(STORAGE_KEY, String(now));
+
+    triggerCalendarSync(supabase)
+      .then((result) => {
+        console.log('[autosync] ok:', result.events_synced, 'events');
+      })
+      .catch((e) => {
+        console.warn('[autosync] failed:', e.message);
+        // Don't reset the throttle on failure — prevents tight retry loops.
+        // Manual button still works.
+      });
+  }, [user?.id]);
 
   useEffect(() => {
     const isStandalone =

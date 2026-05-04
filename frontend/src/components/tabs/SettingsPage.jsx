@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, Palette, Check, ArrowLeft, Calendar, Settings as SettingsIcon } from 'lucide-react';
+import { LogOut, User, Palette, Check, ArrowLeft, Calendar, RefreshCw, Settings as SettingsIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../supabaseClient';
-import { startGoogleOAuth, verifyOAuthReturn } from '../../lib/googleAuth';
+import { startGoogleOAuth, triggerCalendarSync, verifyOAuthReturn } from '../../lib/googleAuth';
 
 const PRESET_COLORS = [
   { label: "Tim Pink", value: "#EC4899" },
@@ -28,6 +28,11 @@ export default function SettingsPage() {
   const [googleEmail, setGoogleEmail] = useState(null);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [oauthSnack, setOauthSnack] = useState(null); // { kind: 'success' | 'error', text }
+
+  // Calendar sync state
+  const [syncing, setSyncing] = useState(false);
+  const [calendars, setCalendars] = useState([]); // [{id, google_calendar_id, calendar_summary, is_active, background_color}, ...]
+  const [calendarsLoading, setCalendarsLoading] = useState(false);
 
   const color = member?.color || '#3B82F6';
 
@@ -95,6 +100,67 @@ export default function SettingsPage() {
       setOauthSnack({ kind: 'success', text: 'Google Kalender getrennt' });
     }
     setOauthLoading(false);
+  };
+
+  // Load user_calendar_preferences once Google is connected
+  useEffect(() => {
+    if (!googleConnected || !user?.id) {
+      setCalendars([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setCalendarsLoading(true);
+      const { data } = await supabase
+        .from('user_calendar_preferences')
+        .select('id, google_calendar_id, calendar_summary, is_active, background_color')
+        .eq('user_id', user.id)
+        .order('calendar_summary');
+      if (!cancelled) {
+        setCalendars(data || []);
+        setCalendarsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [googleConnected, user?.id]);
+
+  const handleSync = async () => {
+    if (syncing) return;
+    setSyncing(true);
+    try {
+      const result = await triggerCalendarSync(supabase);
+      setOauthSnack({ kind: 'success', text: `${result.events_synced} Termine synchronisiert` });
+      // Reload calendars (after first sync, preferences get seeded)
+      const { data } = await supabase
+        .from('user_calendar_preferences')
+        .select('id, google_calendar_id, calendar_summary, is_active, background_color')
+        .eq('user_id', user.id)
+        .order('calendar_summary');
+      setCalendars(data || []);
+    } catch (e) {
+      setOauthSnack({ kind: 'error', text: `Sync fehlgeschlagen: ${e.message}` });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleToggleCalendar = async (calendarRow) => {
+    const newActive = !calendarRow.is_active;
+    // Optimistic update
+    setCalendars((prev) =>
+      prev.map((c) => (c.id === calendarRow.id ? { ...c, is_active: newActive } : c))
+    );
+    const { error } = await supabase
+      .from('user_calendar_preferences')
+      .update({ is_active: newActive, updated_at: new Date().toISOString() })
+      .eq('id', calendarRow.id);
+    if (error) {
+      // Rollback
+      setCalendars((prev) =>
+        prev.map((c) => (c.id === calendarRow.id ? { ...c, is_active: !newActive } : c))
+      );
+      setOauthSnack({ kind: 'error', text: 'Kalender konnte nicht geändert werden' });
+    }
   };
 
   const handleSaveName = async () => {
@@ -251,19 +317,34 @@ export default function SettingsPage() {
           </div>
 
           {googleConnected ? (
-            <button
-              data-testid="google-disconnect-button"
-              onClick={handleDisconnectGoogle}
-              disabled={oauthLoading}
-              className="flex items-center gap-3 w-full px-4 py-3.5 text-left active:bg-red-50 dark:active:bg-red-950/20 transition-colors"
-            >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-950/30">
-                <LogOut className="w-5 h-5 text-red-500" />
-              </div>
-              <span className="text-sm font-medium text-red-500 flex-1">
-                {oauthLoading ? 'Trennen…' : 'Verbindung trennen'}
-              </span>
-            </button>
+            <>
+              <button
+                data-testid="google-sync-button"
+                onClick={handleSync}
+                disabled={syncing}
+                className="flex items-center gap-3 w-full px-4 py-3.5 text-left active:bg-blue-50 dark:active:bg-blue-950/20 transition-colors border-b border-slate-100 dark:border-slate-800 disabled:opacity-60"
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/30">
+                  <RefreshCw className={`w-5 h-5 text-blue-500 ${syncing ? 'animate-spin' : ''}`} />
+                </div>
+                <span className="text-sm font-medium text-blue-500 flex-1">
+                  {syncing ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
+                </span>
+              </button>
+              <button
+                data-testid="google-disconnect-button"
+                onClick={handleDisconnectGoogle}
+                disabled={oauthLoading}
+                className="flex items-center gap-3 w-full px-4 py-3.5 text-left active:bg-red-50 dark:active:bg-red-950/20 transition-colors"
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-50 dark:bg-red-950/30">
+                  <LogOut className="w-5 h-5 text-red-500" />
+                </div>
+                <span className="text-sm font-medium text-red-500 flex-1">
+                  {oauthLoading ? 'Trennen…' : 'Verbindung trennen'}
+                </span>
+              </button>
+            </>
           ) : (
             <button
               data-testid="google-connect-button"
@@ -280,6 +361,63 @@ export default function SettingsPage() {
             </button>
           )}
         </div>
+
+        {googleConnected && (
+          <div className="mt-4 space-y-1">
+            <h3
+              className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1"
+              style={{ fontFamily: 'Manrope, sans-serif' }}
+            >
+              Kalender auswählen
+            </h3>
+            <div
+              data-testid="calendar-list"
+              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            >
+              {calendarsLoading ? (
+                <div className="px-4 py-3.5 text-sm text-slate-400">Lade Kalender…</div>
+              ) : calendars.length === 0 ? (
+                <div className="px-4 py-3.5 text-sm text-slate-400">
+                  Noch keine Kalender geladen — Klicke „Jetzt synchronisieren".
+                </div>
+              ) : (
+                calendars.map((cal) => (
+                  <label
+                    key={cal.id}
+                    data-testid={`calendar-row-${cal.id}`}
+                    className="flex items-center gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-800 last:border-b-0 cursor-pointer active:bg-slate-50 dark:active:bg-slate-800/50"
+                  >
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: cal.background_color || '#94a3b8' }}
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-50 flex-1 truncate">
+                      {cal.calendar_summary}
+                    </span>
+                    <input
+                      type="checkbox"
+                      data-testid={`calendar-toggle-${cal.id}`}
+                      checked={cal.is_active}
+                      onChange={() => handleToggleCalendar(cal)}
+                      className="sr-only peer"
+                    />
+                    <span
+                      className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-slate-200 dark:bg-slate-700 peer-checked:bg-emerald-500 transition-colors"
+                      aria-hidden="true"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${
+                          cal.is_active ? 'translate-x-5' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Account section */}

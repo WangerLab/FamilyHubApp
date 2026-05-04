@@ -74,3 +74,32 @@ export function verifyOAuthReturn() {
 
   return { status: null };
 }
+
+/**
+ * Triggers a calendar sync for the current user. Returns the API response.
+ * Caller is responsible for passing the supabase client to get the access token.
+ */
+export async function triggerCalendarSync(supabaseClient) {
+  const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+  if (sessionError || !sessionData?.session?.access_token) {
+    throw new Error('not_authenticated');
+  }
+
+  const res = await fetch('/api/calendar/sync', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${sessionData.session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || `sync_failed_${res.status}`);
+    err.status = res.status;
+    err.payload = data;
+    throw err;
+  }
+  return data; // { ok: true, events_synced, calendars_active, synced_at }
+}
