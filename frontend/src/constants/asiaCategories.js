@@ -2,6 +2,8 @@
 // Auto-categorization works analog to grocery: detectAsiaCategory(name)
 // returns the matching category name (display string), or DEFAULT_ASIA_CATEGORY.
 
+import { detectByKeywords } from '../lib/categoryDetect';
+
 export const DEFAULT_ASIA_CATEGORY = 'Sonstiges Asia';
 
 export const ASIA_CATEGORIES = [
@@ -133,19 +135,20 @@ export const ASIA_CATEGORIES = [
   },
 ];
 
-// Detect category from item name. Returns category name (display string)
-// or DEFAULT_ASIA_CATEGORY as fallback. Matches case-insensitively,
-// checks if any keyword appears as substring in name.
+/**
+ * Returns the matched category name as a string (backwards-compatible).
+ * The "Sonstiges Asia" catch-all bucket is excluded from matching so it only
+ * ever appears as a default fallback, never as an active match.
+ */
 export function detectAsiaCategory(name) {
-  if (!name || typeof name !== 'string') return DEFAULT_ASIA_CATEGORY;
-  const lower = name.toLowerCase().trim();
-  for (const cat of ASIA_CATEGORIES) {
-    if (cat.id === 'other') continue;
-    for (const kw of cat.keywords) {
-      if (lower.includes(kw.toLowerCase())) {
-        return cat.name;
-      }
-    }
-  }
-  return DEFAULT_ASIA_CATEGORY;
+  return detectAsiaCategoryWithConfidence(name).category;
+}
+
+/**
+ * Returns { category, confidence } — use this when callers need to decide
+ * whether to trust the keyword match (exact) or trigger AI fallback (partial/none).
+ */
+export function detectAsiaCategoryWithConfidence(name) {
+  const realCategories = ASIA_CATEGORIES.filter((c) => c.id !== 'other');
+  return detectByKeywords(name, realCategories, DEFAULT_ASIA_CATEGORY);
 }
