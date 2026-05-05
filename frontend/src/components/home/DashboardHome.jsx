@@ -14,6 +14,17 @@ import { useTodos } from '../../contexts/TodosContext';
 import { useChores } from '../../contexts/ChoresContext';
 import { useExpenses } from '../../contexts/ExpensesContext';
 
+const GOOGLE_COLOR_IDS = {
+  '1': '#7986CB', '2': '#33B679', '3': '#8E24AA', '4': '#E67C73',
+  '5': '#F6BF26', '6': '#F4511E', '7': '#039BE5', '8': '#616161',
+  '9': '#3F51B5', '10': '#0B8043', '11': '#D50000',
+};
+
+function formatTimeShort(iso) {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
 function greeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Guten Morgen';
@@ -227,75 +238,120 @@ export default function DashboardHome() {
     a.user_id === currentUserId ? -1 : b.user_id === currentUserId ? 1 : 0
   );
 
-  // ---- Calendar (heute/morgen, exkl. Iris-Schichten) ----
+  // ---- Calendar (heute/morgen, exkl. Iris-Schichten als reguläre Termine) ----
   const [calendarEvents, setCalendarEvents] = useState([]);
+  const [calendarPrefs, setCalendarPrefs] = useState([]);
 
   useEffect(() => {
+    if (!currentUserId) return;
     let cancelled = false;
     (async () => {
       const now = new Date();
       const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startOfDayAfterTomorrow = new Date(startOfToday);
       startOfDayAfterTomorrow.setDate(startOfDayAfterTomorrow.getDate() + 2);
-      const { data } = await supabase
-        .from('calendar_events')
-        .select('start_time, end_time, is_all_day, summary')
-        .gte('start_time', startOfToday.toISOString())
-        .lt('start_time', startOfDayAfterTomorrow.toISOString())
-        .order('start_time', { ascending: true });
-      if (!cancelled) setCalendarEvents(data || []);
+      const [evRes, prefRes] = await Promise.all([
+        supabase
+          .from('calendar_events')
+          .select('start_time, end_time, is_all_day, summary, google_calendar_id, color_id')
+          .gte('start_time', startOfToday.toISOString())
+          .lt('start_time', startOfDayAfterTomorrow.toISOString())
+          .order('start_time', { ascending: true }),
+        supabase
+          .from('user_calendar_preferences')
+          .select('google_calendar_id, background_color')
+          .eq('user_id', currentUserId),
+      ]);
+      if (!cancelled) {
+        setCalendarEvents(evRes.data || []);
+        setCalendarPrefs(prefRes.data || []);
+      }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [currentUserId]);
+
+  const pillColorFor = (ev) => {
+    if (ev.color_id && GOOGLE_COLOR_IDS[ev.color_id]) {
+      return GOOGLE_COLOR_IDS[ev.color_id];
+    }
+    const pref = calendarPrefs.find((p) => p.google_calendar_id === ev.google_calendar_id);
+    return pref?.background_color || '#94A3B8';
+  };
 
   const calSummary = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfTomorrow = new Date(startOfToday);
     startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+    const startOfDayAfterTomorrow = new Date(startOfToday);
+    startOfDayAfterTomorrow.setDate(startOfDayAfterTomorrow.getDate() + 2);
 
-    const filtered = calendarEvents.filter((e) => e.summary !== 'Iris Arbeit');
-    const todayEvents = filtered.filter((e) => {
+    const todayAll = calendarEvents.filter((e) => {
       const s = new Date(e.start_time);
       return s >= startOfToday && s < startOfTomorrow;
     });
-    const tomorrowEvents = filtered.filter((e) => new Date(e.start_time) >= startOfTomorrow);
-
-    const upcomingToday = todayEvents.filter((e) => {
-      const cmp = e.is_all_day ? new Date(e.end_time) : new Date(e.start_time);
-      return cmp > now;
+    const tomorrowAll = calendarEvents.filter((e) => {
+      const s = new Date(e.start_time);
+      return s >= startOfTomorrow && s < startOfDayAfterTomorrow;
     });
 
-    if (upcomingToday.length > 0) {
-      const sorted = [...upcomingToday].sort((a, b) => {
-        const aStart = a.is_all_day ? startOfToday.getTime() : new Date(a.start_time).getTime();
-        const bStart = b.is_all_day ? startOfToday.getTime() : new Date(b.start_time).getTime();
-        return aStart - bStart;
-      });
-      return { mode: 'today', count: upcomingToday.length, next: sorted[0] };
+    const upcomingFilter = (e) => {
+      const cmp = e.is_all_day ? new Date(e.end_time) : new Date(e.start_time);
+      return cmp > now;
+    };
+
+    const todayUpcomingNonIris = todayAll.filter((e) => e.summary !== 'Iris Arbeit' && upcomingFilter(e));
+    const todayIrisUpcoming = todayAll.filter((e) => e.summary === 'Iris Arbeit' && upcomingFilter(e));
+
+    if (todayUpcomingNonIris.length > 0 || todayIrisUpcoming.length > 0) {
+      const allDayUpcoming = todayUpcomingNonIris.filter((e) => e.is_all_day);
+      const timedUpcoming = todayUpcomingNonIris
+        .filter((e) => !e.is_all_day)
+        .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+      const allDayItems = [...allDayUpcoming];
+      if (todayIrisUpcoming.length > 0) {
+        allDayItems.push({
+          id: 'iris-arbeit-tile-today',
+          _isIrisArbeit: true,
+          google_calendar_id: todayIrisUpcoming[0].google_calendar_id,
+          color_id: todayIrisUpcoming[0].color_id,
+        });
+      }
+      return {
+        mode: 'today',
+        allDayItems,
+        nextTimed: timedUpcoming[0] || null,
+        remainingTimedCount: Math.max(0, timedUpcoming.length - 1),
+      };
     }
-    if (tomorrowEvents.length > 0) {
-      return { mode: 'tomorrow', count: tomorrowEvents.length, next: tomorrowEvents[0] };
+
+    const tomorrowNonIris = tomorrowAll.filter((e) => e.summary !== 'Iris Arbeit');
+    const tomorrowIris = tomorrowAll.filter((e) => e.summary === 'Iris Arbeit');
+
+    if (tomorrowNonIris.length > 0 || tomorrowIris.length > 0) {
+      const allDayMorgen = tomorrowNonIris.filter((e) => e.is_all_day);
+      const timedMorgen = tomorrowNonIris
+        .filter((e) => !e.is_all_day)
+        .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+      const allDayItems = [...allDayMorgen];
+      if (tomorrowIris.length > 0) {
+        allDayItems.push({
+          id: 'iris-arbeit-tile-tomorrow',
+          _isIrisArbeit: true,
+          google_calendar_id: tomorrowIris[0].google_calendar_id,
+          color_id: tomorrowIris[0].color_id,
+        });
+      }
+      return {
+        mode: 'tomorrow',
+        allDayItems,
+        nextTimed: timedMorgen[0] || null,
+        remainingTimedCount: Math.max(0, timedMorgen.length - 1),
+      };
     }
-    return { mode: 'today', count: 0, next: null };
+
+    return { mode: 'today', allDayItems: [], nextTimed: null, remainingTimedCount: 0 };
   }, [calendarEvents]);
-
-  const calLabel1 = calSummary.mode === 'today' ? 'Heute' : 'Morgen';
-  const calLabel2 = calSummary.count === 0
-    ? 'Keine Termine'
-    : calSummary.count === 1 ? '1 Termin' : `${calSummary.count} Termine`;
-
-  let calLabel3 = null;
-  if (calSummary.next) {
-    const title = calSummary.next.summary || '(Kein Titel)';
-    if (calSummary.next.is_all_day) {
-      calLabel3 = `→ Ganztägig: ${title}`;
-    } else {
-      const d = new Date(calSummary.next.start_time);
-      const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-      calLabel3 = `→ ${hm} ${title}`;
-    }
-  }
 
   // ---- Tasks ----
   const taskRows = sortedMembers.map((m) => {
@@ -433,13 +489,51 @@ export default function DashboardHome() {
           color="#0EA5E9"
           onClick={() => navigate('/calendar')}
         >
-          <div className="flex-1 flex flex-col items-center justify-center gap-1 px-1 text-center">
-            <span className="text-xs text-slate-500 dark:text-slate-400">{calLabel1}</span>
-            <span className="text-base font-bold text-slate-700 dark:text-slate-200">{calLabel2}</span>
-            {calLabel3 && (
-              <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-full">
-                {calLabel3}
-              </span>
+          <div className="flex-1 flex flex-col">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {calSummary.mode === 'today' ? 'Heute' : 'Morgen'}
+            </p>
+
+            {calSummary.allDayItems.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {calSummary.allDayItems.map((ev) => (
+                  <span
+                    key={ev.id}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-medium text-slate-700 dark:text-slate-200 max-w-[140px]"
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: pillColorFor(ev) }}
+                      aria-hidden="true"
+                    />
+                    <span className={`truncate ${ev._isIrisArbeit ? 'italic' : ''}`}>
+                      {ev._isIrisArbeit ? 'Iris arbeitet' : (ev.summary || '(Kein Titel)')}
+                    </span>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {calSummary.allDayItems.length > 0 && calSummary.nextTimed && (
+              <div className="border-t border-slate-200 dark:border-slate-800 my-2" />
+            )}
+
+            {calSummary.nextTimed && (
+              <p className="text-xs text-slate-700 dark:text-slate-200 truncate">
+                → {formatTimeShort(calSummary.nextTimed.start_time)} {calSummary.nextTimed.summary || '(Kein Titel)'}
+              </p>
+            )}
+
+            {calSummary.remainingTimedCount > 0 && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                +{calSummary.remainingTimedCount} weitere
+              </p>
+            )}
+
+            {calSummary.allDayItems.length === 0 && !calSummary.nextTimed && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Keine Termine
+              </p>
             )}
           </div>
         </Tile>
