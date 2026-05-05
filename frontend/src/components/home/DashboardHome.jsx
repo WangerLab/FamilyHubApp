@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, CheckSquare, RefreshCw, Wallet,
@@ -6,6 +6,7 @@ import {
   Apple, ShoppingBag, Soup, User, ListTodo,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../supabaseClient';
 import { useGrocery } from '../../contexts/GroceryContext';
 import { useMisc } from '../../contexts/MiscContext';
 import { useAsia } from '../../contexts/AsiaContext';
@@ -26,7 +27,7 @@ function formatDate() {
   });
 }
 
-function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, placeholderText }) {
+function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, placeholderText, children }) {
   const tintStrength = typeof window !== 'undefined'
     ? getComputedStyle(document.documentElement).getPropertyValue('--tile-tint').trim() || '14'
     : '14';
@@ -69,7 +70,9 @@ function Tile({ icon: Icon, label, rows, color, onClick, disabled, testid, place
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col">
-        {rows && rows.length > 0 ? (
+        {children ? (
+          children
+        ) : rows && rows.length > 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-5">
             {rows.map((row, i) => (
               row.layout === 'row' ? (
@@ -224,6 +227,76 @@ export default function DashboardHome() {
     a.user_id === currentUserId ? -1 : b.user_id === currentUserId ? 1 : 0
   );
 
+  // ---- Calendar (heute/morgen, exkl. Iris-Schichten) ----
+  const [calendarEvents, setCalendarEvents] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfDayAfterTomorrow = new Date(startOfToday);
+      startOfDayAfterTomorrow.setDate(startOfDayAfterTomorrow.getDate() + 2);
+      const { data } = await supabase
+        .from('calendar_events')
+        .select('start_time, end_time, is_all_day, summary')
+        .gte('start_time', startOfToday.toISOString())
+        .lt('start_time', startOfDayAfterTomorrow.toISOString())
+        .order('start_time', { ascending: true });
+      if (!cancelled) setCalendarEvents(data || []);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const calSummary = useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTomorrow = new Date(startOfToday);
+    startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+
+    const filtered = calendarEvents.filter((e) => e.summary !== 'Iris Arbeit');
+    const todayEvents = filtered.filter((e) => {
+      const s = new Date(e.start_time);
+      return s >= startOfToday && s < startOfTomorrow;
+    });
+    const tomorrowEvents = filtered.filter((e) => new Date(e.start_time) >= startOfTomorrow);
+
+    const upcomingToday = todayEvents.filter((e) => {
+      const cmp = e.is_all_day ? new Date(e.end_time) : new Date(e.start_time);
+      return cmp > now;
+    });
+
+    if (upcomingToday.length > 0) {
+      const sorted = [...upcomingToday].sort((a, b) => {
+        const aStart = a.is_all_day ? startOfToday.getTime() : new Date(a.start_time).getTime();
+        const bStart = b.is_all_day ? startOfToday.getTime() : new Date(b.start_time).getTime();
+        return aStart - bStart;
+      });
+      return { mode: 'today', count: upcomingToday.length, next: sorted[0] };
+    }
+    if (tomorrowEvents.length > 0) {
+      return { mode: 'tomorrow', count: tomorrowEvents.length, next: tomorrowEvents[0] };
+    }
+    return { mode: 'today', count: 0, next: null };
+  }, [calendarEvents]);
+
+  const calLabel1 = calSummary.mode === 'today' ? 'Heute' : 'Morgen';
+  const calLabel2 = calSummary.count === 0
+    ? 'Keine Termine'
+    : calSummary.count === 1 ? '1 Termin' : `${calSummary.count} Termine`;
+
+  let calLabel3 = null;
+  if (calSummary.next) {
+    const title = calSummary.next.summary || '(Kein Titel)';
+    if (calSummary.next.is_all_day) {
+      calLabel3 = `→ Ganztägig: ${title}`;
+    } else {
+      const d = new Date(calSummary.next.start_time);
+      const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      calLabel3 = `→ ${hm} ${title}`;
+    }
+  }
+
   // ---- Tasks ----
   const taskRows = sortedMembers.map((m) => {
     const userTodos = activeTodos.filter((t) => t.assigned_to === m.user_id);
@@ -353,7 +426,23 @@ export default function DashboardHome() {
           color="#10B981"
           onClick={() => navigate('/expenses')}
         />
-        <PlaceholderTile icon={Calendar} label="Woche" testid="tile-week-placeholder" />
+        <Tile
+          testid="tile-week"
+          icon={Calendar}
+          label="Woche"
+          color="#0EA5E9"
+          onClick={() => navigate('/calendar')}
+        >
+          <div className="flex-1 flex flex-col items-center justify-center gap-1 px-1 text-center">
+            <span className="text-xs text-slate-500 dark:text-slate-400">{calLabel1}</span>
+            <span className="text-base font-bold text-slate-700 dark:text-slate-200">{calLabel2}</span>
+            {calLabel3 && (
+              <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-full">
+                {calLabel3}
+              </span>
+            )}
+          </div>
+        </Tile>
         <PlaceholderTile icon={Pin} label="Pinboard" testid="tile-pinboard-placeholder" />
 
         <PlaceholderTile icon={Cake} label="Birthdays" testid="tile-birthdays-placeholder" />
