@@ -139,6 +139,25 @@ export default function CalendarPage() {
       byDay.get(k).items.push(ev);
     }
 
+    // Per Tag: "Iris Arbeit"-Schichten zu einem Compact-Eintrag zusammenfassen.
+    // Reihenfolge: All-Day → Iris-Arbeit-Compact → übrige Timed-Events.
+    for (const day of byDay.values()) {
+      const irisShifts = day.items.filter((e) => e.summary === 'Iris Arbeit');
+      const allDay = day.items.filter((e) => e.is_all_day && e.summary !== 'Iris Arbeit');
+      const timed = day.items.filter((e) => !e.is_all_day && e.summary !== 'Iris Arbeit');
+      timed.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+      const compact = [...allDay];
+      if (irisShifts.length > 0) {
+        compact.push({
+          id: `iris-arbeit-${dayKey(day.date)}`,
+          _isIrisArbeit: true,
+          google_calendar_id: irisShifts[0].google_calendar_id,
+          color_id: irisShifts[0].color_id,
+        });
+      }
+      day.items = [...compact, ...timed];
+    }
+
     const thisWeek = [];
     const nextWeek = [];
     for (const day of byDay.values()) {
@@ -176,29 +195,50 @@ export default function CalendarPage() {
           )}
         </div>
         <div className="space-y-1.5">
-          {day.items.map((ev) => (
-            <div
-              key={ev.id}
-              data-testid={`cal-event-${ev.id}`}
-              className="flex items-center gap-2.5"
-            >
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: colorFor(ev) }}
-                aria-hidden="true"
-              />
-              {ev.is_all_day ? (
-                <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">Ganztägig</span>
-              ) : (
-                <span className="font-mono text-xs text-slate-500 dark:text-slate-400 shrink-0">
-                  {formatTime(ev.start_time)}
+          {day.items.map((ev) => {
+            if (ev._isIrisArbeit) {
+              return (
+                <div
+                  key={ev.id}
+                  data-testid={`cal-event-${ev.id}`}
+                  className="flex items-center gap-2.5"
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: colorFor(ev) }}
+                    aria-hidden="true"
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">Ganztags</span>
+                  <span className="text-sm italic text-slate-900 dark:text-slate-50 truncate">
+                    Iris arbeitet
+                  </span>
+                </div>
+              );
+            }
+            return (
+              <div
+                key={ev.id}
+                data-testid={`cal-event-${ev.id}`}
+                className="flex items-center gap-2.5"
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: colorFor(ev) }}
+                  aria-hidden="true"
+                />
+                {ev.is_all_day ? (
+                  <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">Ganztägig</span>
+                ) : (
+                  <span className="font-mono text-xs text-slate-500 dark:text-slate-400 shrink-0">
+                    {formatTime(ev.start_time)}
+                  </span>
+                )}
+                <span className="text-sm text-slate-900 dark:text-slate-50 truncate">
+                  {ev.summary || '(Kein Titel)'}
                 </span>
-              )}
-              <span className="text-sm text-slate-900 dark:text-slate-50 truncate">
-                {ev.summary || '(Kein Titel)'}
-              </span>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
     );
