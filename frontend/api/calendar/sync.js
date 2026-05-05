@@ -9,8 +9,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const TIME_WINDOW_PAST_DAYS = 7;
-const TIME_WINDOW_FUTURE_DAYS = 21;
+const TIME_WINDOW_PAST_DAYS = 90;
+const TIME_WINDOW_FUTURE_DAYS = 90;
 const TOKEN_REFRESH_BUFFER_MS = 60 * 1000; // refresh if expiring within 60s
 
 function err(res, status, code, message) {
