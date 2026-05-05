@@ -1,12 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { triggerCalendarSync } from '../../lib/googleAuth';
 
-const TIME_WINDOW_PAST_DAYS = 7;
-const TIME_WINDOW_FUTURE_DAYS = 21;
 const FALLBACK_COLOR = '#94A3B8';
 
 const GOOGLE_COLOR_IDS = {
@@ -47,6 +45,18 @@ function formatDayHeader(date) {
   return `${WEEKDAYS[date.getDay()]}, ${date.getDate()}. ${MONTHS[date.getMonth()]}`;
 }
 
+function formatDateRange(weekStart, weekEnd) {
+  const sameYear = weekStart.getFullYear() === weekEnd.getFullYear();
+  const sameMonth = sameYear && weekStart.getMonth() === weekEnd.getMonth();
+  if (sameMonth) {
+    return `${weekStart.getDate()}. — ${weekEnd.getDate()}. ${MONTHS[weekEnd.getMonth()]}`;
+  }
+  if (sameYear) {
+    return `${weekStart.getDate()}. ${MONTHS[weekStart.getMonth()]} — ${weekEnd.getDate()}. ${MONTHS[weekEnd.getMonth()]}`;
+  }
+  return `${weekStart.getDate()}. ${MONTHS[weekStart.getMonth()]} ${weekStart.getFullYear()} — ${weekEnd.getDate()}. ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
+}
+
 export default function CalendarPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -55,20 +65,34 @@ export default function CalendarPage() {
   const [events, setEvents] = useState([]);
   const [prefs, setPrefs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const { weekStart, weekEnd, weekEndExcl } = useMemo(() => {
+    const today = new Date();
+    const base = isoMondayOf(today);
+    const ws = new Date(base);
+    ws.setDate(ws.getDate() + weekOffset * 7);
+    const we = new Date(ws);
+    we.setDate(we.getDate() + 6); // Sonntag (für Anzeige)
+    const wee = new Date(ws);
+    wee.setDate(wee.getDate() + 7); // exklusiver Cutoff für Bucketing
+    return { weekStart: ws, weekEnd: we, weekEndExcl: wee };
+  }, [weekOffset]);
 
   const loadEvents = async () => {
     if (!user?.id) return;
     setLoading(true);
-    const now = new Date();
-    const timeMin = new Date(now.getTime() - TIME_WINDOW_PAST_DAYS * 86400 * 1000).toISOString();
-    const timeMax = new Date(now.getTime() + TIME_WINDOW_FUTURE_DAYS * 86400 * 1000).toISOString();
+    const timeMin = new Date(weekStart);
+    timeMin.setDate(timeMin.getDate() - 1);
+    const timeMax = new Date(weekEndExcl);
+    timeMax.setDate(timeMax.getDate() + 1);
 
     const [evRes, prefRes] = await Promise.all([
       supabase
         .from('calendar_events')
         .select('*')
-        .gte('start_time', timeMin)
-        .lte('start_time', timeMax)
+        .gte('start_time', timeMin.toISOString())
+        .lte('start_time', timeMax.toISOString())
         .order('start_time', { ascending: true }),
       supabase
         .from('user_calendar_preferences')
@@ -89,7 +113,7 @@ export default function CalendarPage() {
   useEffect(() => {
     loadEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, weekOffset]);
 
   useEffect(() => {
     if (!snack) return;
@@ -119,142 +143,41 @@ export default function CalendarPage() {
     return pref?.background_color || FALLBACK_COLOR;
   };
 
-  const sections = useMemo(() => {
+  const weekDays = useMemo(() => {
     const today = new Date();
     const todayKey = dayKey(today);
-    const thisMon = isoMondayOf(today);
-    const nextMon = new Date(thisMon);
-    nextMon.setDate(nextMon.getDate() + 7);
 
     const byDay = new Map();
     for (const ev of events) {
-      const start = new Date(ev.start_time);
-      const k = dayKey(start);
-      if (!byDay.has(k)) {
-        byDay.set(k, {
-          date: new Date(start.getFullYear(), start.getMonth(), start.getDate()),
-          items: [],
-        });
-      }
-      byDay.get(k).items.push(ev);
+      const k = dayKey(new Date(ev.start_time));
+      if (!byDay.has(k)) byDay.set(k, []);
+      byDay.get(k).push(ev);
     }
 
-    // Per Tag: "Iris Arbeit"-Schichten zu einem Compact-Eintrag zusammenfassen.
-    // Reihenfolge: All-Day → Iris-Arbeit-Compact → übrige Timed-Events.
-    for (const day of byDay.values()) {
-      const irisShifts = day.items.filter((e) => e.summary === 'Iris Arbeit');
-      const allDay = day.items.filter((e) => e.is_all_day && e.summary !== 'Iris Arbeit');
-      const timed = day.items.filter((e) => !e.is_all_day && e.summary !== 'Iris Arbeit');
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      const k = dayKey(d);
+      const rawItems = byDay.get(k) || [];
+
+      const irisShifts = rawItems.filter((e) => e.summary === 'Iris Arbeit');
+      const allDay = rawItems.filter((e) => e.is_all_day && e.summary !== 'Iris Arbeit');
+      const timed = rawItems.filter((e) => !e.is_all_day && e.summary !== 'Iris Arbeit');
       timed.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
       const compact = [...allDay];
       if (irisShifts.length > 0) {
         compact.push({
-          id: `iris-arbeit-${dayKey(day.date)}`,
+          id: `iris-arbeit-${k}`,
           _isIrisArbeit: true,
           google_calendar_id: irisShifts[0].google_calendar_id,
           color_id: irisShifts[0].color_id,
         });
       }
-      day.items = [...compact, ...timed];
+      days.push({ date: d, key: k, items: [...compact, ...timed], isToday: k === todayKey });
     }
-
-    const thisWeek = [];
-    const nextWeek = [];
-    for (const day of byDay.values()) {
-      if (day.date < nextMon) thisWeek.push(day);
-      else nextWeek.push(day);
-    }
-    thisWeek.sort((a, b) => a.date - b.date);
-    nextWeek.sort((a, b) => a.date - b.date);
-
-    return { thisWeek, nextWeek, todayKey };
-  }, [events]);
-
-  const renderDay = (day, todayKey) => {
-    const isToday = dayKey(day.date) === todayKey;
-    return (
-      <div
-        key={dayKey(day.date)}
-        data-testid={`cal-day-${dayKey(day.date)}`}
-        className={`rounded-xl px-3 py-2.5 ${isToday ? 'bg-sky-500/[0.08] dark:bg-sky-500/[0.24]' : ''}`}
-      >
-        <div className="flex items-center gap-2 mb-1.5">
-          <span
-            className="text-sm font-bold text-slate-700 dark:text-slate-200"
-            style={{ fontFamily: 'Manrope, sans-serif' }}
-          >
-            {formatDayHeader(day.date)}
-          </span>
-          {isToday && (
-            <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white tracking-wider"
-              style={{ backgroundColor: '#0EA5E9' }}
-            >
-              HEUTE
-            </span>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          {day.items.map((ev) => {
-            if (ev._isIrisArbeit) {
-              return (
-                <div
-                  key={ev.id}
-                  data-testid={`cal-event-${ev.id}`}
-                  className="flex items-center gap-2.5"
-                >
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: colorFor(ev) }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">Ganztags</span>
-                  <span className="text-sm italic text-slate-900 dark:text-slate-50 truncate">
-                    Iris arbeitet
-                  </span>
-                </div>
-              );
-            }
-            return (
-              <div
-                key={ev.id}
-                data-testid={`cal-event-${ev.id}`}
-                className="flex items-center gap-2.5"
-              >
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: colorFor(ev) }}
-                  aria-hidden="true"
-                />
-                {ev.is_all_day ? (
-                  <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">Ganztägig</span>
-                ) : (
-                  <span className="font-mono text-xs text-slate-500 dark:text-slate-400 shrink-0">
-                    {formatTime(ev.start_time)}
-                  </span>
-                )}
-                <span className="text-sm text-slate-900 dark:text-slate-50 truncate">
-                  {ev.summary || '(Kein Titel)'}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderSection = (label, days, todayKey) => (
-    <div key={label}>
-      <h2
-        className="text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-1 mb-2"
-        style={{ fontFamily: 'Manrope, sans-serif' }}
-      >
-        {label}
-      </h2>
-      <div className="space-y-2">{days.map((d) => renderDay(d, todayKey))}</div>
-    </div>
-  );
+    return days;
+  }, [events, weekStart]);
 
   return (
     <div data-testid="calendar-page" className="pb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>
@@ -286,22 +209,124 @@ export default function CalendarPage() {
         </button>
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center pt-16">
-          <p className="text-sm text-slate-400 dark:text-slate-500">Lade Termine…</p>
+      <div className="flex items-center gap-2 py-3 px-1">
+        <button
+          data-testid="week-nav-prev"
+          onClick={() => setWeekOffset((o) => o - 1)}
+          className="flex items-center gap-1 text-sm font-medium text-slate-700 dark:text-slate-200 active:opacity-60"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span>Letzte Woche</span>
+        </button>
+        <div className="flex-1 flex flex-col items-center">
+          <span
+            className="font-semibold text-base text-slate-900 dark:text-slate-50"
+            style={{ fontFamily: 'Manrope, sans-serif' }}
+          >
+            {formatDateRange(weekStart, weekEnd)}
+          </span>
+          {weekOffset !== 0 && (
+            <button
+              data-testid="week-nav-today"
+              onClick={() => setWeekOffset(0)}
+              className="text-xs text-sky-600 dark:text-sky-400 active:opacity-60 mt-0.5"
+            >
+              Zurück zu dieser Woche
+            </button>
+          )}
         </div>
-      ) : sections.thisWeek.length === 0 && sections.nextWeek.length === 0 ? (
-        <div className="flex items-center justify-center pt-16">
-          <p className="text-sm text-slate-400 dark:text-slate-500">
-            Keine Termine in den nächsten 4 Wochen
-          </p>
-        </div>
-      ) : (
-        <div className="pt-4 space-y-5">
-          {sections.thisWeek.length > 0 && renderSection('Diese Woche', sections.thisWeek, sections.todayKey)}
-          {sections.nextWeek.length > 0 && renderSection('Nächste Woche', sections.nextWeek, sections.todayKey)}
-        </div>
-      )}
+        <button
+          data-testid="week-nav-next"
+          onClick={() => setWeekOffset((o) => o + 1)}
+          className="flex items-center gap-1 text-sm font-medium text-slate-700 dark:text-slate-200 active:opacity-60"
+        >
+          <span>Nächste Woche</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-2.5">
+        {weekDays.map((day) => (
+          <div
+            key={day.key}
+            data-testid={`cal-day-${day.key}`}
+            className={`rounded-xl border shadow-sm p-3 border-slate-200 dark:border-slate-800 ${
+              day.isToday
+                ? 'bg-sky-500/[0.08] dark:bg-sky-500/[0.24]'
+                : 'bg-white dark:bg-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span
+                className="text-sm font-bold text-slate-700 dark:text-slate-200"
+                style={{ fontFamily: 'Manrope, sans-serif' }}
+              >
+                {formatDayHeader(day.date)}
+              </span>
+              {day.isToday && (
+                <span
+                  className="px-2 py-0.5 rounded-full text-[10px] font-bold text-white tracking-wider"
+                  style={{ backgroundColor: '#0EA5E9' }}
+                >
+                  HEUTE
+                </span>
+              )}
+            </div>
+            {loading && day.items.length === 0 ? (
+              <p className="text-xs text-slate-400 dark:text-slate-500">Lade…</p>
+            ) : day.items.length === 0 ? (
+              <p className="text-xs text-slate-400 dark:text-slate-500">Keine Termine</p>
+            ) : (
+              <div className="space-y-1.5">
+                {day.items.map((ev) => {
+                  if (ev._isIrisArbeit) {
+                    return (
+                      <div
+                        key={ev.id}
+                        data-testid={`cal-event-${ev.id}`}
+                        className="flex items-center gap-2.5"
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: colorFor(ev) }}
+                          aria-hidden="true"
+                        />
+                        <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">Ganztags</span>
+                        <span className="text-sm italic text-slate-900 dark:text-slate-50 truncate">
+                          Iris arbeitet
+                        </span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={ev.id}
+                      data-testid={`cal-event-${ev.id}`}
+                      className="flex items-center gap-2.5"
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: colorFor(ev) }}
+                        aria-hidden="true"
+                      />
+                      {ev.is_all_day ? (
+                        <span className="text-xs text-slate-500 dark:text-slate-400 shrink-0">Ganztägig</span>
+                      ) : (
+                        <span className="font-mono text-xs text-slate-500 dark:text-slate-400 shrink-0">
+                          {formatTime(ev.start_time)}
+                        </span>
+                      )}
+                      <span className="text-sm text-slate-900 dark:text-slate-50 truncate">
+                        {ev.summary || '(Kein Titel)'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       {snack && (
         <div
