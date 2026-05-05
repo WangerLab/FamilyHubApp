@@ -302,6 +302,7 @@ export default function DashboardHome() {
 
     const todayUpcomingNonIris = todayAll.filter((e) => e.summary !== 'Iris Arbeit' && upcomingFilter(e));
     const todayIrisUpcoming = todayAll.filter((e) => e.summary === 'Iris Arbeit' && upcomingFilter(e));
+    const todayIrisAll = todayAll.filter((e) => e.summary === 'Iris Arbeit');
 
     if (todayUpcomingNonIris.length > 0 || todayIrisUpcoming.length > 0) {
       const allDayUpcoming = todayUpcomingNonIris.filter((e) => e.is_all_day);
@@ -309,12 +310,12 @@ export default function DashboardHome() {
         .filter((e) => !e.is_all_day)
         .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
       const allDayItems = [...allDayUpcoming];
-      if (todayIrisUpcoming.length > 0) {
+      if (todayIrisAll.length > 0) {
         allDayItems.push({
           id: 'iris-arbeit-tile-today',
           _isIrisArbeit: true,
-          google_calendar_id: todayIrisUpcoming[0].google_calendar_id,
-          color_id: todayIrisUpcoming[0].color_id,
+          google_calendar_id: todayIrisAll[0].google_calendar_id,
+          color_id: todayIrisAll[0].color_id,
         });
       }
       return {
