@@ -41,6 +41,13 @@ function formatTime(iso) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+function formatTimeRange(startIso, endIso) {
+  const start = formatTime(startIso);
+  const end = formatTime(endIso);
+  if (start === end) return start;
+  return `${start} – ${end}`;
+}
+
 function formatDayHeader(date) {
   return `${WEEKDAYS[date.getDay()]}, ${date.getDate()}. ${MONTHS[date.getMonth()]}`;
 }
@@ -319,7 +326,7 @@ export default function CalendarPage() {
                       aria-hidden="true"
                     />
                     <span className="font-mono text-xs text-slate-500 dark:text-slate-400 shrink-0">
-                      {formatTime(ev.start_time)}
+                      {formatTimeRange(ev.start_time, ev.end_time)}
                     </span>
                     <span className="text-sm text-slate-900 dark:text-slate-50 truncate">
                       {ev.summary || '(Kein Titel)'}
