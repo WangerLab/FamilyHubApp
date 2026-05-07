@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, CalendarDays } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { triggerCalendarSync } from '../../lib/googleAuth';
@@ -209,6 +209,17 @@ export default function CalendarPage() {
         >
           Kalender
         </h1>
+        {weekOffset !== 0 && (
+          <button
+            data-testid="cal-header-today"
+            onClick={() => setWeekOffset(0)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-sm font-medium text-sky-600 dark:text-sky-400 active:opacity-60"
+            aria-label="Zurück zur aktuellen Woche"
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span>Heute</span>
+          </button>
+        )}
         <button
           data-testid="calendar-sync-button"
           onClick={handleSync}
@@ -239,15 +250,6 @@ export default function CalendarPage() {
           >
             {formatDateRange(weekStart, weekEnd)}
           </span>
-          {weekOffset !== 0 && (
-            <button
-              data-testid="week-nav-today"
-              onClick={() => setWeekOffset(0)}
-              className="text-xs text-sky-600 dark:text-sky-400 active:opacity-60 mt-0.5"
-            >
-              Zurück zu dieser Woche
-            </button>
-          )}
         </div>
         <button
           data-testid="week-nav-next"
