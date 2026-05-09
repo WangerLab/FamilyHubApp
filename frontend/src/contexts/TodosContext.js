@@ -200,24 +200,23 @@ export const TodosProvider = ({ children }) => {
     }
   };
 
-  const softDelete = (id) => {
+  const softDelete = async (id) => {
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
-    if (pendingDelete) {
-      clearTimeout(pendingDelete.timer);
-      supabase
-        .from('todos')
-        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
-        .eq('id', pendingDelete.id);
-    }
+    // Optimistic UI: remove from local state immediately
     setTodos((prev) => prev.filter((t) => t.id !== id));
-    const timer = setTimeout(async () => {
-      await supabase
-        .from('todos')
-        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
-        .eq('id', id);
-      setPendingDelete(null);
-    }, 5000);
+    // Persist immediately — do NOT wait for undo timer
+    const { error } = await supabase
+      .from('todos')
+      .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+      .eq('id', id);
+    if (error) {
+      console.error('softDelete failed, rolling back:', error);
+      setTodos((prev) => [todo, ...prev]);
+      return;
+    }
+    // Snackbar timer: only for clearing the undo UI, not for DB persistence
+    const timer = setTimeout(() => setPendingDelete(null), 5000);
     setPendingDelete({ id, todo, timer });
   };
 
@@ -256,11 +255,22 @@ export const TodosProvider = ({ children }) => {
     return { ok: true };
   };
 
-  const undoDelete = () => {
+  const undoDelete = async () => {
     if (!pendingDelete) return;
     clearTimeout(pendingDelete.timer);
-    setTodos((prev) => [pendingDelete.todo, ...prev]);
+    const { id, todo } = pendingDelete;
     setPendingDelete(null);
+    // Restore in DB: clear removed_at + removed_by
+    const { error } = await supabase
+      .from('todos')
+      .update({ removed_at: null, removed_by: null })
+      .eq('id', id);
+    if (error) {
+      console.error('undoDelete failed:', error);
+      return;
+    }
+    // Local state: Realtime UPDATE event will re-add the todo, but to avoid flicker, add it now
+    setTodos((prev) => (prev.some((t) => t.id === id) ? prev : [todo, ...prev]));
   };
 
   const sendNudge = async (id) => {
