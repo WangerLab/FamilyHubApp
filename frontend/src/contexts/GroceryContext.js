@@ -154,33 +154,42 @@ export const GroceryProvider = ({ children }) => {
     }
   };
 
-  const softDelete = (id) => {
+  const softDelete = async (id) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
-    // Commit any previous pending delete immediately
-    if (pendingDelete) {
-      clearTimeout(pendingDelete.timer);
-      supabase
-        .from('grocery_items')
-        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
-        .eq('id', pendingDelete.id);
-    }
+    // Optimistic UI: remove from local state immediately
     setItems((prev) => prev.filter((i) => i.id !== id));
-    const timer = setTimeout(async () => {
-      await supabase
-        .from('grocery_items')
-        .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
-        .eq('id', id);
-      setPendingDelete(null);
-    }, 5000);
+    // Persist immediately — do NOT wait for undo timer
+    const { error } = await supabase
+      .from('grocery_items')
+      .update({ removed_at: new Date().toISOString(), removed_by: user?.id })
+      .eq('id', id);
+    if (error) {
+      console.error('softDelete failed, rolling back:', error);
+      setItems((prev) => [item, ...prev]);
+      return;
+    }
+    // Snackbar timer: only for clearing the undo UI, not for DB persistence
+    const timer = setTimeout(() => setPendingDelete(null), 5000);
     setPendingDelete({ id, item, timer });
   };
 
-  const undoDelete = () => {
+  const undoDelete = async () => {
     if (!pendingDelete) return;
     clearTimeout(pendingDelete.timer);
-    setItems((prev) => [pendingDelete.item, ...prev]);
+    const { id, item } = pendingDelete;
     setPendingDelete(null);
+    // Restore in DB: clear removed_at + removed_by
+    const { error } = await supabase
+      .from('grocery_items')
+      .update({ removed_at: null, removed_by: null })
+      .eq('id', id);
+    if (error) {
+      console.error('undoDelete failed:', error);
+      return;
+    }
+    // Local state: Realtime UPDATE event will re-add the item, but to avoid flicker, add it now
+    setItems((prev) => (prev.some((i) => i.id === id) ? prev : [item, ...prev]));
   };
 
   const showCrossMoveToast = (item, fromMode) => {
