@@ -24,14 +24,6 @@ const GOOGLE_COLOR_IDS = {
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const MONTHS = ['Jan', 'Feb', 'März', 'Apr', 'Mai', 'Juni', 'Juli', 'Aug', 'Sept', 'Okt', 'Nov', 'Dez'];
 
-function isoMondayOf(date) {
-  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return d;
-}
-
 function dayKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
@@ -76,11 +68,10 @@ export default function CalendarPage() {
 
   const { weekStart, weekEnd, weekEndExcl } = useMemo(() => {
     const today = new Date();
-    const base = isoMondayOf(today);
-    const ws = new Date(base);
+    const ws = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     ws.setDate(ws.getDate() + weekOffset * 7);
     const we = new Date(ws);
-    we.setDate(we.getDate() + 6); // Sonntag (für Anzeige)
+    we.setDate(we.getDate() + 6); // letzter Tag im Fenster (für Anzeige)
     const wee = new Date(ws);
     wee.setDate(wee.getDate() + 7); // exklusiver Cutoff für Bucketing
     return { weekStart: ws, weekEnd: we, weekEndExcl: wee };
