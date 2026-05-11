@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { computeClusterProgress } from '../../lib/projectProgress';
 import { useProjects } from '../../contexts/ProjectsContext';
 import MicrotaskRow from './MicrotaskRow';
+import AddMicrotaskForm from './AddMicrotaskForm';
 
 export default function ClusterCard({ cluster, microtasks }) {
   const [expanded, setExpanded] = useState(true);
+  const [addingTask, setAddingTask] = useState(false);
   const { toggleMicrotaskComplete } = useProjects();
   const { percent, hasNoTasks } = computeClusterProgress(cluster.id, microtasks);
 
@@ -74,6 +76,23 @@ export default function ClusterCard({ cluster, microtasks }) {
                 <MicrotaskRow key={t.id} task={t} onToggle={handleToggle} />
               ))}
             </div>
+          )}
+          {addingTask ? (
+            <AddMicrotaskForm
+              clusterId={cluster.id}
+              existingTaskCount={clusterTasks.length}
+              onCancel={() => setAddingTask(false)}
+              onSaved={() => setAddingTask(false)}
+            />
+          ) : (
+            <button
+              onClick={() => setAddingTask(true)}
+              data-testid={`add-microtask-trigger-${cluster.id}`}
+              className="w-full mt-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 active:opacity-70 flex items-center justify-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Aufgabe hinzufügen
+            </button>
           )}
         </div>
       )}
