@@ -174,10 +174,9 @@ export const ProjectsProvider = ({ children }) => {
     return row;
   };
   const addMicrotask = async (clusterId, payload) => {
-    const row = await insertReturning('project_microtasks', {
-      cluster_id: clusterId,
-      ...pick(payload, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'external_id']),
-    });
+    const fields = pick(payload, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'external_id']);
+    if (!fields.external_id) fields.external_id = `app-${crypto.randomUUID().slice(0, 8)}`;
+    const row = await insertReturning('project_microtasks', { cluster_id: clusterId, ...fields });
     touchProjectViaCluster(row.cluster_id);
     return row;
   };
