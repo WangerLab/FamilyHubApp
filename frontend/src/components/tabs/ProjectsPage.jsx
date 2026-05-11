@@ -1,9 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, FolderKanban } from 'lucide-react';
+import { useProjects } from '../../contexts/ProjectsContext';
+import ProjectRow from '../projects/ProjectRow';
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
+  const { projects, clusters, microtasks, loading } = useProjects();
+
+  const activeProjects = projects
+    .filter((p) => !p.archived && !p.removed_at)
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
 
   return (
     <div data-testid="projects-page" className="pb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>
@@ -23,10 +30,27 @@ export default function ProjectsPage() {
         </h1>
       </div>
 
-      <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-        <FolderKanban className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-4" />
-        <p className="text-slate-600 dark:text-slate-400">Noch keine Projekte</p>
-      </div>
+      {loading ? (
+        <div className="flex justify-center py-20">
+          <p className="text-slate-500 dark:text-slate-400">Lade…</p>
+        </div>
+      ) : activeProjects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+          <FolderKanban className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-4" />
+          <p className="text-slate-600 dark:text-slate-400">Noch keine Projekte</p>
+        </div>
+      ) : (
+        <div className="space-y-3 px-4 pt-4">
+          {activeProjects.map((p) => (
+            <ProjectRow
+              key={p.id}
+              project={p}
+              clusters={clusters}
+              microtasks={microtasks}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
