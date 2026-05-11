@@ -5,7 +5,7 @@ import { useProjects } from '../../contexts/ProjectsContext';
 import MicrotaskRow from './MicrotaskRow';
 import AddMicrotaskForm from './AddMicrotaskForm';
 
-export default function ClusterCard({ cluster, microtasks }) {
+export default function ClusterCard({ cluster, microtasks, projectId }) {
   const [expanded, setExpanded] = useState(true);
   const [addingTask, setAddingTask] = useState(false);
   const { toggleMicrotaskComplete } = useProjects();
@@ -73,7 +73,7 @@ export default function ClusterCard({ cluster, microtasks }) {
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {clusterTasks.map((t) => (
-                <MicrotaskRow key={t.id} task={t} onToggle={handleToggle} allMicrotasks={microtasks} />
+                <MicrotaskRow key={t.id} task={t} onToggle={handleToggle} allMicrotasks={microtasks} projectId={projectId} />
               ))}
             </div>
           )}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Lock } from 'lucide-react';
 import { getBlockingTasks } from '../../lib/projectDependencies';
 
@@ -8,7 +9,8 @@ const DOT_COLORS = {
   both: '#94A3B8',
 };
 
-export default function MicrotaskRow({ task, onToggle, allMicrotasks }) {
+export default function MicrotaskRow({ task, onToggle, allMicrotasks, projectId }) {
+  const navigate = useNavigate();
   const dotColor = DOT_COLORS[task.suggested_for] || null;
   const blocking = getBlockingTasks(task, allMicrotasks || []);
   const isBlocked = blocking.length > 0 && !task.completed;
@@ -43,7 +45,12 @@ export default function MicrotaskRow({ task, onToggle, allMicrotasks }) {
         ) : null}
       </button>
 
-      <div className="flex-1 min-w-0">
+      <button
+        type="button"
+        onClick={() => projectId && navigate(`/projects/${projectId}/microtask/${task.id}`)}
+        className="flex-1 min-w-0 text-left active:opacity-70"
+        aria-label={`Details zu ${task.title} anzeigen`}
+      >
         <div className="flex items-center gap-2">
           {dotColor && (
             <span
@@ -69,7 +76,7 @@ export default function MicrotaskRow({ task, onToggle, allMicrotasks }) {
             wartet auf: {blocking.map((b) => b.title).join(', ')}
           </p>
         )}
-      </div>
+      </button>
     </div>
   );
 }

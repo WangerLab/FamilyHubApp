@@ -113,7 +113,7 @@ export default function ProjectDetailPage() {
 
       <div className="px-4 mt-6 space-y-3">
         {projectClusters.map((c) => (
-          <ClusterCard key={c.id} cluster={c} microtasks={microtasks} />
+          <ClusterCard key={c.id} cluster={c} microtasks={microtasks} projectId={id} />
         ))}
       </div>
 
