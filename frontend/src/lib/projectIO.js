@@ -148,3 +148,49 @@ export function dbShapeToJson(project, clusters, microtasks) {
     },
   };
 }
+
+export function mergeIntoExisting(newJson, existingDb, householdId, userId) {
+  const p = newJson.project;
+  const exClusters = existingDb.clusters || [];
+  const exTasks = existingDb.microtasks || [];
+  const clusterByExt = new Map(exClusters.filter((c) => c.external_id).map((c) => [c.external_id, c]));
+  const tasksByClusterExt = new Map();
+  exTasks.forEach((t) => {
+    if (!t.external_id) return;
+    if (!tasksByClusterExt.has(t.cluster_id)) tasksByClusterExt.set(t.cluster_id, new Map());
+    tasksByClusterExt.get(t.cluster_id).set(t.external_id, t);
+  });
+  const seenC = new Set(), seenT = new Set();
+  const toInsert = { clusters: [], microtasks: [] };
+  const toUpdate = {
+    project: {
+      id: existingDb.project.id, name: p.name, summary: p.summary ?? null, priority: p.priority,
+      priority_start: p.priority_timeframe?.start ?? null, priority_end: p.priority_timeframe?.end ?? null,
+    },
+    clusters: [], microtasks: [],
+  };
+  (p.clusters || []).forEach((c) => {
+    const m = clusterByExt.get(c.id);
+    const clusterId = m ? m.id : crypto.randomUUID();
+    if (m) {
+      seenC.add(m.id);
+      toUpdate.clusters.push({ id: m.id, name: c.name, description: c.description ?? '', cluster_order: c.order });
+    } else {
+      toInsert.clusters.push({ id: clusterId, project_id: existingDb.project.id, external_id: c.id, name: c.name, description: c.description ?? '', cluster_order: c.order });
+    }
+    const exTasksMap = m ? (tasksByClusterExt.get(m.id) || new Map()) : new Map();
+    (c.microtasks || []).forEach((t, ti) => {
+      const tm = exTasksMap.get(t.id);
+      const f = { title: t.title, description: t.description ?? '', effort_weight: t.effort_weight, depends_on: t.depends_on ?? [], suggested_for: t.suggested_for ?? null, task_order: ti };
+      if (tm) { seenT.add(tm.id); toUpdate.microtasks.push({ id: tm.id, ...f }); }
+      else toInsert.microtasks.push({ id: crypto.randomUUID(), cluster_id: clusterId, external_id: t.id, ...f });
+    });
+  });
+  return {
+    toInsert, toUpdate,
+    toLeaveAlone: {
+      clusters: exClusters.filter((c) => !seenC.has(c.id)).map((c) => c.id),
+      microtasks: exTasks.filter((t) => !seenT.has(t.id)).map((t) => t.id),
+    },
+  };
+}
