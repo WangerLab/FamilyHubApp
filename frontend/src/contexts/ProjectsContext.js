@@ -181,6 +181,16 @@ export const ProjectsProvider = ({ children }) => {
   const restoreCluster = async (id) => restoreRow('project_clusters', id);
   const restoreMicrotask = async (id) => restoreRow('project_microtasks', id);
 
+  const removeRow = async (table, id) => {
+    const patch = { removed_at: new Date().toISOString(), removed_by: user?.id };
+    const { data, error } = await supabase.from(table).update(patch).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  };
+  const softDeleteProject = async (id) => removeRow('projects', id);
+  const softDeleteCluster = async (id) => removeRow('project_clusters', id);
+  const softDeleteMicrotask = async (id) => removeRow('project_microtasks', id);
+
   const memberColorMap = {};
   const memberNameMap = {};
   houseMembers.forEach((m) => {
@@ -198,6 +208,7 @@ export const ProjectsProvider = ({ children }) => {
         addMicrotask, updateMicrotask,
         toggleMicrotaskComplete,
         restoreProject, restoreCluster, restoreMicrotask,
+        softDeleteProject, softDeleteCluster, softDeleteMicrotask,
       }}
     >
       {children}
