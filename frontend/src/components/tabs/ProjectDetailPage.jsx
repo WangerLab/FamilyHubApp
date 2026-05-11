@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import { computeProjectProgress } from '../../lib/projectProgress';
+import ClusterCard from '../projects/ClusterCard';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -10,6 +11,9 @@ export default function ProjectDetailPage() {
   const { projects, clusters, microtasks, loading } = useProjects();
 
   const project = projects.find((p) => p.id === id);
+  const projectClusters = clusters
+    .filter((c) => c.project_id === id && !c.archived && !c.removed_at)
+    .sort((a, b) => (a.cluster_order || 0) - (b.cluster_order || 0));
   const { percent, hasNoTasks } = project
     ? computeProjectProgress(project.id, clusters, microtasks)
     : { percent: 0, hasNoTasks: true };
@@ -90,6 +94,12 @@ export default function ProjectDetailPage() {
             {hasNoTasks ? '—' : `${percent}%`}
           </span>
         </div>
+      </div>
+
+      <div className="px-4 mt-6 space-y-3">
+        {projectClusters.map((c) => (
+          <ClusterCard key={c.id} cluster={c} microtasks={microtasks} />
+        ))}
       </div>
     </div>
   );
