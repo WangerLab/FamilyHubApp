@@ -73,7 +73,7 @@ export default function ClusterCard({ cluster, microtasks }) {
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {clusterTasks.map((t) => (
-                <MicrotaskRow key={t.id} task={t} onToggle={handleToggle} />
+                <MicrotaskRow key={t.id} task={t} onToggle={handleToggle} allMicrotasks={microtasks} />
               ))}
             </div>
           )}
