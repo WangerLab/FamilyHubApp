@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
+import { ChevronLeft, Plus, ChevronDown, ChevronRight, Pencil, Check } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import InlineTitleEditor from '../projects/InlineTitleEditor';
 import InlineTextareaEditor from '../projects/InlineTextareaEditor';
 import EffortWeightStepper from '../projects/EffortWeightStepper';
+import DependencyToggleList from '../projects/DependencyToggleList';
 
 const SUGGESTED_FOR_OPTIONS = [
   { value: 'tim', label: 'Tim', color: '#EC4899' },
@@ -20,6 +21,7 @@ export default function MicrotaskDetailPage() {
   const [editingDescription, setEditingDescription] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
   const [moreDetailsExpanded, setMoreDetailsExpanded] = useState(false);
+  const [editingDependencies, setEditingDependencies] = useState(false);
 
   const project = projects.find((p) => p.id === projectId);
   const task = microtasks.find((m) => m.id === taskId);
@@ -30,6 +32,18 @@ export default function MicrotaskDetailPage() {
           microtasks.find((m) => m.external_id === extId && !m.archived && !m.removed_at)
         )
         .filter(Boolean)
+    : [];
+  const selectableTasks = task
+    ? microtasks
+        .filter(
+          (m) =>
+            m.cluster_id === task.cluster_id &&
+            m.id !== task.id &&
+            !m.archived &&
+            !m.removed_at &&
+            m.external_id
+        )
+        .sort((a, b) => (a.task_order || 0) - (b.task_order || 0))
     : [];
 
   async function handleSaveTitle(newTitle) {
@@ -55,6 +69,15 @@ export default function MicrotaskDetailPage() {
   async function handleSuggestedForChange(value) {
     if (!task) return;
     await updateMicrotask(task.id, { suggested_for: value });
+  }
+
+  async function handleToggleDependency(targetExternalId) {
+    if (!task) return;
+    const current = Array.isArray(task.depends_on) ? task.depends_on : [];
+    const next = current.includes(targetExternalId)
+      ? current.filter((id) => id !== targetExternalId)
+      : [...current, targetExternalId];
+    await updateMicrotask(task.id, { depends_on: next });
   }
 
   if (loading) {
@@ -299,15 +322,30 @@ export default function MicrotaskDetailPage() {
                   <p className="text-xs text-slate-500 dark:text-slate-400">Abhängig von</p>
                   <button
                     type="button"
-                    onClick={() => {}}
+                    onClick={() => setEditingDependencies((v) => !v)}
                     className="text-xs text-rose-600 dark:text-rose-400 active:opacity-70 flex items-center gap-1"
-                    aria-label="Abhängigkeiten bearbeiten"
+                    aria-label={editingDependencies ? 'Bearbeitung beenden' : 'Abhängigkeiten bearbeiten'}
                   >
-                    <Pencil className="w-3 h-3" />
-                    Bearbeiten
+                    {editingDependencies ? (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Fertig
+                      </>
+                    ) : (
+                      <>
+                        <Pencil className="w-3 h-3" />
+                        Bearbeiten
+                      </>
+                    )}
                   </button>
                 </div>
-                {dependencyTasks.length === 0 ? (
+                {editingDependencies ? (
+                  <DependencyToggleList
+                    selectableTasks={selectableTasks}
+                    selectedExternalIds={task.depends_on || []}
+                    onToggle={handleToggleDependency}
+                  />
+                ) : dependencyTasks.length === 0 ? (
                   <p className="text-sm text-slate-400 dark:text-slate-500 italic">
                     Keine Abhängigkeiten
                   </p>
