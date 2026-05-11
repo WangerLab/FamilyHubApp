@@ -8,6 +8,7 @@ import { TodosProvider } from '../contexts/TodosContext';
 import { ChoresProvider } from '../contexts/ChoresContext';
 import { ActivityProvider } from '../contexts/ActivityContext';
 import { ExpensesProvider } from '../contexts/ExpensesContext';
+import { ProjectsProvider } from '../contexts/ProjectsContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../supabaseClient';
 import { triggerCalendarSync } from '../lib/googleAuth';
@@ -102,6 +103,7 @@ export default function AppShell() {
     <TodosProvider>
     <ChoresProvider>
     <ExpensesProvider>
+    <ProjectsProvider>
     <div className="relative w-full sm:max-w-[480px] mx-auto min-h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950">
       {/* Top bar */}
       <TopBar />
@@ -194,6 +196,7 @@ export default function AppShell() {
       {/* Bottom nav */}
       <BottomNav />
     </div>
+    </ProjectsProvider>
     </ExpensesProvider>
     </ChoresProvider>
     </TodosProvider>
