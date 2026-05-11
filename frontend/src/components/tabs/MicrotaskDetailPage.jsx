@@ -16,7 +16,7 @@ const SUGGESTED_FOR_OPTIONS = [
 export default function MicrotaskDetailPage() {
   const { id: projectId, taskId } = useParams();
   const navigate = useNavigate();
-  const { projects, clusters, microtasks, loading, updateMicrotask } = useProjects();
+  const { projects, clusters, microtasks, loading, updateMicrotask, memberNameMap } = useProjects();
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
@@ -171,7 +171,7 @@ export default function MicrotaskDetailPage() {
           )}
           {task.completed && task.completed_at && !editingTitle && (
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Erledigt am {new Date(task.completed_at).toLocaleDateString('de-DE', {
+              Erledigt{task.completed_by && memberNameMap?.[task.completed_by] ? ` von ${memberNameMap[task.completed_by]}` : ''} am {new Date(task.completed_at).toLocaleDateString('de-DE', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',
