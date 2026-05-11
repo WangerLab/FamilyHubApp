@@ -20,6 +20,12 @@ const updateReturning = async (table, id, patch) => {
   return data;
 };
 
+// Fire-and-forget cascade — keeps projects.updated_at fresh for "updated X ago" UI.
+const touchProject = (projectId) => {
+  if (!projectId) return;
+  supabase.from('projects').update({ updated_at: new Date().toISOString() }).eq('id', projectId).then(() => {}, () => {});
+};
+
 // Generic realtime handler. parentOk(row) gates events whose parent isn't in our
 // local state (clusters/microtasks have no household_id filter on the channel).
 const handleEvent = (payload, { setter, idsRef, parentOk, prepend }) => {
@@ -149,18 +155,38 @@ export const ProjectsProvider = ({ children }) => {
   });
   const updateProject = async (id, patch) => updateReturning('projects', id,
     pick(patch, ['name', 'summary', 'priority', 'priority_start', 'priority_end', 'archived', 'archived_at']));
-  const addCluster = async (projectId, payload) => insertReturning('project_clusters', {
-    project_id: projectId,
-    ...pick(payload, ['name', 'description', 'cluster_order', 'external_id']),
-  });
-  const updateCluster = async (id, patch) => updateReturning('project_clusters', id,
-    pick(patch, ['name', 'description', 'cluster_order', 'archived', 'archived_at']));
-  const addMicrotask = async (clusterId, payload) => insertReturning('project_microtasks', {
-    cluster_id: clusterId,
-    ...pick(payload, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'external_id']),
-  });
-  const updateMicrotask = async (id, patch) => updateReturning('project_microtasks', id,
-    pick(patch, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'archived', 'archived_at', 'note', 'note_details', 'note_raw']));
+  const touchProjectViaCluster = (clusterId) => {
+    const c = clusters.find((x) => x.id === clusterId);
+    if (c) touchProject(c.project_id);
+  };
+  const addCluster = async (projectId, payload) => {
+    const row = await insertReturning('project_clusters', {
+      project_id: projectId,
+      ...pick(payload, ['name', 'description', 'cluster_order', 'external_id']),
+    });
+    touchProject(row.project_id);
+    return row;
+  };
+  const updateCluster = async (id, patch) => {
+    const row = await updateReturning('project_clusters', id,
+      pick(patch, ['name', 'description', 'cluster_order', 'archived', 'archived_at']));
+    touchProject(row.project_id);
+    return row;
+  };
+  const addMicrotask = async (clusterId, payload) => {
+    const row = await insertReturning('project_microtasks', {
+      cluster_id: clusterId,
+      ...pick(payload, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'external_id']),
+    });
+    touchProjectViaCluster(row.cluster_id);
+    return row;
+  };
+  const updateMicrotask = async (id, patch) => {
+    const row = await updateReturning('project_microtasks', id,
+      pick(patch, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'archived', 'archived_at', 'note', 'note_details', 'note_raw']));
+    touchProjectViaCluster(row.cluster_id);
+    return row;
+  };
 
   // Toggle and restore use direct calls — completed/removed fields are intentionally
   // outside the general update allowlists; these are specialized operations.
@@ -170,6 +196,7 @@ export const ProjectsProvider = ({ children }) => {
       : { completed: true, completed_at: new Date().toISOString(), completed_by: user?.id };
     const { data, error } = await supabase.from('project_microtasks').update(patch).eq('id', id).select().single();
     if (error) throw error;
+    touchProjectViaCluster(data.cluster_id);
     return data;
   };
   const restoreRow = async (table, id) => {
@@ -178,8 +205,16 @@ export const ProjectsProvider = ({ children }) => {
     return data;
   };
   const restoreProject = async (id) => restoreRow('projects', id);
-  const restoreCluster = async (id) => restoreRow('project_clusters', id);
-  const restoreMicrotask = async (id) => restoreRow('project_microtasks', id);
+  const restoreCluster = async (id) => {
+    const row = await restoreRow('project_clusters', id);
+    touchProject(row.project_id);
+    return row;
+  };
+  const restoreMicrotask = async (id) => {
+    const row = await restoreRow('project_microtasks', id);
+    touchProjectViaCluster(row.cluster_id);
+    return row;
+  };
 
   const removeRow = async (table, id) => {
     const patch = { removed_at: new Date().toISOString(), removed_by: user?.id };
@@ -188,8 +223,16 @@ export const ProjectsProvider = ({ children }) => {
     return data;
   };
   const softDeleteProject = async (id) => removeRow('projects', id);
-  const softDeleteCluster = async (id) => removeRow('project_clusters', id);
-  const softDeleteMicrotask = async (id) => removeRow('project_microtasks', id);
+  const softDeleteCluster = async (id) => {
+    const row = await removeRow('project_clusters', id);
+    touchProject(row.project_id);
+    return row;
+  };
+  const softDeleteMicrotask = async (id) => {
+    const row = await removeRow('project_microtasks', id);
+    touchProjectViaCluster(row.cluster_id);
+    return row;
+  };
 
   const memberColorMap = {};
   const memberNameMap = {};
