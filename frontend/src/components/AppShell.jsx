@@ -21,6 +21,7 @@ import ChoresTab from './tabs/ChoresTab';
 import SettingsPage from './tabs/SettingsPage';
 import CalendarPage from './tabs/CalendarPage';
 import ProjectsPage from './tabs/ProjectsPage';
+import ProjectDetailPage from './tabs/ProjectDetailPage';
 import ExpensesTab from './tabs/ExpensesTab';
 import StatisticsPage from './home/StatisticsPage';
 import FloatingBrainDumpButton from './FloatingBrainDumpButton';
@@ -186,6 +187,7 @@ export default function AppShell() {
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/more" element={<Navigate to="/settings" replace />} />
           <Route path="*" element={<Navigate to="/home" replace />} />

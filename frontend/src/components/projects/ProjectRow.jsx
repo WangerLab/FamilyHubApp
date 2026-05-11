@@ -1,13 +1,16 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { computeProjectProgress } from '../../lib/projectProgress';
 
 export default function ProjectRow({ project, clusters, microtasks }) {
+  const navigate = useNavigate();
   const { percent, hasNoTasks } = computeProjectProgress(project.id, clusters, microtasks);
 
   return (
     <div
       data-testid={`project-row-${project.id}`}
-      className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4"
+      onClick={() => navigate(`/projects/${project.id}`)}
+      className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 cursor-pointer active:opacity-80"
     >
       <h3
         className="text-base font-semibold text-slate-900 dark:text-slate-50"
