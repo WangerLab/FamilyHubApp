@@ -98,6 +98,19 @@ export default function ProjectDetailPage() {
         </div>
       </div>
 
+      {projectClusters.length === 0 && (
+        <div className="px-4 mt-6">
+          <div className="rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 text-center">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Dieses Projekt hat noch keine Cluster.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+              Lege unten einen ersten Cluster an, um Aufgaben zu strukturieren.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 mt-6 space-y-3">
         {projectClusters.map((c) => (
           <ClusterCard key={c.id} cluster={c} microtasks={microtasks} />
