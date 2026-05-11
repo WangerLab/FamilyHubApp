@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
+import InlineTitleEditor from '../projects/InlineTitleEditor';
 
 export default function MicrotaskDetailPage() {
   const { id: projectId, taskId } = useParams();
   const navigate = useNavigate();
-  const { projects, clusters, microtasks, loading } = useProjects();
+  const { projects, clusters, microtasks, loading, updateMicrotask } = useProjects();
+  const [editingTitle, setEditingTitle] = useState(false);
 
   const project = projects.find((p) => p.id === projectId);
   const task = microtasks.find((m) => m.id === taskId);
   const cluster = task ? clusters.find((c) => c.id === task.cluster_id) : null;
+
+  async function handleSaveTitle(newTitle) {
+    await updateMicrotask(task.id, { title: newTitle });
+    setEditingTitle(false);
+  }
 
   if (loading) {
     return (
@@ -75,17 +82,33 @@ export default function MicrotaskDetailPage() {
 
       <div className="px-4 pt-5 space-y-5">
         <div>
-          <h2
-            className={`text-xl font-bold ${
-              task.completed
-                ? 'text-slate-400 dark:text-slate-500 line-through'
-                : 'text-slate-900 dark:text-slate-50'
-            }`}
-            style={{ fontFamily: 'Manrope, sans-serif' }}
-          >
-            {task.title}
-          </h2>
-          {task.completed && task.completed_at && (
+          {editingTitle ? (
+            <InlineTitleEditor
+              initialValue={task.title}
+              onSave={handleSaveTitle}
+              onCancel={() => setEditingTitle(false)}
+              ariaLabel="Titel"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingTitle(true)}
+              className="w-full text-left active:opacity-70"
+              aria-label="Titel bearbeiten"
+            >
+              <h2
+                className={`text-xl font-bold ${
+                  task.completed
+                    ? 'text-slate-400 dark:text-slate-500 line-through'
+                    : 'text-slate-900 dark:text-slate-50'
+                }`}
+                style={{ fontFamily: 'Manrope, sans-serif' }}
+              >
+                {task.title}
+              </h2>
+            </button>
+          )}
+          {task.completed && task.completed_at && !editingTitle && (
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Erledigt am {new Date(task.completed_at).toLocaleDateString('de-DE', {
                 day: '2-digit',
