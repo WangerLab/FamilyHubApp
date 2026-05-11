@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, FolderKanban } from 'lucide-react';
+import { ChevronLeft, FolderKanban, Plus } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import ProjectRow from '../projects/ProjectRow';
+import ImportProjectSheet from '../projects/ImportProjectSheet';
 
 export default function ProjectsPage() {
   const navigate = useNavigate();
   const { projects, clusters, microtasks, loading } = useProjects();
+  const [importOpen, setImportOpen] = useState(false);
 
   const activeProjects = projects
     .filter((p) => !p.archived && !p.removed_at)
@@ -51,6 +53,17 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      <button
+        data-testid="projects-import-fab"
+        onClick={() => setImportOpen(true)}
+        aria-label="Projekt importieren"
+        className="fixed bottom-24 left-6 z-30 w-14 h-14 rounded-full bg-rose-500 text-white shadow-lg flex items-center justify-center active:opacity-80"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
+
+      <ImportProjectSheet open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 }
