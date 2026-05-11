@@ -11,6 +11,7 @@ export default function MicrotaskDetailPage() {
   const { projects, clusters, microtasks, loading, updateMicrotask } = useProjects();
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
 
   const project = projects.find((p) => p.id === projectId);
   const task = microtasks.find((m) => m.id === taskId);
@@ -24,6 +25,11 @@ export default function MicrotaskDetailPage() {
   async function handleSaveDescription(newValue) {
     await updateMicrotask(task.id, { description: newValue });
     setEditingDescription(false);
+  }
+
+  async function handleSaveNote(newValue) {
+    await updateMicrotask(task.id, { note: newValue });
+    setEditingNote(false);
   }
 
   if (loading) {
@@ -162,16 +168,41 @@ export default function MicrotaskDetailPage() {
           )}
         </div>
 
-        {task.note && (
-          <div>
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-              Notiz
-            </h3>
-            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-              {task.note}
-            </p>
-          </div>
-        )}
+        <div>
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+            Notiz
+          </h3>
+          {editingNote ? (
+            <InlineTextareaEditor
+              initialValue={task.note}
+              onSave={handleSaveNote}
+              onCancel={() => setEditingNote(false)}
+              ariaLabel="Notiz"
+              placeholder="Notiz eingeben…"
+            />
+          ) : task.note ? (
+            <button
+              type="button"
+              onClick={() => setEditingNote(true)}
+              className="w-full text-left active:opacity-70"
+              aria-label="Notiz bearbeiten"
+            >
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                {task.note}
+              </p>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingNote(true)}
+              className="text-sm text-rose-600 dark:text-rose-400 active:opacity-70 flex items-center gap-1.5"
+              aria-label="Notiz hinzufügen"
+            >
+              <Plus className="w-4 h-4" />
+              Notiz hinzufügen
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
