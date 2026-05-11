@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { ChevronLeft, Plus, ChevronDown, ChevronRight } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import InlineTitleEditor from '../projects/InlineTitleEditor';
 import InlineTextareaEditor from '../projects/InlineTextareaEditor';
+import EffortWeightStepper from '../projects/EffortWeightStepper';
 
 export default function MicrotaskDetailPage() {
   const { id: projectId, taskId } = useParams();
@@ -12,6 +13,7 @@ export default function MicrotaskDetailPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
+  const [moreDetailsExpanded, setMoreDetailsExpanded] = useState(false);
 
   const project = projects.find((p) => p.id === projectId);
   const task = microtasks.find((m) => m.id === taskId);
@@ -30,6 +32,11 @@ export default function MicrotaskDetailPage() {
   async function handleSaveNote(newValue) {
     await updateMicrotask(task.id, { note: newValue });
     setEditingNote(false);
+  }
+
+  async function handleEffortChange(newValue) {
+    if (!task) return;
+    await updateMicrotask(task.id, { effort_weight: newValue });
   }
 
   if (loading) {
@@ -201,6 +208,37 @@ export default function MicrotaskDetailPage() {
               <Plus className="w-4 h-4" />
               Notiz hinzufügen
             </button>
+          )}
+        </div>
+
+        <div>
+          <button
+            type="button"
+            onClick={() => setMoreDetailsExpanded((v) => !v)}
+            className="w-full flex items-center justify-between text-left active:opacity-70 py-2"
+            aria-expanded={moreDetailsExpanded}
+          >
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              Mehr Details
+            </h3>
+            {moreDetailsExpanded ? (
+              <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+            )}
+          </button>
+          {moreDetailsExpanded && (
+            <div className="mt-2 space-y-4">
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Aufwand</p>
+                <EffortWeightStepper
+                  value={task.effort_weight || 2}
+                  onChange={handleEffortChange}
+                  ariaLabelMinus="Aufwand verringern"
+                  ariaLabelPlus="Aufwand erhöhen"
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>
