@@ -162,6 +162,25 @@ export const ProjectsProvider = ({ children }) => {
   const updateMicrotask = async (id, patch) => updateReturning('project_microtasks', id,
     pick(patch, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'archived', 'archived_at', 'note', 'note_details', 'note_raw']));
 
+  // Toggle and restore use direct calls — completed/removed fields are intentionally
+  // outside the general update allowlists; these are specialized operations.
+  const toggleMicrotaskComplete = async (id, currentlyCompleted) => {
+    const patch = currentlyCompleted
+      ? { completed: false, completed_at: null, completed_by: null }
+      : { completed: true, completed_at: new Date().toISOString(), completed_by: user?.id };
+    const { data, error } = await supabase.from('project_microtasks').update(patch).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  };
+  const restoreRow = async (table, id) => {
+    const { data, error } = await supabase.from(table).update({ removed_at: null, removed_by: null }).eq('id', id).select().single();
+    if (error) throw error;
+    return data;
+  };
+  const restoreProject = async (id) => restoreRow('projects', id);
+  const restoreCluster = async (id) => restoreRow('project_clusters', id);
+  const restoreMicrotask = async (id) => restoreRow('project_microtasks', id);
+
   const memberColorMap = {};
   const memberNameMap = {};
   houseMembers.forEach((m) => {
@@ -177,6 +196,8 @@ export const ProjectsProvider = ({ children }) => {
         createProject, updateProject,
         addCluster, updateCluster,
         addMicrotask, updateMicrotask,
+        toggleMicrotaskComplete,
+        restoreProject, restoreCluster, restoreMicrotask,
       }}
     >
       {children}
