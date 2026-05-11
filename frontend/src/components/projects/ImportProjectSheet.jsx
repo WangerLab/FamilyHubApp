@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
-import { validateProjectJson } from '../../lib/projectIO';
+import { validateProjectJson, jsonToDbShape } from '../../lib/projectIO';
+import { supabase } from '../../supabaseClient';
+import { useAuth } from '../../contexts/AuthContext';
 import ValidationFeedback from './ValidationFeedback';
 
 export default function ImportProjectSheet({ open, onClose }) {
+  const { member, user } = useAuth();
+  const householdId = member?.household_id;
+  const userId = user?.id;
   const [jsonText, setJsonText] = useState('');
   const [validationState, setValidationState] = useState('idle'); // 'idle' | 'syntax_error' | 'schema_error' | 'valid'
   const [errors, setErrors] = useState([]);
   const [parsed, setParsed] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(null);
 
   if (!open) return null;
 
@@ -19,7 +26,37 @@ export default function ImportProjectSheet({ open, onClose }) {
   function handleClose() {
     setJsonText('');
     resetValidation();
+    setImportError(null);
+    setImporting(false);
     onClose();
+  }
+
+  async function handleConfirm() {
+    if (!parsed || importing) return;
+    if (!householdId || !userId) {
+      setImportError('Auth-Daten fehlen — bitte neu anmelden');
+      return;
+    }
+    setImporting(true);
+    setImportError(null);
+    try {
+      const { project, clusters, microtasks } = jsonToDbShape(parsed, householdId, userId);
+      const { error: projectErr } = await supabase.from('projects').insert(project);
+      if (projectErr) throw new Error(`Project: ${projectErr.message}`);
+      if (clusters.length > 0) {
+        const { error: clustersErr } = await supabase.from('project_clusters').insert(clusters);
+        if (clustersErr) throw new Error(`Clusters: ${clustersErr.message}`);
+      }
+      if (microtasks.length > 0) {
+        const { error: microErr } = await supabase.from('project_microtasks').insert(microtasks);
+        if (microErr) throw new Error(`Microtasks: ${microErr.message}`);
+      }
+      handleClose();
+    } catch (e) {
+      setImportError(e.message);
+    } finally {
+      setImporting(false);
+    }
   }
 
   function handleValidate() {
@@ -79,23 +116,33 @@ export default function ImportProjectSheet({ open, onClose }) {
             className="w-full min-h-[200px] rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 font-mono text-xs text-slate-900 dark:text-slate-50"
           />
           <ValidationFeedback state={validationState} errors={errors} parsed={parsed} />
+          {importError && (
+            <div
+              data-testid="import-error"
+              className="mt-4 rounded-xl bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900 p-4"
+            >
+              <p className="text-sm font-semibold text-rose-700 dark:text-rose-300">Importfehler</p>
+              <p className="text-xs text-rose-600 dark:text-rose-400 mt-1 break-words">{importError}</p>
+            </div>
+          )}
         </div>
         <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-800 flex gap-3">
           <button
             data-testid="import-sheet-cancel"
             onClick={handleClose}
-            className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 font-medium"
+            disabled={importing}
+            className="flex-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 py-3 font-medium disabled:opacity-40"
           >
             Abbrechen
           </button>
           {validationState === 'valid' ? (
             <button
               data-testid="import-sheet-confirm"
-              // confirm logic in M-4.3c
-              onClick={() => {}}
-              className="flex-1 rounded-xl bg-rose-500 text-white py-3 font-medium"
+              onClick={handleConfirm}
+              disabled={importing || !householdId || !userId}
+              className="flex-1 rounded-xl bg-rose-500 text-white py-3 font-medium disabled:opacity-40"
             >
-              Importieren
+              {importing ? 'Importiere…' : 'Importieren'}
             </button>
           ) : (
             <button
