@@ -1,10 +1,25 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { computeClusterProgress } from '../../lib/projectProgress';
+import { useProjects } from '../../contexts/ProjectsContext';
+import MicrotaskRow from './MicrotaskRow';
 
 export default function ClusterCard({ cluster, microtasks }) {
   const [expanded, setExpanded] = useState(true);
+  const { toggleMicrotaskComplete } = useProjects();
   const { percent, hasNoTasks } = computeClusterProgress(cluster.id, microtasks);
+
+  const clusterTasks = microtasks
+    .filter((m) => m.cluster_id === cluster.id && !m.archived && !m.removed_at)
+    .sort((a, b) => (a.task_order || 0) - (b.task_order || 0));
+
+  async function handleToggle(task) {
+    try {
+      await toggleMicrotaskComplete(task.id, task.completed);
+    } catch (e) {
+      // Realtime brings DB state on next tick — silent for now
+    }
+  }
 
   return (
     <div
@@ -48,10 +63,18 @@ export default function ClusterCard({ cluster, microtasks }) {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-slate-200 dark:border-slate-800 pt-3">
-          <p className="text-xs text-slate-400 dark:text-slate-500 italic">
-            Aufgaben kommen in M-4.4c
-          </p>
+        <div className="px-4 pb-3 border-t border-slate-200 dark:border-slate-800 pt-2">
+          {clusterTasks.length === 0 ? (
+            <p className="text-xs text-slate-400 dark:text-slate-500 italic py-2">
+              Noch keine Aufgaben in diesem Cluster
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {clusterTasks.map((t) => (
+                <MicrotaskRow key={t.id} task={t} onToggle={handleToggle} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
