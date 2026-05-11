@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import InlineTitleEditor from '../projects/InlineTitleEditor';
+import InlineTextareaEditor from '../projects/InlineTextareaEditor';
 
 export default function MicrotaskDetailPage() {
   const { id: projectId, taskId } = useParams();
   const navigate = useNavigate();
   const { projects, clusters, microtasks, loading, updateMicrotask } = useProjects();
   const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
 
   const project = projects.find((p) => p.id === projectId);
   const task = microtasks.find((m) => m.id === taskId);
@@ -17,6 +19,11 @@ export default function MicrotaskDetailPage() {
   async function handleSaveTitle(newTitle) {
     await updateMicrotask(task.id, { title: newTitle });
     setEditingTitle(false);
+  }
+
+  async function handleSaveDescription(newValue) {
+    await updateMicrotask(task.id, { description: newValue });
+    setEditingDescription(false);
   }
 
   if (loading) {
@@ -119,16 +126,41 @@ export default function MicrotaskDetailPage() {
           )}
         </div>
 
-        {task.description && (
-          <div>
-            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
-              Beschreibung
-            </h3>
-            <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-              {task.description}
-            </p>
-          </div>
-        )}
+        <div>
+          <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">
+            Beschreibung
+          </h3>
+          {editingDescription ? (
+            <InlineTextareaEditor
+              initialValue={task.description}
+              onSave={handleSaveDescription}
+              onCancel={() => setEditingDescription(false)}
+              ariaLabel="Beschreibung"
+              placeholder="Beschreibung eingeben…"
+            />
+          ) : task.description ? (
+            <button
+              type="button"
+              onClick={() => setEditingDescription(true)}
+              className="w-full text-left active:opacity-70"
+              aria-label="Beschreibung bearbeiten"
+            >
+              <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                {task.description}
+              </p>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditingDescription(true)}
+              className="text-sm text-rose-600 dark:text-rose-400 active:opacity-70 flex items-center gap-1.5"
+              aria-label="Beschreibung hinzufügen"
+            >
+              <Plus className="w-4 h-4" />
+              Beschreibung hinzufügen
+            </button>
+          )}
+        </div>
 
         {task.note && (
           <div>
@@ -139,12 +171,6 @@ export default function MicrotaskDetailPage() {
               {task.note}
             </p>
           </div>
-        )}
-
-        {!task.description && !task.note && (
-          <p className="text-sm text-slate-400 dark:text-slate-500 italic">
-            Noch keine Beschreibung oder Notiz. Bearbeitung kommt im nächsten Sprint.
-          </p>
         )}
       </div>
     </div>
