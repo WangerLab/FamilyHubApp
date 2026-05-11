@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Plus, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import InlineTitleEditor from '../projects/InlineTitleEditor';
 import InlineTextareaEditor from '../projects/InlineTextareaEditor';
@@ -24,6 +24,13 @@ export default function MicrotaskDetailPage() {
   const project = projects.find((p) => p.id === projectId);
   const task = microtasks.find((m) => m.id === taskId);
   const cluster = task ? clusters.find((c) => c.id === task.cluster_id) : null;
+  const dependencyTasks = task && Array.isArray(task.depends_on)
+    ? task.depends_on
+        .map((extId) =>
+          microtasks.find((m) => m.external_id === extId && !m.archived && !m.removed_at)
+        )
+        .filter(Boolean)
+    : [];
 
   async function handleSaveTitle(newTitle) {
     await updateMicrotask(task.id, { title: newTitle });
@@ -286,6 +293,40 @@ export default function MicrotaskDetailPage() {
                     Niemand
                   </button>
                 </div>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Abhängig von</p>
+                  <button
+                    type="button"
+                    onClick={() => {}}
+                    className="text-xs text-rose-600 dark:text-rose-400 active:opacity-70 flex items-center gap-1"
+                    aria-label="Abhängigkeiten bearbeiten"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Bearbeiten
+                  </button>
+                </div>
+                {dependencyTasks.length === 0 ? (
+                  <p className="text-sm text-slate-400 dark:text-slate-500 italic">
+                    Keine Abhängigkeiten
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {dependencyTasks.map((dep) => (
+                      <span
+                        key={dep.id}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                          dep.completed
+                            ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        }`}
+                      >
+                        {dep.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
