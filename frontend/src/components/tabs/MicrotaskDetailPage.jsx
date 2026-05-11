@@ -6,6 +6,12 @@ import InlineTitleEditor from '../projects/InlineTitleEditor';
 import InlineTextareaEditor from '../projects/InlineTextareaEditor';
 import EffortWeightStepper from '../projects/EffortWeightStepper';
 
+const SUGGESTED_FOR_OPTIONS = [
+  { value: 'tim', label: 'Tim', color: '#EC4899' },
+  { value: 'iris', label: 'Iris', color: '#2563EB' },
+  { value: 'both', label: 'Beide', color: '#94A3B8' },
+];
+
 export default function MicrotaskDetailPage() {
   const { id: projectId, taskId } = useParams();
   const navigate = useNavigate();
@@ -37,6 +43,11 @@ export default function MicrotaskDetailPage() {
   async function handleEffortChange(newValue) {
     if (!task) return;
     await updateMicrotask(task.id, { effort_weight: newValue });
+  }
+
+  async function handleSuggestedForChange(value) {
+    if (!task) return;
+    await updateMicrotask(task.id, { suggested_for: value });
   }
 
   if (loading) {
@@ -237,6 +248,44 @@ export default function MicrotaskDetailPage() {
                   ariaLabelMinus="Aufwand verringern"
                   ariaLabelPlus="Aufwand erhöhen"
                 />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Vorgeschlagen für</p>
+                <div className="flex gap-2 flex-wrap">
+                  {SUGGESTED_FOR_OPTIONS.map((opt) => {
+                    const selected = task.suggested_for === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => handleSuggestedForChange(opt.value)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium active:opacity-70 flex items-center gap-1.5 ${
+                          selected
+                            ? 'text-white'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                        }`}
+                        style={selected ? { backgroundColor: opt.color } : undefined}
+                        aria-pressed={selected}
+                      >
+                        <span
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: selected ? 'rgba(255,255,255,0.6)' : opt.color }}
+                          aria-hidden="true"
+                        />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => handleSuggestedForChange(null)}
+                    disabled={!task.suggested_for}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 active:opacity-70 disabled:opacity-30"
+                    aria-label="Vorschlag zurücksetzen"
+                  >
+                    Niemand
+                  </button>
+                </div>
               </div>
             </div>
           )}
