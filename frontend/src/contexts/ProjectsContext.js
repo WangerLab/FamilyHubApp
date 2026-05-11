@@ -4,6 +4,22 @@ import { useAuth } from './AuthContext';
 
 const ProjectsContext = createContext(null);
 
+// Whitelist patch fields so callers can't sneak in id/household_id/created_at.
+const pick = (obj, keys) =>
+  Object.fromEntries(keys.filter((k) => obj?.[k] !== undefined).map((k) => [k, obj[k]]));
+
+const insertReturning = async (table, row) => {
+  const { data, error } = await supabase.from(table).insert(row).select().single();
+  if (error) throw error;
+  return data;
+};
+
+const updateReturning = async (table, id, patch) => {
+  const { data, error } = await supabase.from(table).update(patch).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+};
+
 // Generic realtime handler. parentOk(row) gates events whose parent isn't in our
 // local state (clusters/microtasks have no household_id filter on the channel).
 const handleEvent = (payload, { setter, idsRef, parentOk, prepend }) => {
@@ -28,7 +44,7 @@ const handleEvent = (payload, { setter, idsRef, parentOk, prepend }) => {
 };
 
 export const ProjectsProvider = ({ children }) => {
-  const { member } = useAuth();
+  const { member, user } = useAuth();
   const [projects, setProjects] = useState([]);
   const [clusters, setClusters] = useState([]);
   const [microtasks, setMicrotasks] = useState([]);
@@ -126,6 +142,26 @@ export const ProjectsProvider = ({ children }) => {
     };
   }, [member?.household_id]);
 
+  const createProject = async (payload) => insertReturning('projects', {
+    household_id: member.household_id,
+    created_by: user?.id,
+    ...pick(payload, ['name', 'summary', 'priority', 'priority_start', 'priority_end', 'external_id']),
+  });
+  const updateProject = async (id, patch) => updateReturning('projects', id,
+    pick(patch, ['name', 'summary', 'priority', 'priority_start', 'priority_end', 'archived', 'archived_at']));
+  const addCluster = async (projectId, payload) => insertReturning('project_clusters', {
+    project_id: projectId,
+    ...pick(payload, ['name', 'description', 'cluster_order', 'external_id']),
+  });
+  const updateCluster = async (id, patch) => updateReturning('project_clusters', id,
+    pick(patch, ['name', 'description', 'cluster_order', 'archived', 'archived_at']));
+  const addMicrotask = async (clusterId, payload) => insertReturning('project_microtasks', {
+    cluster_id: clusterId,
+    ...pick(payload, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'external_id']),
+  });
+  const updateMicrotask = async (id, patch) => updateReturning('project_microtasks', id,
+    pick(patch, ['title', 'description', 'effort_weight', 'depends_on', 'suggested_for', 'task_order', 'archived', 'archived_at', 'note', 'note_details', 'note_raw']));
+
   const memberColorMap = {};
   const memberNameMap = {};
   houseMembers.forEach((m) => {
@@ -138,6 +174,9 @@ export const ProjectsProvider = ({ children }) => {
       value={{
         projects, clusters, microtasks, loading,
         houseMembers, memberColorMap, memberNameMap,
+        createProject, updateProject,
+        addCluster, updateCluster,
+        addMicrotask, updateMicrotask,
       }}
     >
       {children}
