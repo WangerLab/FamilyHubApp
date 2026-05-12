@@ -411,7 +411,7 @@ export default async function handler(req, res) {
             messages: [{ role: "user", content: text.trim() }],
           }),
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 15000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), mode === 'project_plan_structure' ? 45000 : mode === 'project_plan_clarify' ? 30000 : 15000)),
       ]);
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
