@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShoppingCart, CheckSquare, RefreshCw, Wallet,
-  Calendar, Pin, Cake, Settings as SettingsIcon, Trophy,
+  Calendar, Cake, Settings as SettingsIcon, Trophy, FolderKanban,
   Apple, ShoppingBag, Soup, User, ListTodo,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,6 +13,7 @@ import { useAsia } from '../../contexts/AsiaContext';
 import { useTodos } from '../../contexts/TodosContext';
 import { useChores } from '../../contexts/ChoresContext';
 import { useExpenses } from '../../contexts/ExpensesContext';
+import ProjectsTile from './ProjectsTile';
 
 const GOOGLE_COLOR_IDS = {
   '1': '#7986CB', '2': '#33B679', '3': '#8E24AA', '4': '#E67C73',
@@ -538,7 +539,15 @@ export default function DashboardHome() {
             )}
           </div>
         </Tile>
-        <PlaceholderTile icon={Pin} label="Pinboard" testid="tile-pinboard-placeholder" />
+        <Tile
+          testid="tile-projects"
+          icon={FolderKanban}
+          label="Projekte"
+          color="#E11D48"
+          onClick={() => navigate('/projects')}
+        >
+          <ProjectsTile />
+        </Tile>
 
         <PlaceholderTile icon={Cake} label="Birthdays" testid="tile-birthdays-placeholder" />
         <Tile
