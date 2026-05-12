@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import ConfirmDialog from '../projects/ConfirmDialog';
+import BrainDumpStep from '../projects/BrainDumpStep';
 
 const PHASE_NUMBERS = {
   brain_dump: 1,
@@ -27,11 +29,14 @@ const MOCK_DRAFT = {
 
 export default function PlanNewProjectPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [phase, setPhase] = useState('brain_dump');
   const [brainDump, setBrainDump] = useState('');
   const [rounds, setRounds] = useState([]);
   const [draft, setDraft] = useState(null);
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const phaseNumber = PHASE_NUMBERS[phase] || 1;
 
@@ -40,6 +45,40 @@ export default function PlanNewProjectPage() {
       navigate('/projects/plan-mode-hub');
     } else {
       setCancelConfirmOpen(true);
+    }
+  }
+
+  async function handleBrainDumpSubmit() {
+    if (!brainDump.trim() || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/brain-dump/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user?.id,
+          text: JSON.stringify({ brain_dump: brainDump, previous_rounds: [] }),
+          mode: 'project_plan_clarify',
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.detail || 'KI-Antwort konnte nicht verarbeitet werden.');
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setLoading(false);
+      if (data.needs_clarification && data.questions?.length > 0) {
+        setRounds([{ questions: data.questions, answers: data.questions.map(() => '') }]);
+        setPhase('clarifying');
+      } else {
+        setPhase('structuring');
+      }
+    } catch (e) {
+      setError('Netzwerkfehler. Bitte erneut versuchen.');
+      setLoading(false);
     }
   }
 
@@ -70,16 +109,13 @@ export default function PlanNewProjectPage() {
 
       <div className="px-4 pt-4">
         {phase === 'brain_dump' && (
-          <div className="space-y-3">
-            <p className="text-sm text-slate-500 italic">Brain Dump UI kommt in Commit 4.</p>
-            <button
-              type="button"
-              onClick={() => { setRounds([]); setPhase('clarifying'); }}
-              className="w-full rounded-xl bg-rose-500 text-white py-3 text-sm font-semibold active:opacity-70"
-            >
-              Weiter (Mock)
-            </button>
-          </div>
+          <BrainDumpStep
+            value={brainDump}
+            onChange={setBrainDump}
+            onSubmit={handleBrainDumpSubmit}
+            loading={loading}
+            error={error}
+          />
         )}
         {phase === 'clarifying' && (
           <div className="space-y-3">
