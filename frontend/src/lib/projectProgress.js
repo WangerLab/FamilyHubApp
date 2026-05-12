@@ -1,6 +1,6 @@
 /**
  * Compute weighted progress percent for a project.
- * Counts only active (non-archived, non-removed) clusters and microtasks.
+ * Counts only active (non-archived, non-removed, non-superseded) microtasks.
  *
  * @param {string} projectId
  * @param {Array} clusters - all clusters from useProjects()
@@ -12,7 +12,7 @@ export function computeProjectProgress(projectId, clusters, microtasks) {
     .filter(c => c.project_id === projectId && !c.archived && !c.removed_at)
     .map(c => c.id);
   const relevantTasks = microtasks.filter(
-    m => projectClusterIds.includes(m.cluster_id) && !m.archived && !m.removed_at
+    m => projectClusterIds.includes(m.cluster_id) && !m.archived && !m.removed_at && !m.superseded_at
   );
   if (relevantTasks.length === 0) return { percent: 0, hasNoTasks: true };
   const totalWeight = relevantTasks.reduce((s, t) => s + (t.effort_weight || 1), 0);
@@ -27,7 +27,7 @@ export function computeProjectProgress(projectId, clusters, microtasks) {
 
 /**
  * Compute weighted progress percent for a single cluster.
- * Counts only active (non-archived, non-removed) microtasks.
+ * Counts only active (non-archived, non-removed, non-superseded) microtasks.
  *
  * @param {string} clusterId
  * @param {Array} microtasks - all microtasks from useProjects()
@@ -35,7 +35,7 @@ export function computeProjectProgress(projectId, clusters, microtasks) {
  */
 export function computeClusterProgress(clusterId, microtasks) {
   const relevantTasks = microtasks.filter(
-    m => m.cluster_id === clusterId && !m.archived && !m.removed_at
+    m => m.cluster_id === clusterId && !m.archived && !m.removed_at && !m.superseded_at
   );
   if (relevantTasks.length === 0) return { percent: 0, hasNoTasks: true };
   const totalWeight = relevantTasks.reduce((s, t) => s + (t.effort_weight || 1), 0);
