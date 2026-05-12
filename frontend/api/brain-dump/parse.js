@@ -365,7 +365,8 @@ export default async function handler(req, res) {
 
   const { user_id, text, mode = "grocery" } = req.body || {};
   if (!text?.trim()) return res.status(400).json({ detail: "Text darf nicht leer sein." });
-  if (text.length > 500) return res.status(400).json({ detail: "Text zu lang (max. 500 Zeichen)." });
+  const maxLen = ['project_plan_clarify', 'project_plan_structure', 'project_note', 'project_review'].includes(mode) ? 5000 : 500;
+  if (text.length > maxLen) return res.status(400).json({ detail: `Text zu lang (max. ${maxLen} Zeichen).` });
   if (!user_id) return res.status(400).json({ detail: "user_id fehlt." });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
