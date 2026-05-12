@@ -169,6 +169,19 @@ export default function MicrotaskDetailPage() {
         </h1>
       </div>
 
+      {task.superseded_at && (
+        <div className="mx-4 mt-4 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-semibold">
+            Im Review als nicht mehr relevant markiert
+          </p>
+          {task.superseded_reason && (
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+              {task.superseded_reason}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="px-4 pt-5 space-y-5">
         <div>
           {editingTitle ? (

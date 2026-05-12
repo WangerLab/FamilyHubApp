@@ -15,6 +15,7 @@ export default function MicrotaskRow({ task, onToggle, allMicrotasks, projectId 
   const dotColor = DOT_COLORS[task.suggested_for] || null;
   const blocking = getBlockingTasks(task, allMicrotasks || []);
   const isBlocked = blocking.length > 0 && !task.completed;
+  const isSuperseded = !!task.superseded_at;
 
   const { softDeleteMicrotaskWithUndo } = useProjects();
   const [swipeOpen, setSwipeOpen] = useState(false);
@@ -52,14 +53,14 @@ export default function MicrotaskRow({ task, onToggle, allMicrotasks, projectId 
       </div>
 
       <div
-        className="relative bg-white dark:bg-slate-900 flex items-start gap-3 py-2 transition-transform duration-200 ease-out"
+        className={`relative bg-white dark:bg-slate-900 flex items-start gap-3 py-2 transition-transform duration-200 ease-out ${isSuperseded ? 'opacity-60' : ''}`}
         style={{ transform: swipeOpen ? 'translateX(-80px)' : 'translateX(0)' }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         <button
-          onClick={() => !isBlocked && onToggle(task)}
-          disabled={isBlocked}
+          onClick={() => !isBlocked && !isSuperseded && onToggle(task)}
+          disabled={isBlocked || isSuperseded}
           aria-label={
             isBlocked
               ? `Geblockt durch: ${blocking.map((b) => b.title).join(', ')}`
@@ -101,7 +102,9 @@ export default function MicrotaskRow({ task, onToggle, allMicrotasks, projectId 
             )}
             <span
               className={`text-sm truncate ${
-                task.completed
+                isSuperseded
+                  ? 'text-slate-400 dark:text-slate-500 line-through italic'
+                  : task.completed
                   ? 'text-slate-400 dark:text-slate-500 line-through'
                   : isBlocked
                   ? 'text-slate-400 dark:text-slate-500'
