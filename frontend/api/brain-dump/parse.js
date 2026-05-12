@@ -145,6 +145,53 @@ function normalizeProjectNote(parsed) {
   return { note_markdown, follow_ups };
 }
 
+function normalizeProjectPlanClarify(parsed) {
+  const needs = !!parsed?.needs_clarification;
+  if (!needs) return { needs_clarification: false };
+  const rawQs = Array.isArray(parsed?.questions) ? parsed.questions : [];
+  const questions = rawQs
+    .map(q => String(q || "").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  // Wenn AI needs_clarification:true sagt aber keine Fragen liefert: als false interpretieren
+  if (questions.length === 0) return { needs_clarification: false };
+  return { needs_clarification: true, questions };
+}
+
+function normalizeProjectPlanStructure(parsed) {
+  const name = String(parsed?.name || "Unbenanntes Projekt").trim();
+  const summary = String(parsed?.summary || "").trim();
+  const ALLOWED_SUGGESTED = ['tim', 'iris', 'both'];
+  const rawClusters = Array.isArray(parsed?.clusters) ? parsed.clusters : [];
+  const clusters = rawClusters
+    .map((c, ci) => {
+      const cname = String(c?.name || "").trim();
+      if (!cname) return null;
+      const cid = String(c?.id || `c-${ci + 1}`).trim();
+      const cdesc = String(c?.description || "").trim();
+      const rawTasks = Array.isArray(c?.microtasks) ? c.microtasks : [];
+      const microtasks = rawTasks
+        .map((t, ti) => {
+          const ttitle = String(t?.title || "").trim();
+          if (!ttitle) return null;
+          const tid = String(t?.id || `mt-${ci + 1}-${ti + 1}`).trim();
+          const tdesc = String(t?.description || "").trim();
+          let effort = parseInt(t?.effort_weight, 10);
+          if (!effort || effort < 1 || effort > 5) effort = 2;
+          const rawDeps = Array.isArray(t?.depends_on) ? t.depends_on : [];
+          const depends_on = rawDeps.map(d => String(d || "").trim()).filter(Boolean);
+          let sfor = t?.suggested_for;
+          if (sfor === null || sfor === undefined) sfor = null;
+          else if (!ALLOWED_SUGGESTED.includes(sfor)) sfor = null;
+          return { id: tid, title: ttitle, description: tdesc, effort_weight: effort, depends_on, suggested_for: sfor };
+        })
+        .filter(Boolean);
+      return { id: cid, name: cname, description: cdesc, microtasks };
+    })
+    .filter(Boolean);
+  return { name, summary, clusters };
+}
+
 const PROMPT_GROCERY = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
 Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
 Format: {"items": [{"name": string, "quantity": number|null, "unit": string|null, "category": string, "note": string}, ...]}
@@ -243,6 +290,76 @@ Output AUSSCHLIESSLICH als JSON, ohne Markdown-Code-Fence, in dieser Form:
   ]
 }`;
 
+const PROMPT_PROJECT_PLAN_CLARIFY = `Du bist ein Projekt-Planungs-Assistent für eine Family-Hub-App. Tim oder Iris beschreiben ein neues Projekt, das sie planen wollen.
+
+Aufgabe: Entscheide, ob du genug Information hast, um das Projekt direkt in Cluster und Microtasks zu strukturieren, oder ob du noch 1-3 Klarifikationsfragen stellen musst.
+
+Regeln für die Entscheidung:
+- Bei klaren, konkreten Brain-Dumps mit erkennbarem Scope und Tasks: needs_clarification = false.
+- Bei vagen oder mehrdeutigen Eingaben: needs_clarification = true, formuliere 1-3 spezifische Fragen.
+- Vermeide generische Fragen wie "Was ist dein Ziel?" — frag konkret, z.B. "Sollen Tim und Iris beide beteiligt sein?", "Hast du ein Zeitfenster im Kopf?", "Material schon da oder soll ich Beschaffungs-Tasks einbauen?"
+- Wenn schon eine Klarifikations-Runde stattgefunden hat und die Antworten meist beantwortet haben: needs_clarification = false (nicht endlos nachfragen).
+- Hard-Limit: maximal 2 Runden — der Frontend zwingt nach Runde 2 zur Strukturierung. Wenn previous_rounds bereits 2 enthält, IMMER needs_clarification = false.
+
+Input-Kontext:
+- "brain_dump": Der ursprüngliche freie Text vom User.
+- "previous_rounds": Array vorheriger Klarifikations-Runden. Jede Runde hat "questions" (deine bisherigen Fragen) und "answers" (User-Antworten).
+
+Output AUSSCHLIESSLICH als JSON, ohne Markdown-Code-Fence, in einer dieser zwei Formen:
+
+Wenn Klarifikation nötig:
+{
+  "needs_clarification": true,
+  "questions": ["string", "string"]
+}
+
+Wenn direkt strukturierbar:
+{
+  "needs_clarification": false
+}`;
+
+const PROMPT_PROJECT_PLAN_STRUCTURE = `Du bist ein Projekt-Planungs-Assistent für eine Family-Hub-App. Tim und Iris haben einen Brain Dump für ein neues Projekt gegeben (plus optional Klarifikations-Antworten). Deine Aufgabe: Strukturiere das zu einem vollständigen Projekt-JSON.
+
+Datenmodell:
+- Project (top-level): name (kurz, prägnant), summary (1 Satz)
+- Clusters: Gruppierungen verwandter Arbeit. Jeder Cluster: name (kurz), description (1 Satz), enthält Microtasks.
+- Microtasks: Konkrete einzelne Aktionen. Jeder Microtask: title (Imperativ-Form, kurz), description (1 Satz Kontext, optional leer), effort_weight (1-5 je nach Aufwand), depends_on (Array von Microtask-IDs falls Abhängigkeiten bestehen — oder leer), suggested_for ('tim' | 'iris' | 'both' | null).
+
+Regeln:
+- Cluster gruppieren VERWANDTE Tasks. Typische Projekt-Größe: 2-6 Cluster, 3-7 Tasks pro Cluster.
+- effort_weight: 1 = ganz schnell (< 10 Min), 2 = klein (< 30 Min), 3 = mittel (30-60 Min), 4 = größer (1-3h), 5 = großer Brocken (> 3h). Default 2 bei Unsicherheit.
+- depends_on: NUR setzen wenn die Reihenfolge wirklich erzwungen ist. IDs sind die microtask-IDs aus deinem Output (z.B. "mt-3" referenziert von "mt-7"). Cross-Cluster-Dependencies sind OK.
+- suggested_for: Entscheide pro Task basierend auf dem Brain Dump.
+  - 'tim' = klar Tim
+  - 'iris' = klar Iris
+  - 'both' = unklar oder beide gemeinsam
+  - null = reine Beschaffung/Recherche ohne Personenbezug
+- Bei Brain Dumps die explizit "beide" sagen: 'both' als Default für die meisten Tasks.
+- Deutsch. Knapp formulieren.
+
+Output AUSSCHLIESSLICH als JSON, ohne Markdown-Code-Fence:
+{
+  "name": "string",
+  "summary": "string",
+  "clusters": [
+    {
+      "id": "c-1",
+      "name": "string",
+      "description": "string",
+      "microtasks": [
+        {
+          "id": "mt-1",
+          "title": "string",
+          "description": "string",
+          "effort_weight": 2,
+          "depends_on": [],
+          "suggested_for": "both"
+        }
+      ]
+    }
+  ]
+}`;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
 
@@ -263,12 +380,15 @@ export default async function handler(req, res) {
 
   const today = new Date().toISOString().split("T")[0];
   let systemPrompt =
+    mode === "project_plan_clarify" ? PROMPT_PROJECT_PLAN_CLARIFY :
+    mode === "project_plan_structure" ? PROMPT_PROJECT_PLAN_STRUCTURE :
     mode === "project_note" ? PROMPT_PROJECT_NOTE :
     mode === "asia" ? PROMPT_ASIA :
     mode === "misc" ? PROMPT_MISC :
     mode === "todos" ? `HEUTE ist ${today} (UTC).\n\n` + PROMPT_TODOS :
     mode === "expense" ? `HEUTE ist ${today} (UTC).\n\n` + PROMPT_EXPENSE :
     PROMPT_GROCERY;
+  const maxTokens = mode === "project_plan_structure" ? 4096 : 1024;
 
   let rawResponse = null;
   let lastError = null;
@@ -285,7 +405,7 @@ export default async function handler(req, res) {
           },
           body: JSON.stringify({
             model: "claude-sonnet-4-5-20250929",
-            max_tokens: 1024,
+            max_tokens: maxTokens,
             system: systemPrompt,
             messages: [{ role: "user", content: text.trim() }],
           }),
@@ -317,6 +437,14 @@ export default async function handler(req, res) {
     return res.status(502).json({ detail: "KI-Antwort konnte nicht verarbeitet werden." });
   }
 
+  if (mode === "project_plan_clarify") {
+    const result = normalizeProjectPlanClarify(parsed);
+    return res.status(200).json({ ...result, mode });
+  }
+  if (mode === "project_plan_structure") {
+    const result = normalizeProjectPlanStructure(parsed);
+    return res.status(200).json({ ...result, mode });
+  }
   if (mode === "project_note") {
     const result = normalizeProjectNote(parsed);
     return res.status(200).json({ ...result, mode });
