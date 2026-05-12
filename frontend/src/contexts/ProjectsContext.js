@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
+import { celebrateClusterComplete } from '../lib/confetti';
+import { computeClusterProgress } from '../lib/projectProgress';
 
 const ProjectsContext = createContext(null);
 
@@ -193,12 +195,21 @@ export const ProjectsProvider = ({ children }) => {
   // Toggle and restore use direct calls — completed/removed fields are intentionally
   // outside the general update allowlists; these are specialized operations.
   const toggleMicrotaskComplete = async (id, currentlyCompleted) => {
+    const clusterId = microtasks.find((m) => m.id === id)?.cluster_id;
+    const preProgress = clusterId ? computeClusterProgress(clusterId, microtasks).percent : null;
     const patch = currentlyCompleted
       ? { completed: false, completed_at: null, completed_by: null }
       : { completed: true, completed_at: new Date().toISOString(), completed_by: user?.id };
     const { data, error } = await supabase.from('project_microtasks').update(patch).eq('id', id).select().single();
     if (error) throw error;
     touchProjectViaCluster(data.cluster_id);
+    if (!currentlyCompleted && clusterId && preProgress !== null && preProgress < 100) {
+      const simulated = microtasks.map((m) => (m.id === id ? data : m));
+      const postProgress = computeClusterProgress(data.cluster_id, simulated).percent;
+      if (postProgress >= 100) {
+        try { celebrateClusterComplete(); } catch (e) { /* never break toggle on animation error */ }
+      }
+    }
     return data;
   };
   const restoreRow = async (table, id) => {
