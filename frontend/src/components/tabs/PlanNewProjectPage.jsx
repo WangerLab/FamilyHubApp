@@ -4,6 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ConfirmDialog from '../projects/ConfirmDialog';
 import BrainDumpStep from '../projects/BrainDumpStep';
+import ClarificationStep from '../projects/ClarificationStep';
 
 const PHASE_NUMBERS = {
   brain_dump: 1,
@@ -82,6 +83,55 @@ export default function PlanNewProjectPage() {
     }
   }
 
+  function handleAnswerChange(roundIndex, questionIndex, value) {
+    setRounds((prev) => {
+      const next = [...prev];
+      if (!next[roundIndex]) return prev;
+      const newAnswers = [...next[roundIndex].answers];
+      newAnswers[questionIndex] = value;
+      next[roundIndex] = { ...next[roundIndex], answers: newAnswers };
+      return next;
+    });
+  }
+
+  async function handleClarificationSubmit() {
+    if (loading) return;
+    // Hard-Limit: nach 2 Runden zwingend zur Strukturierung
+    if (rounds.length >= 2) {
+      setPhase('structuring');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/brain-dump/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user?.id,
+          text: JSON.stringify({ brain_dump: brainDump, previous_rounds: rounds }),
+          mode: 'project_plan_clarify',
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.detail || 'KI-Antwort konnte nicht verarbeitet werden.');
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setLoading(false);
+      if (data.needs_clarification && data.questions?.length > 0) {
+        setRounds((prev) => [...prev, { questions: data.questions, answers: data.questions.map(() => '') }]);
+      } else {
+        setPhase('structuring');
+      }
+    } catch (e) {
+      setError('Netzwerkfehler. Bitte erneut versuchen.');
+      setLoading(false);
+    }
+  }
+
   return (
     <div
       data-testid="plan-new-project-page"
@@ -118,16 +168,14 @@ export default function PlanNewProjectPage() {
           />
         )}
         {phase === 'clarifying' && (
-          <div className="space-y-3">
-            <p className="text-sm text-slate-500 italic">Klarifikation UI kommt in Commit 5.</p>
-            <button
-              type="button"
-              onClick={() => setPhase('structuring')}
-              className="w-full rounded-xl bg-rose-500 text-white py-3 text-sm font-semibold active:opacity-70"
-            >
-              Weiter (Mock)
-            </button>
-          </div>
+          <ClarificationStep
+            rounds={rounds}
+            onAnswerChange={handleAnswerChange}
+            onSubmit={handleClarificationSubmit}
+            loading={loading}
+            error={error}
+            isLastRound={rounds.length >= 2}
+          />
         )}
         {phase === 'structuring' && (
           <div className="space-y-3">
