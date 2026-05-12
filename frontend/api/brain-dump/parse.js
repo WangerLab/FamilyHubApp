@@ -361,6 +361,163 @@ Output AUSSCHLIESSLICH als JSON, ohne Markdown-Code-Fence:
   ]
 }`;
 
+const PROMPT_PROJECT_REVIEW = `Du bist ein Projekt-Review-Assistent für eine Family-Hub-App. Du bekommst:
+1) Den aktuellen Stand eines Projekts (Cluster, Microtasks, was erledigt ist, was offen ist, Notes pro Task).
+2) Einen Context-Dump vom User: was sich geändert hat, was passiert ist, neue Erkenntnisse.
+
+Deine Aufgabe: Schlage konkrete Änderungen am Projekt-Setup vor, damit es zum neuen Kontext passt. Sei konservativ — nur Vorschläge die echt Mehrwert haben.
+
+WICHTIGE REGELN:
+- Erledigte Tasks (completed=true) NIE umbenennen oder löschen. Maximal verschieben (move_microtask).
+- Erledigte Tasks die nicht mehr zur Projekt-Zukunft beitragen: als superseded markieren (bleiben sichtbar als Historie).
+- Offene Tasks (completed=false) dürfen umbenannt, verschoben oder superseded werden.
+- Neue Tasks (add_microtask) gerne wenn sich aus dem Context-Dump konkrete neue Aufgaben ergeben.
+- Cluster nicht löschen, nur umbenennen (rename_cluster).
+- Bei jedem Vorschlag eine Begründung (reason) angeben — 1 kurzer Satz.
+
+Output: ein JSON-Objekt mit einem Array "suggestions". Jeder Vorschlag hat:
+- "type": einer von "add_microtask", "rename_microtask", "move_microtask", "supersede_microtask", "rename_cluster"
+- "reason": kurze Begründung (1 Satz)
+- Typ-spezifische Felder (siehe unten).
+
+Vorschlagstypen:
+
+1) add_microtask — neuer Microtask in einem Cluster:
+{
+  "type": "add_microtask",
+  "reason": "...",
+  "cluster_id": "<existing-cluster-uuid>",
+  "title": "...",
+  "description": "..." | null,
+  "effort_weight": 1-5,
+  "suggested_for": "tim" | "iris" | "both" | null,
+  "depends_on": []
+}
+
+2) rename_microtask — nur für nicht-completed Tasks:
+{
+  "type": "rename_microtask",
+  "reason": "...",
+  "microtask_id": "<existing-microtask-uuid>",
+  "title": "...",
+  "description": "..." | null
+}
+
+3) move_microtask — zwischen Clustern verschieben:
+{
+  "type": "move_microtask",
+  "reason": "...",
+  "microtask_id": "<existing-microtask-uuid>",
+  "new_cluster_id": "<existing-cluster-uuid-im-selben-projekt>"
+}
+
+4) supersede_microtask — als nicht mehr relevant markieren (auch erledigte erlaubt):
+{
+  "type": "supersede_microtask",
+  "reason": "...",
+  "microtask_id": "<existing-microtask-uuid>"
+}
+
+5) rename_cluster:
+{
+  "type": "rename_cluster",
+  "reason": "...",
+  "cluster_id": "<existing-cluster-uuid>",
+  "name": "...",
+  "description": "..." | null
+}
+
+Antworte AUSSCHLIESSLICH mit dem JSON-Objekt. Kein Markdown, kein Vorwort, kein Erklärtext.
+
+Beispiel-Output:
+{
+  "suggestions": [
+    {
+      "type": "add_microtask",
+      "reason": "User erwähnt Mulch-Bedarf im Context-Dump",
+      "cluster_id": "abc-123",
+      "title": "Mulch besorgen",
+      "description": null,
+      "effort_weight": 2,
+      "suggested_for": "tim",
+      "depends_on": []
+    },
+    {
+      "type": "supersede_microtask",
+      "reason": "Task durch neue Lösung obsolet geworden",
+      "microtask_id": "def-456"
+    }
+  ]
+}`;
+
+const ALLOWED_REVIEW_TYPES = new Set([
+  'add_microtask',
+  'rename_microtask',
+  'move_microtask',
+  'supersede_microtask',
+  'rename_cluster',
+]);
+
+const ALLOWED_SUGGESTED_FOR = new Set(['tim', 'iris', 'both', null]);
+
+function normalizeProjectReview(parsed) {
+  const raw = Array.isArray(parsed?.suggestions) ? parsed.suggestions : [];
+  const suggestions = [];
+  for (const s of raw) {
+    if (!s || typeof s !== 'object') continue;
+    if (!ALLOWED_REVIEW_TYPES.has(s.type)) continue;
+    const reason = typeof s.reason === 'string' ? s.reason.slice(0, 200) : '';
+    if (s.type === 'add_microtask') {
+      if (typeof s.cluster_id !== 'string' || typeof s.title !== 'string') continue;
+      const sf = s.suggested_for === undefined ? null : s.suggested_for;
+      suggestions.push({
+        type: 'add_microtask',
+        reason,
+        cluster_id: s.cluster_id,
+        title: s.title.slice(0, 200),
+        description: typeof s.description === 'string' ? s.description.slice(0, 2000) : null,
+        effort_weight: Number.isInteger(s.effort_weight) && s.effort_weight >= 1 && s.effort_weight <= 5 ? s.effort_weight : 2,
+        suggested_for: ALLOWED_SUGGESTED_FOR.has(sf) ? sf : null,
+        depends_on: Array.isArray(s.depends_on) ? s.depends_on.filter(x => typeof x === 'string') : [],
+      });
+    } else if (s.type === 'rename_microtask') {
+      if (typeof s.microtask_id !== 'string' || typeof s.title !== 'string') continue;
+      suggestions.push({
+        type: 'rename_microtask',
+        reason,
+        microtask_id: s.microtask_id,
+        title: s.title.slice(0, 200),
+        description: typeof s.description === 'string' ? s.description.slice(0, 2000) : null,
+      });
+    } else if (s.type === 'move_microtask') {
+      if (typeof s.microtask_id !== 'string' || typeof s.new_cluster_id !== 'string') continue;
+      suggestions.push({
+        type: 'move_microtask',
+        reason,
+        microtask_id: s.microtask_id,
+        new_cluster_id: s.new_cluster_id,
+      });
+    } else if (s.type === 'supersede_microtask') {
+      if (typeof s.microtask_id !== 'string') continue;
+      suggestions.push({
+        type: 'supersede_microtask',
+        reason,
+        microtask_id: s.microtask_id,
+      });
+    } else if (s.type === 'rename_cluster') {
+      if (typeof s.cluster_id !== 'string' || typeof s.name !== 'string') continue;
+      suggestions.push({
+        type: 'rename_cluster',
+        reason,
+        cluster_id: s.cluster_id,
+        name: s.name.slice(0, 200),
+        description: typeof s.description === 'string' ? s.description.slice(0, 2000) : null,
+      });
+    }
+  }
+  return { suggestions };
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
 
@@ -384,13 +541,14 @@ export default async function handler(req, res) {
   let systemPrompt =
     mode === "project_plan_clarify" ? (user_name ? `Der eingeloggte User ist: ${user_name}. Der andere Haushaltsmitglied ist: ${user_name === 'Tim' ? 'Iris' : 'Tim'}.\n\n` + PROMPT_PROJECT_PLAN_CLARIFY : PROMPT_PROJECT_PLAN_CLARIFY) :
     mode === "project_plan_structure" ? PROMPT_PROJECT_PLAN_STRUCTURE :
+    mode === "project_review" ? PROMPT_PROJECT_REVIEW :
     mode === "project_note" ? PROMPT_PROJECT_NOTE :
     mode === "asia" ? PROMPT_ASIA :
     mode === "misc" ? PROMPT_MISC :
     mode === "todos" ? `HEUTE ist ${today} (UTC).\n\n` + PROMPT_TODOS :
     mode === "expense" ? `HEUTE ist ${today} (UTC).\n\n` + PROMPT_EXPENSE :
     PROMPT_GROCERY;
-  const maxTokens = mode === "project_plan_structure" ? 4096 : 1024;
+  const maxTokens = (mode === "project_plan_structure" || mode === "project_review") ? 4096 : 1024;
 
   let rawResponse = null;
   let lastError = null;
@@ -412,7 +570,7 @@ export default async function handler(req, res) {
             messages: [{ role: "user", content: text.trim() }],
           }),
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), mode === 'project_plan_structure' ? 45000 : mode === 'project_plan_clarify' ? 30000 : 15000)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), (mode === 'project_plan_structure' || mode === 'project_review') ? 45000 : mode === 'project_plan_clarify' ? 30000 : 15000)),
       ]);
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
@@ -449,6 +607,10 @@ export default async function handler(req, res) {
   }
   if (mode === "project_note") {
     const result = normalizeProjectNote(parsed);
+    return res.status(200).json({ ...result, mode });
+  }
+  if (mode === "project_review") {
+    const result = normalizeProjectReview(parsed);
     return res.status(200).json({ ...result, mode });
   }
 
