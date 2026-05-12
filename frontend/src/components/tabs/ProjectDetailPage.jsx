@@ -1,22 +1,38 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import { computeProjectProgress } from '../../lib/projectProgress';
 import ClusterCard from '../projects/ClusterCard';
 import AddClusterForm from '../projects/AddClusterForm';
 import UndoSnackbar from '../projects/UndoSnackbar';
+import ConfirmDialog from '../projects/ConfirmDialog';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { projects, clusters, microtasks, loading, pendingMicrotaskDelete, undoMicrotaskDelete } = useProjects();
+  const { projects, clusters, microtasks, loading, pendingMicrotaskDelete, undoMicrotaskDelete, softDeleteProject } = useProjects();
 
   const project = projects.find((p) => p.id === id);
   const projectClusters = clusters
     .filter((c) => c.project_id === id && !c.archived && !c.removed_at)
     .sort((a, b) => (a.cluster_order || 0) - (b.cluster_order || 0));
+  const projectMicrotaskCount = microtasks.filter(
+    (m) => projectClusters.some((c) => c.id === m.cluster_id) && !m.archived && !m.removed_at
+  ).length;
   const [addingCluster, setAddingCluster] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  async function handleConfirmDelete() {
+    try {
+      await softDeleteProject(project.id);
+      setConfirmDeleteOpen(false);
+      navigate('/projects');
+    } catch (e) {
+      // Realtime brings DB state on next tick — silent for now
+      setConfirmDeleteOpen(false);
+    }
+  }
   const { percent, hasNoTasks } = project
     ? computeProjectProgress(project.id, clusters, microtasks)
     : { percent: 0, hasNoTasks: true };
@@ -80,6 +96,14 @@ export default function ProjectDetailPage() {
         >
           {project.name}
         </h1>
+        <button
+          type="button"
+          onClick={() => setConfirmDeleteOpen(true)}
+          className="p-2 -mr-2 rounded-lg active:opacity-70"
+          aria-label="Projekt löschen"
+        >
+          <Trash2 className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+        </button>
       </div>
 
       <div className="px-4 pt-4">
@@ -141,6 +165,18 @@ export default function ProjectDetailPage() {
       {pendingMicrotaskDelete && (
         <UndoSnackbar name={pendingMicrotaskDelete.task.title} onUndo={undoMicrotaskDelete} />
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        title="Projekt löschen?"
+        message={
+          projectClusters.length === 0
+            ? 'Dieses Projekt enthält keine Cluster. Trotzdem löschen?'
+            : `${projectClusters.length} ${projectClusters.length === 1 ? 'Cluster' : 'Cluster'} mit ${projectMicrotaskCount} ${projectMicrotaskCount === 1 ? 'Aufgabe' : 'Aufgaben'} werden mitgelöscht.`
+        }
+      />
     </div>
   );
 }
