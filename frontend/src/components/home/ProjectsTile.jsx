@@ -2,6 +2,16 @@ import React from 'react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import { computeProjectProgress } from '../../lib/projectProgress';
 
+function formatPrioRange(endDateStr) {
+  if (!endDateStr) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(endDateStr + 'T00:00:00');
+  if (end < today) return { kind: 'overdue' };
+  const label = `bis ${end.toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}`;
+  return { kind: 'upcoming', label };
+}
+
 export default function ProjectsTile() {
   const { projects, clusters, microtasks, loading } = useProjects() || {};
 
@@ -28,6 +38,7 @@ export default function ProjectsTile() {
   const { percent, hasNoTasks } = priorityProject
     ? computeProjectProgress(priorityProject.id, clusters || [], microtasks || [])
     : { percent: 0, hasNoTasks: true };
+  const prioRange = formatPrioRange(priorityProject?.priority_end);
 
   return (
     <div className="flex-1 flex flex-col justify-between min-w-0">
@@ -48,6 +59,14 @@ export default function ProjectsTile() {
           <p className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">
             {priorityProject.name}
           </p>
+          {prioRange?.kind === 'overdue' && (
+            <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+              überfällig
+            </span>
+          )}
+          {prioRange?.kind === 'upcoming' && (
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{prioRange.label}</p>
+          )}
           <div className="flex items-center gap-2 mt-1">
             <div className="flex-1 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
               <div className="h-full bg-rose-500" style={{ width: `${percent}%` }} />
