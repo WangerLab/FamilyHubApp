@@ -24,8 +24,9 @@ const SUGGESTED_LABELS = {
  * - onRemoveCluster: (clusterId) => void
  * - onAccept: () => void
  * - accepting: boolean
+ * - error: string — shown above the submit button when accept fails
  */
-export default function DraftReviewStep({ draft, onRemoveTask, onRemoveCluster, onAccept, accepting }) {
+export default function DraftReviewStep({ draft, onRemoveTask, onRemoveCluster, onAccept, accepting, error }) {
   if (!draft) return null;
   const totalTasks = draft.clusters.reduce((s, c) => s + c.microtasks.length, 0);
   const submitDisabled = accepting || draft.clusters.length === 0 || totalTasks === 0;
@@ -121,6 +122,12 @@ export default function DraftReviewStep({ draft, onRemoveTask, onRemoveCluster, 
           </div>
         ))}
       </div>
+
+      {error && (
+        <div className="rounded-xl bg-rose-50 dark:bg-rose-950 border border-rose-200 dark:border-rose-900 px-3 py-2 text-xs text-rose-700 dark:text-rose-300">
+          {error}
+        </div>
+      )}
 
       <button
         type="button"
