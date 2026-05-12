@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, FolderKanban, Plus } from 'lucide-react';
+import { ChevronLeft, FolderKanban, Plus, Wand2 } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import ProjectRow from '../projects/ProjectRow';
 import ImportProjectSheet from '../projects/ImportProjectSheet';
@@ -30,6 +30,15 @@ export default function ProjectsPage() {
         >
           Projekte
         </h1>
+        <button
+          type="button"
+          onClick={() => navigate('/projects/plan-mode-hub')}
+          className="p-2 -mr-2 rounded-lg active:opacity-70"
+          aria-label="Planungsmodus öffnen"
+          data-testid="plan-mode-trigger"
+        >
+          <Wand2 className="w-5 h-5 text-rose-500" />
+        </button>
       </div>
 
       {loading ? (
