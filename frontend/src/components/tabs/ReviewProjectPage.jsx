@@ -1,7 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useProjects } from '../../contexts/ProjectsContext';
+import { filterStaleSuggestions } from '../../lib/reviewSuggestions';
+import { buildReviewContext } from '../../lib/reviewContext';
 import ProjectPickerStep from '../projects/ProjectPickerStep';
+import ContextDumpStep from '../projects/ContextDumpStep';
 
 const PHASE_TITLES = {
   project_picker: 'Projekt wählen',
@@ -17,12 +22,51 @@ const PHASE_NUMBERS = {
 
 export default function ReviewProjectPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { clusters, microtasks } = useProjects();
+
   const [phase, setPhase] = useState('project_picker');
   const [selectedProject, setSelectedProject] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [staleCount, setStaleCount] = useState(0);
 
   const handlePick = (project) => {
     setSelectedProject(project);
+    setErrorMessage('');
     setPhase('context_dump');
+  };
+
+  const handleSubmit = async (contextText) => {
+    if (!selectedProject || !user) return;
+    setSubmitting(true);
+    setErrorMessage('');
+    try {
+      const compositeText = buildReviewContext(selectedProject, clusters, microtasks, contextText);
+      const res = await fetch('/api/brain-dump/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          mode: 'project_review',
+          text: compositeText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.detail || 'Vorschläge konnten nicht geholt werden.');
+      }
+      const raw = Array.isArray(data?.suggestions) ? data.suggestions : [];
+      const { valid, stale } = filterStaleSuggestions(raw, clusters, microtasks, selectedProject.id);
+      setSuggestions(valid);
+      setStaleCount(stale.length);
+      setPhase('suggestions_review');
+    } catch (e) {
+      setErrorMessage(e?.message || 'Unbekannter Fehler.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleBack = () => {
@@ -32,10 +76,13 @@ export default function ReviewProjectPage() {
     }
     if (phase === 'context_dump') {
       setSelectedProject(null);
+      setErrorMessage('');
       setPhase('project_picker');
       return;
     }
     if (phase === 'suggestions_review') {
+      setSuggestions([]);
+      setStaleCount(0);
       setPhase('context_dump');
       return;
     }
@@ -72,19 +119,30 @@ export default function ReviewProjectPage() {
         <ProjectPickerStep onPick={handlePick} />
       )}
 
-      {phase === 'context_dump' && (
-        <div className="px-4 pt-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Phase 2 — Context-Dump-UI kommt in Commit 8.
-          </p>
-        </div>
+      {phase === 'context_dump' && selectedProject && (
+        <ContextDumpStep
+          project={selectedProject}
+          clusters={clusters}
+          microtasks={microtasks}
+          onSubmit={handleSubmit}
+          submitting={submitting}
+          errorMessage={errorMessage}
+        />
       )}
 
       {phase === 'suggestions_review' && (
-        <div className="px-4 pt-4">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Phase 3 — Suggestions-Review-UI kommt in Commit 8.
+        <div className="px-4 pt-4 space-y-3">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {suggestions.length} Vorschläge erhalten
+            {staleCount > 0 ? ` (${staleCount} verworfen)` : ''}.
+            UI dafür kommt in Commit 8b — vorerst Roh-JSON:
           </p>
+          <pre
+            data-testid="review-raw-json"
+            className="text-[10px] bg-slate-100 dark:bg-slate-900 p-3 rounded-lg overflow-auto max-h-96"
+          >
+            {JSON.stringify(suggestions, null, 2)}
+          </pre>
         </div>
       )}
     </div>
