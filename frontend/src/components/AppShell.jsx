@@ -24,6 +24,7 @@ import ProjectsPage from './tabs/ProjectsPage';
 import ProjectDetailPage from './tabs/ProjectDetailPage';
 import MicrotaskDetailPage from './tabs/MicrotaskDetailPage';
 import PlanModeHubPage from './tabs/PlanModeHubPage';
+import PlanNewProjectPage from './tabs/PlanNewProjectPage';
 import ExpensesTab from './tabs/ExpensesTab';
 import StatisticsPage from './home/StatisticsPage';
 import FloatingBrainDumpButton from './FloatingBrainDumpButton';
@@ -190,6 +191,7 @@ export default function AppShell() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/plan-mode-hub" element={<PlanModeHubPage />} />
+          <Route path="/projects/plan-new" element={<PlanNewProjectPage />} />
           <Route path="/projects/:id" element={<ProjectDetailPage />} />
           <Route path="/projects/:id/microtask/:taskId" element={<MicrotaskDetailPage />} />
           <Route path="/settings" element={<SettingsPage />} />
