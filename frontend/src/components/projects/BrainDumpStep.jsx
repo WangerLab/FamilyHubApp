@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 
-const MAX_LEN = 2000;
+const MAX_LEN = 5000;
 
 /**
  * Phase 1 of plan-mode flow: free-form brain dump input.
