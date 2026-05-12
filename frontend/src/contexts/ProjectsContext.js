@@ -56,6 +56,9 @@ export const ProjectsProvider = ({ children }) => {
   const [microtasks, setMicrotasks] = useState([]);
   const [houseMembers, setHouseMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Snackbar-only state for microtask undo. The DB write is synchronous in
+  // softDeleteMicrotaskWithUndo — this timer just controls Snackbar lifetime.
+  const [pendingMicrotaskDelete, setPendingMicrotaskDelete] = useState(null);
 
   // Refs let realtime handlers filter cluster/microtask events without stale closures
   const projectIdsRef = useRef(new Set());
@@ -233,6 +236,37 @@ export const ProjectsProvider = ({ children }) => {
     return row;
   };
 
+  // Pattern mirrors TodosContext.softDelete: optimistic UI remove, synchronous
+  // DB update, then a 5s snackbar timer. Realtime would also remove the row,
+  // but we update local state immediately to avoid flicker.
+  const softDeleteMicrotaskWithUndo = async (id) => {
+    const task = microtasks.find((m) => m.id === id);
+    if (!task) return;
+    setMicrotasks((prev) => prev.filter((m) => m.id !== id));
+    try {
+      await softDeleteMicrotask(id);
+    } catch (e) {
+      setMicrotasks((prev) => (prev.some((m) => m.id === id) ? prev : [...prev, task]));
+      return;
+    }
+    if (pendingMicrotaskDelete?.timer) clearTimeout(pendingMicrotaskDelete.timer);
+    const timer = setTimeout(() => setPendingMicrotaskDelete(null), 5000);
+    setPendingMicrotaskDelete({ id, task, timer });
+  };
+
+  const undoMicrotaskDelete = async () => {
+    if (!pendingMicrotaskDelete) return;
+    clearTimeout(pendingMicrotaskDelete.timer);
+    const { id, task } = pendingMicrotaskDelete;
+    setPendingMicrotaskDelete(null);
+    try {
+      await restoreMicrotask(id);
+    } catch (e) {
+      return;
+    }
+    setMicrotasks((prev) => (prev.some((m) => m.id === id) ? prev : [...prev, task]));
+  };
+
   const memberColorMap = {};
   const memberNameMap = {};
   houseMembers.forEach((m) => {
@@ -251,6 +285,7 @@ export const ProjectsProvider = ({ children }) => {
         toggleMicrotaskComplete,
         restoreProject, restoreCluster, restoreMicrotask,
         softDeleteProject, softDeleteCluster, softDeleteMicrotask,
+        softDeleteMicrotaskWithUndo, undoMicrotaskDelete, pendingMicrotaskDelete,
       }}
     >
       {children}
