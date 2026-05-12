@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import ConfirmDialog from '../projects/ConfirmDialog';
 import BrainDumpStep from '../projects/BrainDumpStep';
 import ClarificationStep from '../projects/ClarificationStep';
+import StructuringStep from '../projects/StructuringStep';
 
 const PHASE_NUMBERS = {
   brain_dump: 1,
@@ -132,6 +133,51 @@ export default function PlanNewProjectPage() {
     }
   }
 
+  async function runStructure() {
+    if (loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/brain-dump/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user?.id,
+          text: JSON.stringify({ brain_dump: brainDump, rounds }),
+          mode: 'project_plan_structure',
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.detail || 'Strukturierung fehlgeschlagen.');
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setLoading(false);
+      if (!data.name || !Array.isArray(data.clusters) || data.clusters.length === 0) {
+        setError('Die KI konnte kein Projekt erzeugen. Bitte ändere deinen Brain Dump und versuche es erneut.');
+        return;
+      }
+      setDraft({
+        name: data.name,
+        summary: data.summary || '',
+        clusters: data.clusters,
+      });
+      setPhase('draft_review');
+    } catch (e) {
+      setError('Netzwerkfehler. Bitte erneut versuchen.');
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (phase === 'structuring' && !draft && !loading && !error) {
+      runStructure();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, draft, loading, error]);
+
   return (
     <div
       data-testid="plan-new-project-page"
@@ -178,16 +224,11 @@ export default function PlanNewProjectPage() {
           />
         )}
         {phase === 'structuring' && (
-          <div className="space-y-3">
-            <p className="text-sm text-slate-500 italic">Strukturierung UI kommt in Commit 6.</p>
-            <button
-              type="button"
-              onClick={() => { setDraft(MOCK_DRAFT); setPhase('draft_review'); }}
-              className="w-full rounded-xl bg-rose-500 text-white py-3 text-sm font-semibold active:opacity-70"
-            >
-              Weiter (Mock)
-            </button>
-          </div>
+          <StructuringStep
+            loading={loading}
+            error={error}
+            onRetry={() => { setError(''); runStructure(); }}
+          />
         )}
         {phase === 'draft_review' && (
           <div className="space-y-3">
