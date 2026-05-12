@@ -17,7 +17,7 @@ const SUGGESTED_FOR_OPTIONS = [
 export default function MicrotaskDetailPage() {
   const { id: projectId, taskId } = useParams();
   const navigate = useNavigate();
-  const { projects, clusters, microtasks, loading, updateMicrotask, memberNameMap } = useProjects();
+  const { projects, clusters, microtasks, loading, updateMicrotask, addMicrotask, memberNameMap } = useProjects();
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
@@ -63,14 +63,30 @@ export default function MicrotaskDetailPage() {
     setEditingNote(false);
   }
 
-  async function handleNoteBrainResult({ note_markdown, follow_ups, appendChoice }) {
+  async function handleNoteSubmit({ note_markdown, appendChoice }) {
     if (!task) return;
     const newNote = appendChoice === 'append' && task.note
       ? `${task.note}\n\n---\n\n${note_markdown}`
       : note_markdown;
     await updateMicrotask(task.id, { note: newNote });
-    // follow_ups werden in Commit 4 verarbeitet — vorerst ignorieren
-    setNoteBrainOpen(false);
+  }
+
+  async function handleFollowUpsConfirmed(acceptedFollowUps) {
+    if (!task || !cluster) return;
+    const existingInCluster = microtasks.filter(
+      (m) => m.cluster_id === task.cluster_id && !m.archived && !m.removed_at
+    );
+    const maxOrder = existingInCluster.reduce((max, m) => Math.max(max, m.task_order || 0), 0);
+    let nextOrder = maxOrder + 1;
+    for (const fu of acceptedFollowUps) {
+      await addMicrotask(task.cluster_id, {
+        title: fu.title,
+        description: fu.description || '',
+        effort_weight: 2,
+        task_order: nextOrder,
+      });
+      nextOrder += 1;
+    }
   }
 
   async function handleEffortChange(newValue) {
@@ -399,7 +415,8 @@ export default function MicrotaskDetailPage() {
         open={noteBrainOpen}
         onClose={() => setNoteBrainOpen(false)}
         existingNote={task?.note || null}
-        onResult={handleNoteBrainResult}
+        onNoteSubmit={handleNoteSubmit}
+        onFollowUpsConfirmed={handleFollowUpsConfirmed}
       />
     </div>
   );
