@@ -130,6 +130,21 @@ function normalizeExpense(item) {
   return { description, amount: Math.round(amount * 100) / 100, category, expense_date };
 }
 
+function normalizeProjectNote(parsed) {
+  const note_markdown = String(parsed?.note_markdown || "").trim();
+  const rawFollowUps = Array.isArray(parsed?.follow_ups) ? parsed.follow_ups : [];
+  const follow_ups = rawFollowUps
+    .map(fu => {
+      const title = String(fu?.title || "").trim();
+      if (!title) return null;
+      const description = String(fu?.description || "").trim();
+      return { title, description };
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+  return { note_markdown, follow_ups };
+}
+
 const PROMPT_GROCERY = `Du bist ein hilfreicher Assistent, der unstrukturierten deutschen Text in strukturierte Einkaufslisten-Einträge umwandelt.
 Gib AUSSCHLIESSLICH gültiges JSON zurück – keine Kommentare, keine Markdown-Codeblöcke.
 Format: {"items": [{"name": string, "quantity": number|null, "unit": string|null, "category": string, "note": string}, ...]}
@@ -206,6 +221,28 @@ category: "Essen","Haushalt","Transport","Unterhaltung","Sonstiges"
 expense_date: YYYY-MM-DD oder null. "gestern"/"heute" relativ zu HEUTE berechnen.
 Gib {"items": []} zurück wenn nichts erkennbar.`;
 
+const PROMPT_PROJECT_NOTE = `Du bist ein Brain-Dump-Strukturierer für eine Family-Hub-App. Der User hat einen Microtask in einem Projekt erledigt oder bearbeitet und schreibt jetzt frei, was dabei passiert ist. Deine Aufgabe: 1) Strukturiere den Brain-Dump zu einer aufgeräumten Notiz im Markdown-Format. 2) Erkenne, ob sich daraus konkrete neue Folge-Aufgaben (Follow-Ups) für dasselbe Projekt ergeben.
+
+Regeln für die Notiz:
+- Wenn der Brain-Dump Substanz hat: erste Zeile ist eine fettgedruckte Headline (was passierte), dann Leerzeile, dann Details als Fließtext.
+- Wenn der Brain-Dump nur sehr kurz ist (1 kurzer Satz): nur dieser Satz, ohne Headline-Struktur.
+- Keine eigenen Interpretationen oder Bewertungen ergänzen. Halte dich strikt an das, was im Brain-Dump steht.
+- Deutsch.
+
+Regeln für Follow-Ups:
+- Nur extrahieren, wenn der User explizit erwähnt, dass etwas Neues zu tun ist (z.B. "wir brauchen noch X", "müssen wir noch besorgen", "sollten wir als Task ergänzen").
+- Maximal 5 Follow-Ups.
+- Jeder Follow-Up hat title (kurz, Imperativ-Form: "Mulch besorgen") und optional description (1 Satz Kontext).
+- Bei reinen Status-Updates ohne neue Aufgaben: leeres Array.
+
+Output AUSSCHLIESSLICH als JSON, ohne Markdown-Code-Fence, in dieser Form:
+{
+  "note_markdown": "string",
+  "follow_ups": [
+    { "title": "string", "description": "string" }
+  ]
+}`;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
 
@@ -226,6 +263,7 @@ export default async function handler(req, res) {
 
   const today = new Date().toISOString().split("T")[0];
   let systemPrompt =
+    mode === "project_note" ? PROMPT_PROJECT_NOTE :
     mode === "asia" ? PROMPT_ASIA :
     mode === "misc" ? PROMPT_MISC :
     mode === "todos" ? `HEUTE ist ${today} (UTC).\n\n` + PROMPT_TODOS :
@@ -277,6 +315,11 @@ export default async function handler(req, res) {
     parsed = extractJson(rawResponse);
   } catch {
     return res.status(502).json({ detail: "KI-Antwort konnte nicht verarbeitet werden." });
+  }
+
+  if (mode === "project_note") {
+    const result = normalizeProjectNote(parsed);
+    return res.status(200).json({ ...result, mode });
   }
 
   const rawItems = Array.isArray(parsed?.items) ? parsed.items : [];
