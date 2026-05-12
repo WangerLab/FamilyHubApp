@@ -297,7 +297,8 @@ Aufgabe: Entscheide, ob du genug Information hast, um das Projekt direkt in Clus
 Regeln für die Entscheidung:
 - Bei klaren, konkreten Brain-Dumps mit erkennbarem Scope und Tasks: needs_clarification = false.
 - Bei vagen oder mehrdeutigen Eingaben: needs_clarification = true, formuliere 1-3 spezifische Fragen.
-- Vermeide generische Fragen wie "Was ist dein Ziel?" — frag konkret, z.B. "Sollen Tim und Iris beide beteiligt sein?", "Hast du ein Zeitfenster im Kopf?", "Material schon da oder soll ich Beschaffungs-Tasks einbauen?"
+- Vermeide generische Fragen wie "Was ist dein Ziel?" — frag konkret, z.B. "Hast du ein Zeitfenster im Kopf?", "Material schon da oder soll ich Beschaffungs-Tasks einbauen?", "Soll das andere Haushaltsmitglied beteiligt sein?"
+- Wichtig: Wenn der eingeloggte User bekannt ist, formuliere Fragen in der Du-Form des eingeloggten Users — also NICHT "Soll Tim das machen?" wenn Tim gerade eingeloggt ist, sondern "Willst du das selbst erledigen oder soll jemand anderes helfen?"
 - Wenn schon eine Klarifikations-Runde stattgefunden hat und die Antworten meist beantwortet haben: needs_clarification = false (nicht endlos nachfragen).
 - Hard-Limit: maximal 2 Runden — der Frontend zwingt nach Runde 2 zur Strukturierung. Wenn previous_rounds bereits 2 enthält, IMMER needs_clarification = false.
 
@@ -363,7 +364,7 @@ Output AUSSCHLIESSLICH als JSON, ohne Markdown-Code-Fence:
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ detail: "Method not allowed" });
 
-  const { user_id, text, mode = "grocery" } = req.body || {};
+  const { user_id, text, mode = "grocery", user_name } = req.body || {};
   if (!text?.trim()) return res.status(400).json({ detail: "Text darf nicht leer sein." });
   const maxLen = ['project_plan_clarify', 'project_plan_structure', 'project_note', 'project_review'].includes(mode) ? 5000 : 500;
   if (text.length > maxLen) return res.status(400).json({ detail: `Text zu lang (max. ${maxLen} Zeichen).` });
@@ -381,7 +382,7 @@ export default async function handler(req, res) {
 
   const today = new Date().toISOString().split("T")[0];
   let systemPrompt =
-    mode === "project_plan_clarify" ? PROMPT_PROJECT_PLAN_CLARIFY :
+    mode === "project_plan_clarify" ? (user_name ? `Der eingeloggte User ist: ${user_name}. Der andere Haushaltsmitglied ist: ${user_name === 'Tim' ? 'Iris' : 'Tim'}.\n\n` + PROMPT_PROJECT_PLAN_CLARIFY : PROMPT_PROJECT_PLAN_CLARIFY) :
     mode === "project_plan_structure" ? PROMPT_PROJECT_PLAN_STRUCTURE :
     mode === "project_note" ? PROMPT_PROJECT_NOTE :
     mode === "asia" ? PROMPT_ASIA :

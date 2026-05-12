@@ -83,6 +83,7 @@ export default function PlanNewProjectPage() {
           user_id: user?.id,
           text: JSON.stringify({ brain_dump: brainDump, previous_rounds: [] }),
           mode: 'project_plan_clarify',
+          user_name: member?.display_name,
         }),
       });
       if (!res.ok) {
@@ -133,6 +134,7 @@ export default function PlanNewProjectPage() {
           user_id: user?.id,
           text: JSON.stringify({ brain_dump: brainDump, previous_rounds: rounds }),
           mode: 'project_plan_clarify',
+          user_name: member?.display_name,
         }),
       });
       if (!res.ok) {
@@ -166,6 +168,7 @@ export default function PlanNewProjectPage() {
           user_id: user?.id,
           text: JSON.stringify({ brain_dump: brainDump, rounds }),
           mode: 'project_plan_structure',
+          user_name: member?.display_name,
         }),
       });
       if (!res.ok) {
