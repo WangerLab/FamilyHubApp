@@ -285,6 +285,18 @@ export const ProjectsProvider = ({ children }) => {
     setMicrotasks((prev) => (prev.some((m) => m.id === id) ? prev : [...prev, task]));
   };
 
+  const applyReviewSuggestions = async (projectId, suggestions) => {
+    if (!projectId || !Array.isArray(suggestions) || suggestions.length === 0) {
+      return { applied: 0 };
+    }
+    const { data, error } = await supabase.rpc('apply_review_suggestions', {
+      p_project_id: projectId,
+      p_suggestions: suggestions,
+    });
+    if (error) throw error;
+    return data || { applied: 0 };
+  };
+
   const memberColorMap = {};
   const memberNameMap = {};
   houseMembers.forEach((m) => {
@@ -304,6 +316,7 @@ export const ProjectsProvider = ({ children }) => {
         restoreProject, restoreCluster, restoreMicrotask,
         softDeleteProject, softDeleteCluster, softDeleteMicrotask,
         softDeleteMicrotaskWithUndo, undoMicrotaskDelete, pendingMicrotaskDelete,
+        applyReviewSuggestions,
       }}
     >
       {children}
