@@ -51,12 +51,13 @@ export default function PlanModeHubPage() {
           </div>
         </button>
 
-        <div
-          aria-disabled="true"
-          className="w-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 flex items-start gap-3 opacity-60 cursor-not-allowed relative"
+        <button
+          type="button"
+          onClick={() => navigate('/projects/review')}
+          className="w-full rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 text-left active:opacity-70 flex items-start gap-3"
           data-testid="plan-mode-card-review"
         >
-          <ClipboardCheck className="w-6 h-6 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
+          <ClipboardCheck className="w-6 h-6 text-rose-500 flex-shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <h2
               className="text-base font-semibold text-slate-900 dark:text-slate-50"
@@ -68,10 +69,7 @@ export default function PlanModeHubPage() {
               Mid-Project-Check mit KI-Vorschlägen.
             </p>
           </div>
-          <span className="absolute top-3 right-3 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 rounded-full px-2 py-0.5">
-            Bald verfügbar
-          </span>
-        </div>
+        </button>
       </div>
     </div>
   );
