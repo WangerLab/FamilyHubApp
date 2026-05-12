@@ -297,6 +297,15 @@ export const ProjectsProvider = ({ children }) => {
     return data || { applied: 0 };
   };
 
+  const setPriorityProject = async (projectId, priorityStart = null, priorityEnd = null) => {
+    const { error } = await supabase.rpc('set_priority_project', {
+      p_project_id: projectId,
+      p_priority_start: priorityStart,
+      p_priority_end: priorityEnd,
+    });
+    if (error) throw error;
+  };
+
   const memberColorMap = {};
   const memberNameMap = {};
   houseMembers.forEach((m) => {
@@ -316,7 +325,7 @@ export const ProjectsProvider = ({ children }) => {
         restoreProject, restoreCluster, restoreMicrotask,
         softDeleteProject, softDeleteCluster, softDeleteMicrotask,
         softDeleteMicrotaskWithUndo, undoMicrotaskDelete, pendingMicrotaskDelete,
-        applyReviewSuggestions,
+        applyReviewSuggestions, setPriorityProject,
       }}
     >
       {children}
