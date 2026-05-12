@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { computeClusterProgress } from '../../lib/projectProgress';
 import { useProjects } from '../../contexts/ProjectsContext';
 import MicrotaskRow from './MicrotaskRow';
 import AddMicrotaskForm from './AddMicrotaskForm';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function ClusterCard({ cluster, microtasks, projectId }) {
   const [expanded, setExpanded] = useState(true);
   const [addingTask, setAddingTask] = useState(false);
-  const { toggleMicrotaskComplete } = useProjects();
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const { toggleMicrotaskComplete, softDeleteCluster } = useProjects();
   const { percent, hasNoTasks } = computeClusterProgress(cluster.id, microtasks);
 
   const clusterTasks = microtasks
@@ -23,46 +25,67 @@ export default function ClusterCard({ cluster, microtasks, projectId }) {
     }
   }
 
+  async function handleConfirmDelete() {
+    try {
+      await softDeleteCluster(cluster.id);
+      setConfirmDeleteOpen(false);
+    } catch (e) {
+      // Realtime brings DB state on next tick — silent for now
+      setConfirmDeleteOpen(false);
+    }
+  }
+
   return (
     <div
       data-testid={`cluster-card-${cluster.id}`}
       className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden"
     >
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-3 p-4 active:opacity-80"
-        aria-expanded={expanded}
-      >
-        {expanded ? (
-          <ChevronDown className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-        ) : (
-          <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
-        )}
-        <div className="flex-1 text-left min-w-0">
-          <h3
-            className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate"
-            style={{ fontFamily: 'Manrope, sans-serif' }}
-          >
-            {cluster.name}
-          </h3>
-          {cluster.description && (
-            <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">
-              {cluster.description}
-            </p>
+      <div className="w-full flex items-center gap-3 p-4">
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex-1 flex items-center gap-3 text-left active:opacity-80 min-w-0"
+          aria-expanded={expanded}
+          aria-label={expanded ? `${cluster.name} einklappen` : `${cluster.name} ausklappen`}
+        >
+          {expanded ? (
+            <ChevronDown className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-slate-500 dark:text-slate-400 flex-shrink-0" />
           )}
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-rose-500"
-                style={{ width: `${percent}%` }}
-              />
+          <div className="flex-1 text-left min-w-0">
+            <h3
+              className="text-base font-semibold text-slate-900 dark:text-slate-50 truncate"
+              style={{ fontFamily: 'Manrope, sans-serif' }}
+            >
+              {cluster.name}
+            </h3>
+            {cluster.description && (
+              <p className="text-xs text-slate-600 dark:text-slate-400 truncate mt-0.5">
+                {cluster.description}
+              </p>
+            )}
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-rose-500"
+                  style={{ width: `${percent}%` }}
+                />
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 w-10 text-right">
+                {hasNoTasks ? '—' : `${percent}%`}
+              </span>
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400 w-10 text-right">
-              {hasNoTasks ? '—' : `${percent}%`}
-            </span>
           </div>
-        </div>
-      </button>
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirmDeleteOpen(true)}
+          className="p-1.5 rounded-lg active:opacity-70 flex-shrink-0"
+          aria-label="Cluster löschen"
+        >
+          <Trash2 className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+        </button>
+      </div>
 
       {expanded && (
         <div className="px-4 pb-3 border-t border-slate-200 dark:border-slate-800 pt-2">
@@ -96,6 +119,18 @@ export default function ClusterCard({ cluster, microtasks, projectId }) {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmDeleteOpen(false)}
+        title="Cluster löschen?"
+        message={
+          clusterTasks.length === 0
+            ? 'Dieser Cluster enthält keine Aufgaben. Trotzdem löschen?'
+            : `${clusterTasks.length} ${clusterTasks.length === 1 ? 'Aufgabe wird' : 'Aufgaben werden'} mitgelöscht.`
+        }
+      />
     </div>
   );
 }
