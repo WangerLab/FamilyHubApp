@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from './AuthContext';
-import { celebrateClusterComplete } from '../lib/confetti';
-import { computeClusterProgress } from '../lib/projectProgress';
+import { celebrateClusterComplete, celebrateProjectComplete } from '../lib/confetti';
+import { computeClusterProgress, computeProjectProgress } from '../lib/projectProgress';
 
 const ProjectsContext = createContext(null);
 
@@ -196,17 +196,24 @@ export const ProjectsProvider = ({ children }) => {
   // outside the general update allowlists; these are specialized operations.
   const toggleMicrotaskComplete = async (id, currentlyCompleted) => {
     const clusterId = microtasks.find((m) => m.id === id)?.cluster_id;
+    const projectId = clusterId ? clusters.find((c) => c.id === clusterId)?.project_id : null;
     const preProgress = clusterId ? computeClusterProgress(clusterId, microtasks).percent : null;
+    const preProjectProgress = projectId ? computeProjectProgress(projectId, clusters, microtasks).percent : null;
     const patch = currentlyCompleted
       ? { completed: false, completed_at: null, completed_by: null }
       : { completed: true, completed_at: new Date().toISOString(), completed_by: user?.id };
     const { data, error } = await supabase.from('project_microtasks').update(patch).eq('id', id).select().single();
     if (error) throw error;
     touchProjectViaCluster(data.cluster_id);
-    if (!currentlyCompleted && clusterId && preProgress !== null && preProgress < 100) {
+    if (!currentlyCompleted) {
       const simulated = microtasks.map((m) => (m.id === id ? data : m));
-      const postProgress = computeClusterProgress(data.cluster_id, simulated).percent;
-      if (postProgress >= 100) {
+      const postProjectProgress = projectId ? computeProjectProgress(projectId, clusters, simulated).percent : null;
+      const postProgress = clusterId ? computeClusterProgress(data.cluster_id, simulated).percent : null;
+      if (projectId && preProjectProgress !== null && preProjectProgress < 100 && postProjectProgress >= 100) {
+        // Project complete cascade — supersedes cluster confetti
+        try { await updateProject(projectId, { archived: true, archived_at: new Date().toISOString() }); } catch (e) { /* never break toggle on archive error */ }
+        try { celebrateProjectComplete(); } catch (e) { /* never break toggle on animation error */ }
+      } else if (clusterId && preProgress !== null && preProgress < 100 && postProgress >= 100) {
         try { celebrateClusterComplete(); } catch (e) { /* never break toggle on animation error */ }
       }
     }
