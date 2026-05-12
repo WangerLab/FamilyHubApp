@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, Plus, Trash2, Star } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import { computeProjectProgress } from '../../lib/projectProgress';
 import ClusterCard from '../projects/ClusterCard';
 import AddClusterForm from '../projects/AddClusterForm';
 import UndoSnackbar from '../projects/UndoSnackbar';
 import ConfirmDialog from '../projects/ConfirmDialog';
+import PrioRangeSheet from '../projects/PrioRangeSheet';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { projects, clusters, microtasks, loading, pendingMicrotaskDelete, undoMicrotaskDelete, softDeleteProject } = useProjects();
+  const { projects, clusters, microtasks, loading, pendingMicrotaskDelete, undoMicrotaskDelete, softDeleteProject, setPriorityProject } = useProjects();
 
   const project = projects.find((p) => p.id === id);
   const projectClusters = clusters
@@ -22,6 +23,8 @@ export default function ProjectDetailPage() {
   ).length;
   const [addingCluster, setAddingCluster] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [showPrioSheet, setShowPrioSheet] = useState(false);
+  const [showRemovePrioConfirm, setShowRemovePrioConfirm] = useState(false);
 
   async function handleConfirmDelete() {
     try {
@@ -33,6 +36,14 @@ export default function ProjectDetailPage() {
       setConfirmDeleteOpen(false);
     }
   }
+  const handleStarClick = () => {
+    if (project?.priority) {
+      setShowRemovePrioConfirm(true);
+    } else {
+      setShowPrioSheet(true);
+    }
+  };
+
   const { percent, hasNoTasks } = project
     ? computeProjectProgress(project.id, clusters, microtasks)
     : { percent: 0, hasNoTasks: true };
@@ -96,6 +107,14 @@ export default function ProjectDetailPage() {
         >
           {project.name}
         </h1>
+        <button
+          type="button"
+          onClick={handleStarClick}
+          className="p-2 rounded-lg active:opacity-70"
+          aria-label={project?.priority ? 'Prio entfernen' : 'Als Prio setzen'}
+        >
+          <Star className={`w-5 h-5 ${project?.priority ? 'text-rose-500 fill-rose-500' : 'text-slate-400 dark:text-slate-500'}`} />
+        </button>
         <button
           type="button"
           onClick={() => setConfirmDeleteOpen(true)}
@@ -176,6 +195,34 @@ export default function ProjectDetailPage() {
             ? 'Dieses Projekt enthält keine Cluster. Trotzdem löschen?'
             : `${projectClusters.length} ${projectClusters.length === 1 ? 'Cluster' : 'Cluster'} mit ${projectMicrotaskCount} ${projectMicrotaskCount === 1 ? 'Aufgabe' : 'Aufgaben'} werden mitgelöscht.`
         }
+      />
+      <PrioRangeSheet
+        isOpen={showPrioSheet}
+        onClose={() => setShowPrioSheet(false)}
+        onSubmit={async ({ priority_start, priority_end }) => {
+          try {
+            await setPriorityProject(project.id, priority_start, priority_end);
+            setShowPrioSheet(false);
+          } catch (err) {
+            console.error('setPriorityProject failed:', err);
+          }
+        }}
+        initialStart={project?.priority_start || null}
+        initialEnd={project?.priority_end || null}
+      />
+      <ConfirmDialog
+        open={showRemovePrioConfirm}
+        onConfirm={async () => {
+          try {
+            await setPriorityProject(null);
+            setShowRemovePrioConfirm(false);
+          } catch (err) {
+            console.error('setPriorityProject(null) failed:', err);
+          }
+        }}
+        onCancel={() => setShowRemovePrioConfirm(false)}
+        title="Prio entfernen?"
+        message={`„${project?.name}" wird nicht mehr als Prio-Projekt markiert.`}
       />
     </div>
   );
