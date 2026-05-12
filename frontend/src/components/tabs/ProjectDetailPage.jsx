@@ -5,11 +5,12 @@ import { useProjects } from '../../contexts/ProjectsContext';
 import { computeProjectProgress } from '../../lib/projectProgress';
 import ClusterCard from '../projects/ClusterCard';
 import AddClusterForm from '../projects/AddClusterForm';
+import UndoSnackbar from '../projects/UndoSnackbar';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { projects, clusters, microtasks, loading } = useProjects();
+  const { projects, clusters, microtasks, loading, pendingMicrotaskDelete, undoMicrotaskDelete } = useProjects();
 
   const project = projects.find((p) => p.id === id);
   const projectClusters = clusters
@@ -136,6 +137,10 @@ export default function ProjectDetailPage() {
           </button>
         )}
       </div>
+
+      {pendingMicrotaskDelete && (
+        <UndoSnackbar name={pendingMicrotaskDelete.task.title} onUndo={undoMicrotaskDelete} />
+      )}
     </div>
   );
 }
