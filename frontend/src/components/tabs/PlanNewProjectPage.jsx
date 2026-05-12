@@ -6,27 +6,13 @@ import ConfirmDialog from '../projects/ConfirmDialog';
 import BrainDumpStep from '../projects/BrainDumpStep';
 import ClarificationStep from '../projects/ClarificationStep';
 import StructuringStep from '../projects/StructuringStep';
+import DraftReviewStep from '../projects/DraftReviewStep';
 
 const PHASE_NUMBERS = {
   brain_dump: 1,
   clarifying: 2,
   structuring: 3,
   draft_review: 4,
-};
-
-const MOCK_DRAFT = {
-  name: 'Mock Projekt',
-  summary: 'Wird in Commit 6 echt befüllt.',
-  clusters: [
-    {
-      id: 'c-1',
-      name: 'Beispiel-Cluster',
-      description: 'Mock-Daten',
-      microtasks: [
-        { id: 'mt-1', title: 'Mock-Task', description: '', effort_weight: 2, depends_on: [], suggested_for: null },
-      ],
-    },
-  ],
 };
 
 export default function PlanNewProjectPage() {
@@ -178,6 +164,36 @@ export default function PlanNewProjectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, draft, loading, error]);
 
+  function handleRemoveTask(clusterId, taskId) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        clusters: prev.clusters.map((c) =>
+          c.id === clusterId
+            ? { ...c, microtasks: c.microtasks.filter((t) => t.id !== taskId) }
+            : c
+        ),
+      };
+    });
+  }
+
+  function handleRemoveCluster(clusterId) {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        clusters: prev.clusters.filter((c) => c.id !== clusterId),
+      };
+    });
+  }
+
+  function handleAccept() {
+    // Stub für Commit 7 — Commit 8 macht echten Insert + Navigate
+    console.log('Akzeptieren-Stub: würde Draft jetzt in DB schreiben', draft);
+    alert('Akzeptieren ist in Commit 8 echt — siehe Console für aktuellen Draft.');
+  }
+
   return (
     <div
       data-testid="plan-new-project-page"
@@ -231,14 +247,13 @@ export default function PlanNewProjectPage() {
           />
         )}
         {phase === 'draft_review' && (
-          <div className="space-y-3">
-            <p className="text-sm text-slate-500 italic">Draft Review UI kommt in Commit 7.</p>
-            {draft && (
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Mock-Draft: {draft.name} ({draft.clusters.length} Cluster)
-              </p>
-            )}
-          </div>
+          <DraftReviewStep
+            draft={draft}
+            onRemoveTask={handleRemoveTask}
+            onRemoveCluster={handleRemoveCluster}
+            onAccept={handleAccept}
+            accepting={false}
+          />
         )}
       </div>
 
