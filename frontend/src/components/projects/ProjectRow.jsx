@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import { computeProjectProgress } from '../../lib/projectProgress';
 
 export default function ProjectRow({ project, clusters, microtasks }) {
@@ -10,8 +11,11 @@ export default function ProjectRow({ project, clusters, microtasks }) {
     <div
       data-testid={`project-row-${project.id}`}
       onClick={() => navigate(`/projects/${project.id}`)}
-      className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 cursor-pointer active:opacity-80"
+      className="relative rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 cursor-pointer active:opacity-80"
     >
+      {project.priority && (
+        <Star className="absolute top-2 right-2 w-4 h-4 text-rose-500 fill-rose-500" aria-label="Prio-Projekt" />
+      )}
       <h3
         className="text-base font-semibold text-slate-900 dark:text-slate-50"
         style={{ fontFamily: 'Manrope, sans-serif' }}
