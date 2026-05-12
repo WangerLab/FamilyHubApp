@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Plus, ChevronDown, ChevronRight, Pencil, Check } from 'lucide-react';
+import { ChevronLeft, Plus, ChevronDown, ChevronRight, Pencil, Check, Sparkles } from 'lucide-react';
 import { useProjects } from '../../contexts/ProjectsContext';
 import InlineTitleEditor from '../projects/InlineTitleEditor';
 import InlineTextareaEditor from '../projects/InlineTextareaEditor';
 import EffortWeightStepper from '../projects/EffortWeightStepper';
 import DependencyToggleList from '../projects/DependencyToggleList';
+import NoteBrainDumpSheet from '../projects/NoteBrainDumpSheet';
 
 const SUGGESTED_FOR_OPTIONS = [
   { value: 'tim', label: 'Tim', color: '#EC4899' },
@@ -22,6 +23,7 @@ export default function MicrotaskDetailPage() {
   const [editingNote, setEditingNote] = useState(false);
   const [moreDetailsExpanded, setMoreDetailsExpanded] = useState(false);
   const [editingDependencies, setEditingDependencies] = useState(false);
+  const [noteBrainOpen, setNoteBrainOpen] = useState(false);
 
   const project = projects.find((p) => p.id === projectId);
   const task = microtasks.find((m) => m.id === taskId);
@@ -59,6 +61,16 @@ export default function MicrotaskDetailPage() {
   async function handleSaveNote(newValue) {
     await updateMicrotask(task.id, { note: newValue });
     setEditingNote(false);
+  }
+
+  async function handleNoteBrainResult({ note_markdown, follow_ups, appendChoice }) {
+    if (!task) return;
+    const newNote = appendChoice === 'append' && task.note
+      ? `${task.note}\n\n---\n\n${note_markdown}`
+      : note_markdown;
+    await updateMicrotask(task.id, { note: newNote });
+    // follow_ups werden in Commit 4 verarbeitet — vorerst ignorieren
+    setNoteBrainOpen(false);
   }
 
   async function handleEffortChange(newValue) {
@@ -255,6 +267,18 @@ export default function MicrotaskDetailPage() {
         <div>
           <button
             type="button"
+            onClick={() => setNoteBrainOpen(true)}
+            className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 active:opacity-70"
+            aria-label="Brain Dump für Notiz öffnen"
+          >
+            <Sparkles className="w-4 h-4" />
+            Brain Dump
+          </button>
+        </div>
+
+        <div>
+          <button
+            type="button"
             onClick={() => setMoreDetailsExpanded((v) => !v)}
             className="w-full flex items-center justify-between text-left active:opacity-70 py-2"
             aria-expanded={moreDetailsExpanded}
@@ -370,6 +394,13 @@ export default function MicrotaskDetailPage() {
           )}
         </div>
       </div>
+
+      <NoteBrainDumpSheet
+        open={noteBrainOpen}
+        onClose={() => setNoteBrainOpen(false)}
+        existingNote={task?.note || null}
+        onResult={handleNoteBrainResult}
+      />
     </div>
   );
 }
