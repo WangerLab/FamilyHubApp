@@ -7,6 +7,7 @@ import { filterStaleSuggestions } from '../../lib/reviewSuggestions';
 import { buildReviewContext } from '../../lib/reviewContext';
 import ProjectPickerStep from '../projects/ProjectPickerStep';
 import ContextDumpStep from '../projects/ContextDumpStep';
+import SuggestionsReviewStep from '../projects/SuggestionsReviewStep';
 
 const PHASE_TITLES = {
   project_picker: 'Projekt wählen',
@@ -23,7 +24,7 @@ const PHASE_NUMBERS = {
 export default function ReviewProjectPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { clusters, microtasks } = useProjects();
+  const { clusters, microtasks, applyReviewSuggestions } = useProjects();
 
   const [phase, setPhase] = useState('project_picker');
   const [selectedProject, setSelectedProject] = useState(null);
@@ -31,6 +32,22 @@ export default function ReviewProjectPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [staleCount, setStaleCount] = useState(0);
+  const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState('');
+
+  const handleApply = async (selectedSuggestions) => {
+    if (!selectedProject) return;
+    setApplying(true);
+    setApplyError('');
+    try {
+      await applyReviewSuggestions(selectedProject.id, selectedSuggestions);
+      navigate(`/projects/${selectedProject.id}`);
+    } catch (e) {
+      setApplyError(e?.message || 'Anwenden fehlgeschlagen.');
+    } finally {
+      setApplying(false);
+    }
+  };
 
   const handlePick = (project) => {
     setSelectedProject(project);
@@ -131,19 +148,15 @@ export default function ReviewProjectPage() {
       )}
 
       {phase === 'suggestions_review' && (
-        <div className="px-4 pt-4 space-y-3">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            {suggestions.length} Vorschläge erhalten
-            {staleCount > 0 ? ` (${staleCount} verworfen)` : ''}.
-            UI dafür kommt in Commit 8b — vorerst Roh-JSON:
-          </p>
-          <pre
-            data-testid="review-raw-json"
-            className="text-[10px] bg-slate-100 dark:bg-slate-900 p-3 rounded-lg overflow-auto max-h-96"
-          >
-            {JSON.stringify(suggestions, null, 2)}
-          </pre>
-        </div>
+        <SuggestionsReviewStep
+          suggestions={suggestions}
+          staleCount={staleCount}
+          clusters={clusters}
+          microtasks={microtasks}
+          onApply={handleApply}
+          applying={applying}
+          errorMessage={applyError}
+        />
       )}
     </div>
   );
