@@ -104,6 +104,18 @@ export default function ShoppingTab() {
         groups[cat.name] = [...catItems].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       }
     });
+    // Fallback: items with unknown category (e.g. AI-invented) go into __uncategorized__
+    const knownCats = new Set(CATEGORIES.map((c) => c.name));
+    const orphans = grocery.items.filter((i) => !knownCats.has(i.category));
+    if (orphans.length) {
+      if (grocery.shoppingMode) {
+        const unchecked = orphans.filter((i) => !i.checked).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        if (unchecked.length) groups['__uncategorized__'] = unchecked;
+        done.push(...orphans.filter((i) => i.checked));
+      } else {
+        groups['__uncategorized__'] = [...orphans].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      }
+    }
     // Sort done items newest-first so last-checked appears at top of done section
     done.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     return { groupedGrocery: groups, doneGroceryItems: done };
@@ -125,6 +137,18 @@ export default function ShoppingTab() {
         groups[cat.name] = [...catItems].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       }
     });
+    // Fallback: items with unknown category (e.g. AI-invented) go into __uncategorized__
+    const knownCats = new Set(ASIA_CATEGORIES.map((c) => c.name));
+    const orphans = asia.items.filter((i) => !knownCats.has(i.category));
+    if (orphans.length) {
+      if (asia.shoppingMode) {
+        const unchecked = orphans.filter((i) => !i.checked).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        if (unchecked.length) groups['__uncategorized__'] = unchecked;
+        done.push(...orphans.filter((i) => i.checked));
+      } else {
+        groups['__uncategorized__'] = [...orphans].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      }
+    }
     done.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     return { groupedAsia: groups, doneAsiaItems: done };
   }, [asia.items, asia.shoppingMode]);
@@ -350,6 +374,31 @@ export default function ShoppingTab() {
                 </div>
               );
             })}
+            {/* Sonstiges pseudo-section — items with unknown category (AI-invented) */}
+            {groupedGrocery['__uncategorized__']?.length > 0 && (
+              <div key="__uncategorized__" data-category-id="__uncategorized__" style={{ scrollMarginTop: catStickyTop }}>
+                <div
+                  className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-800 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+                  style={{ top: catStickyTop }}
+                >
+                  <span className="text-base">📦</span>
+                  <span
+                    className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    Sonstiges
+                  </span>
+                  <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                    {groupedGrocery['__uncategorized__'].filter((i) => !i.checked).length}/{groupedGrocery['__uncategorized__'].length}
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {groupedGrocery['__uncategorized__'].map((item) => (
+                    <GroceryItemRow key={item.id} item={item} shoppingMode={grocery.shoppingMode} />
+                  ))}
+                </div>
+              </div>
+            )}
             {/* ✅ Erledigt pseudo-section — Shopping-Mode only, only if anything checked */}
             {grocery.shoppingMode && doneGroceryItems.length > 0 && (
               <div key="__done__" data-category-id="__done__" style={{ scrollMarginTop: catStickyTop }}>
@@ -415,6 +464,31 @@ export default function ShoppingTab() {
                 </div>
               );
             })}
+            {/* Sonstiges pseudo-section — items with unknown category (AI-invented) */}
+            {groupedAsia['__uncategorized__']?.length > 0 && (
+              <div key="__uncategorized__" data-asia-category-id="__uncategorized__" style={{ scrollMarginTop: catStickyTop }}>
+                <div
+                  className="sticky z-30 flex items-center gap-2 px-4 py-1.5 bg-slate-100/95 dark:bg-slate-800 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800"
+                  style={{ top: catStickyTop }}
+                >
+                  <span className="text-base">📦</span>
+                  <span
+                    className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+                    style={{ fontFamily: 'Manrope, sans-serif' }}
+                  >
+                    Sonstiges
+                  </span>
+                  <span className="ml-auto text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+                    {groupedAsia['__uncategorized__'].filter((i) => !i.checked).length}/{groupedAsia['__uncategorized__'].length}
+                  </span>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {groupedAsia['__uncategorized__'].map((item) => (
+                    <GroceryItemRow key={item.id} item={item} shoppingMode={asia.shoppingMode} useContextHook={useAsia} />
+                  ))}
+                </div>
+              </div>
+            )}
             {asia.shoppingMode && doneAsiaItems.length > 0 && (
               <div key="__done__" data-asia-category-id="__done__" style={{ scrollMarginTop: catStickyTop }}>
                 <div
