@@ -31,13 +31,13 @@ export default function ProjectsTile() {
 
   return (
     <div className="flex-1 flex flex-col justify-between min-w-0">
-      <div>
-        <p className="text-3xl font-bold text-slate-900 dark:text-slate-50 leading-none">
+      <div className="flex items-center gap-2">
+        <span className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 rounded-full text-base font-bold tabular-nums border-[1.5px] border-rose-500 text-rose-600 dark:text-rose-400">
           {activeProjects.length}
-        </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        </span>
+        <span className="text-xs text-slate-500 dark:text-slate-400">
           {activeProjects.length === 1 ? 'Projekt' : 'Projekte'}
-        </p>
+        </span>
       </div>
 
       {priorityProject && (
